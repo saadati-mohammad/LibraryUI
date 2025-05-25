@@ -3,7 +3,7 @@ import { PageNotFoundComponent } from './shared/component/page-not-found/page-no
 import { BaseLayoutComponent } from './layout/base-layout/base-layout.component';
 
 export const routes: Routes = [
-    { path: '', loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent) },
+    // { path: '', loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent) },
     {
         path: '', component: BaseLayoutComponent,
         children: [

@@ -1,0 +1,42 @@
+:root {
+    --theme-primary-bg: #0a192f;
+    --theme-secondary-bg: #172a45;
+    --theme-tertiary-bg: #0f2340;
+    --theme-accent-gold: #d4af37;
+    --theme-accent-gold-transparent: rgba(212, 175, 55, 0.1);
+    --theme-accent-gold-glow: rgba(212, 175, 55, 0.4);
+    --theme-text-primary: #ccd6f6;
+    --theme-text-secondary: #8892b0;
+    --theme-border-color: rgba(212, 175, 55, 0.2);
+    --theme-sidebar-bg: #0f2340;
+    --sidebar-bg: #0f2340;
+    --theme-status-active-color: #64ffda;
+    --theme-status-active-bg: rgba(100, 255, 218, 0.1);
+    --theme-status-due-soon-color: #ffc107;
+    --theme-status-due-soon-bg: rgba(255, 193, 7, 0.1);
+    --theme-status-overdue-color: #f06292;
+    --theme-status-overdue-bg: rgba(240, 98, 146, 0.1);
+    --theme-status-returned-color: #8892b0;
+    --theme-status-returned-bg: rgba(136, 146, 176, 0.1);
+    --theme-danger-color: #e74c3c;
+    --theme-danger-color-transparent: rgba(231, 76, 60, 0.1);
+    --hover-glow: 0 0 15px var(--theme-accent-gold-glow);
+    --status-active-color: #64ffda;
+    --status-active-bg: rgba(100, 255, 218, 0.1);
+    --status-due-soon-color: #cb9800;
+    --status-due-soon-bg: rgba(255, 193, 7, 0.1);
+    --status-overdue-color: #f06292;
+    --status-overdue-bg: rgba(240, 98, 146, 0.1);
+    --status-returned-color: #8892b0;
+    --status-returned-bg: rgba(136, 146, 176, 0.1);
+    --font-primary: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --base-font-size: 16px;
+    --border-radius-main: 12px;
+    --border-radius-small: 8px;
+    --card-padding: 25px;
+    --section-padding: 30px;
+    --transition-speed: 0.3s;
+    --modal-transition: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+}
+
