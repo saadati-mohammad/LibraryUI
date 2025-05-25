@@ -1,27 +1,23 @@
 import { Routes } from '@angular/router';
-import { BookComponent } from './features/book/book.component';
-import { CatalogComponent } from './features/catalog/catalog.component';
-import { LoanComponent } from './features/loan/loan.component';
-import { MemberComponent } from './features/member/member.component';
-import { ProfileComponent } from './features/profile/profile.component';
-import { ReportComponent } from './features/report/report.component';
-import { ReservationComponent } from './features/reservation/reservation.component';
-import { SystemSettingComponent } from './features/system-setting/system-setting.component';
 import { PageNotFoundComponent } from './shared/component/page-not-found/page-not-found.component';
-import { AuthComponent } from './features/auth/auth.component';
-import { HomeComponent } from './features/home/home.component';
+import { BaseLayoutComponent } from './layout/base-layout/base-layout.component';
 
 export const routes: Routes = [
-    {path: 'home', component: HomeComponent},
-    {path: 'auth', component: AuthComponent},
-    {path: 'book', component: BookComponent},
-    {path: 'catalog', component: CatalogComponent},
-    {path: 'loan', component: LoanComponent},
-    {path: 'member', component: MemberComponent},
-    {path: 'profile', component: ProfileComponent},
-    {path: 'report', component: ReportComponent},
-    {path: 'reservation', component: ReservationComponent},
-    {path: 'systemSetting', component: SystemSettingComponent},
-    {path: '',redirectTo: '/home', pathMatch: 'full'},
-    {path: '**', component: PageNotFoundComponent},
+    { path: '', loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent) },
+    {
+        path: '', component: BaseLayoutComponent,
+        children: [
+            { path: 'catalog', loadComponent: () => import('./features/catalog/catalog.component').then(m => m.CatalogComponent) },
+            { path: 'auth', loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent) },
+            { path: 'book', loadComponent: () => import('./features/book/book.component').then(m => m.BookComponent) },
+            { path: 'loan', loadComponent: () => import('./features/loan/loan.component').then(m => m.LoanComponent) },
+            { path: 'member', loadComponent: () => import('./features/member/member.component').then(m => m.MemberComponent) },
+            { path: 'profile', loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent) },
+            { path: 'reservation', loadComponent: () => import('./features/reservation/reservation.component').then(m => m.ReservationComponent) },
+            { path: 'report', loadComponent: () => import('./features/report/report.component').then(m => m.ReportComponent) },
+            { path: 'systemSetting', loadComponent: () => import('./features/system-setting/system-setting.component').then(m => m.SystemSettingComponent) },
+        ]
+    },
+    { path: '**', component: PageNotFoundComponent },
+    // {path: '',redirectTo: '/home', pathMatch: 'full'},
 ];
