@@ -1,338 +1,150 @@
-        :root {
-            /* Default Dark Theme Variables */
-            --theme-primary-bg: #0a192f;
-            --theme-secondary-bg: #172a45;
-            --theme-tertiary-bg: #0f2340; /* Used for elements like settings nav */
-            --theme-accent-gold: #d4af37;
-            --theme-accent-gold-transparent: rgba(212, 175, 55, 0.1);
-            --theme-accent-gold-glow: rgba(212, 175, 55, 0.4);
-            --theme-text-primary: #ccd6f6;
-            --theme-text-secondary: #8892b0;
-            --theme-border-color: rgba(212, 175, 55, 0.2);
-            --theme-sidebar-bg: #0f2340;
-            --sidebar-bg: #0f2340;
-            --theme-status-active-color: #64ffda;
-            --theme-status-active-bg: rgba(100, 255, 218, 0.1);
-            --theme-status-due-soon-color: #ffc107;
-            --theme-status-due-soon-bg: rgba(255, 193, 7, 0.1);
-            --theme-status-overdue-color: #f06292;
-            --theme-status-overdue-bg: rgba(240, 98, 146, 0.1);
-            --theme-status-returned-color: #8892b0;
-            --theme-status-returned-bg: rgba(136, 146, 176, 0.1);
-            --theme-danger-color: #e74c3c;
-            --theme-danger-color-transparent: rgba(231, 76, 60, 0.1);
+:host {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  font-family: 'Vazirmatn', sans-serif;
+}
 
-            --hover-glow: 0 0 15px var(--theme-accent-gold-glow);
+.app-header {
+  background-color: #0a192f;
+  color: #ccd6f6;
+  height: 64px;
+  padding: 0 24px;
 
-            --status-active-color: #64ffda; /* Teal for 'Active/Ongoing' */
-            --status-active-bg: rgba(100, 255, 218, 0.1);
-            /* --status-due-soon-color: #ffc107;  Amber for 'Due Soon' */
-            --status-due-soon-color: #cb9800;; /* Amber for 'Due Soon' */
-            --status-due-soon-bg: rgba(255, 193, 7, 0.1);
-            --status-overdue-color: #f06292; /* Pink/Soft Red for 'Overdue' */
-            --status-overdue-bg: rgba(240, 98, 146, 0.1);
-            --status-returned-color: #8892b0; /* Gray for 'Returned' */
-            --status-returned-bg: rgba(136, 146, 176, 0.1);
+  .header-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    flex-direction: column;
+  }
 
-            --font-primary: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            --base-font-size: 16px;
-            --border-radius-main: 12px;
-            --border-radius-small: 8px;
-            --card-padding: 25px;
-            --section-padding: 30px;
-            --transition-speed: 0.3s;
-            --modal-transition: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  .logo-container {
+    display: flex;
+    align-items: center;
+    margin-left: 24px;
+
+    .app-logo {
+      height: 40px;
+      margin-left: 12px;
+    }
+
+    .app-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #d4af37;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .nav-links-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    a[mat-button] {
+      color: #d7d7d7;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+      line-height: normal;
+      font-weight: bold;
+
+      mat-icon {
+        margin-left: 8px;
+        font-size: 20px;
+        vertical-align: middle;
+      }
+
+      span {
+        vertical-align: middle;
+      }
+
+      &:hover {
+        background-color: #172a45;
+        color: #d4af37;
+        transform: translateY(-2px);
+        font-weight: bolder;
+      }
+
+      &.active-nav-link {
+        background-color: transparent;
+        color: #d4af37;
+        font-weight: bold;
+        box-shadow: inset 0 -3px 0 #d4af37;
+
+        mat-icon {
+          color: #d4af37;
         }
+      }
+    }
+  }
 
-        /* --- Light Theme --- */
-        body.theme-light {
-            --theme-primary-bg: #f4f7fc; /* Light grayish blue */
-            --theme-secondary-bg: #ffffff; /* White for cards */
-            --theme-tertiary-bg: #e9edf5; /* Slightly darker for nav elements within cards */
-            --theme-accent-gold: #b8860b; /* Darker, more saturated gold for light bg */
-            --theme-accent-gold-transparent: rgba(184, 134, 11, 0.1);
-            --theme-accent-gold-glow: rgba(184, 134, 11, 0.3);
-            --theme-text-primary: #2c3e50;   /* Dark blue/gray for primary text */
-            --theme-text-secondary: #7f8c8d; /* Medium gray for secondary text */
-            --theme-border-color: rgba(184, 134, 11, 0.3); /* Gold-tinted border */
-            --theme-sidebar-bg: #0f2340; /* A contrasting dark sidebar for a premium feel, or light if preferred */
-            /* If sidebar is also light: */
-            /* --theme-sidebar-bg: #e9edf5; */
-            /* --theme-sidebar-text-color: #2c3e50; */
-            /* --theme-sidebar-active-text-color: var(--theme-accent-gold); */
+  .spacer {
+    flex-grow: 1;
+  }
 
+  .user-info-container {
+    display: flex;
+    align-items: center;
+    color: #ccd6f6;
 
-            --theme-status-active-color: #27ae60; /* Green */
-            --theme-status-active-bg: rgba(39, 174, 96, 0.1);
-            --theme-status-due-soon-color: #f39c12; /* Orange */
-            --theme-status-due-soon-bg: rgba(243, 156, 18, 0.1);
-            --theme-status-overdue-color: #c0392b; /* Red */
-            --theme-status-overdue-bg: rgba(192, 57, 43, 0.1);
-            --theme-status-returned-color: #95a5a6; /* Gray */
-            --theme-status-returned-bg: rgba(149, 165, 166, 0.1);
-            --theme-danger-color: #c0392b;
-            --theme-danger-color-transparent: rgba(192, 57, 43, 0.1);
+    .mat-mdc-icon-button {
+      color: #ccd6f6;
 
-            --hover-glow: 0 0 15px var(--theme-accent-gold-glow);
-        }
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        font-weight: bold;
+      }
+    }
 
-        /* Vazirmatn Font */
-        @font-face { font-family: 'Vazirmatn'; src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
-        @font-face { font-family: 'Vazirmatn'; src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2') format('woff2'); font-weight: bold; font-style: normal; font-display: swap; }
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-right: 12px;
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+      .user-name {
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
 
-        body {
-            font-family: var(--font-primary);
-            background-color: var(--theme-primary-bg); /* Use theme variable */
-            color: var(--theme-text-primary);       /* Use theme variable */
-            font-size: var(--base-font-size);
-            line-height: 1.6;
-            display: flex;
-            min-height: 100vh;
-            overflow-x: hidden;
-            transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
-        }
-        body.modal-open { overflow: hidden; }
+      .user-role {
+        font-size: 0.8rem;
+        color: #8892b0;
+      }
+    }
+  }
+}
 
-        /* --- Sidebar (Same as Dashboard) --- */
-        .sidebar {width: 190px;background-color: var(--sidebar-bg);padding: var(--section-padding) 20px;display: flex;flex-direction: column;border-left: 1px solid var(--border-color);box-shadow: -5px 0 15px rgba(0,0,0,0.2);transition: width var(--transition-speed) ease;}
-        .sidebar-header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
-        .sidebar-title { font-size: 1.8rem; font-weight: bold; color: var(--accent-gold); letter-spacing: 1px; text-shadow: 0 0 8px var(--accent-gold-glow); }
-        .sidebar-nav ul { list-style: none; }
-        .sidebar-nav li a { display: flex; align-items: center; padding: 15px 20px; margin-bottom: 10px; text-decoration: none; color: var(--text-secondary); border-radius: var(--border-radius-small); transition: all var(--transition-speed) ease; font-weight: 500; }
-        .sidebar-nav li a .nav-icon { width: 24px; height: 24px; margin-left: 15px; fill: currentColor; transition: fill var(--transition-speed) ease; }
-        .sidebar-nav li a:hover, .sidebar-nav li a.active { background-color: var(--accent-gold-transparent); color: var(--accent-gold); transform: translateX(-5px); box-shadow: 0 5px 10px rgba(0,0,0,0.2), var(--hover-glow); }
-        .sidebar-nav li a.active { font-weight: bold; }
-		
-        .sidebar-header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--theme-border-color); /* Use theme variable */
-        }
-        .sidebar-title {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--theme-accent-gold); /* Use theme variable */
-            letter-spacing: 1px;
-            text-shadow: 0 0 8px var(--theme-accent-gold-glow); /* Use theme variable */
-        }
-        .sidebar-nav ul {list-style: none;}
-        .sidebar-nav li a {
-            display: flex;
-            align-items: center;
-            padding: 15px 20px;
-            margin-bottom: 10px;
-            text-decoration: none;
-            color: var(--theme-text-secondary); /* Use theme variable, or specific sidebar text color */
-            border-radius: var(--border-radius-small);
-            transition: all var(--transition-speed) ease;
-            font-weight: 500;
-        }
-        .sidebar-nav li a .nav-icon { width: 24px; height: 24px; margin-left: 15px; fill: currentColor; }
-        .sidebar-nav li a:hover, .sidebar-nav li a.active {
-            background-color: var(--theme-accent-gold-transparent); /* Use theme variable */
-            color: var(--theme-accent-gold); /* Use theme variable */
-            transform: translateX(-5px);
-            box-shadow: 0 5px 10px rgba(0,0,0,0.1), var(--hover-glow); /* Adjusted shadow */
-        }
-        .sidebar-nav li a.active { font-weight: bold; }
+::ng-deep .mat-mdc-menu-panel {
+  background-color: #172a45 !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
 
-        /* Responsive Adjustments (Existing and Modal Specific) */
-        /* @media (max-width: 992px) { */
-            body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; flex-direction: row; justify-content: space-around; padding: 15px; border-left: none; border-bottom: 1px solid var(--border-color); overflow-x: auto; }
-            .sidebar-header { display: none; }
-            .sidebar-nav ul {display: flex;}
-            .sidebar-nav li a { padding: 10px 15px; margin-bottom: 0; margin-right: 5px; }
-            .sidebar-nav li a .nav-icon { margin-left: 8px; margin-right: 0; }
-            .sidebar-nav li a:hover, .sidebar-nav li a.active { transform: translateY(-3px); }
-            .main-header {  align-items: flex-start; gap: 15px; }
-            .main-title { font-size: 2rem; }
-            .page-actions-and-filters { flex-direction: column; align-items: stretch; }
-            .filters-group { justify-content: space-between; }
-            .filters-group .form-control { width: auto; min-width: 0; flex-grow: 1;}
-            .modal { width: 95%; }
-        /* } */
+  .mat-mdc-menu-item {
+    color: #ccd6f6 !important;
+    font-family: 'Vazirmatn', sans-serif !important;
 
-        /* --- Styles specific to Loan Management --- */
-        .data-table .date-due {
-            font-weight: 500;
-        }
-        .data-table .date-due.due-soon {
-            color: var(--status-due-soon-color);
-            /* text-shadow: 0 0 5px var(--status-due-soon-color); */
-        }
-        .data-table .date-due.overdue {
-            color: var(--status-overdue-color);
-            /* text-shadow: 0 0 5px var(--status-overdue-color); */
-            font-weight: bold;
-        }
+    .mat-icon {
+      color: #8892b0 !important;
+      margin-left: 10px !important;
+    }
 
+    &:hover {
+      background-color: #0f2340 !important;
+      color: #d4af37 !important;
+      font-weight: bold;
 
-        /* --- Main Content Area --- */
-        .main-content { flex-grow: 1; padding: var(--section-padding); overflow-y: auto; }
-        .main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .main-title { font-size: 2.2rem; font-weight: bold; color: var(--theme-text-primary); }
-        .page-title-accent { color: var(--theme-accent-gold); text-shadow: 0 0 10px var(--theme-accent-gold-glow); }
-        .user-profile { display: flex; align-items: center; }
-        .user-profile img { width: 50px; height: 50px; border-radius: 50%; margin-left: 15px; border: 2px solid var(--theme-accent-gold); box-shadow: 0 0 10px var(--theme-accent-gold-glow); }
-        .user-profile .user-info .user-name { font-weight: bold; color: #ccd6f6; font-size: 1.1rem; }
-        .user-profile .user-info .user-role { font-size: 0.9rem; color: var(--theme-text-secondary); }
-        
-        /* Theme Toggle Button - Example Placement in Main Header */
-        .theme-toggle-btn {
-            background: var(--sidebar-bg);
-            color: var(--theme-text-secondary);
-            border: 1px solid var(--theme-border-color);
-            padding: 8px 12px;
-            border-radius: var(--border-radius-small);
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all var(--transition-speed) ease;
-        }
-        .theme-toggle-btn:hover {
-            color: var(--theme-accent-gold);
-            border-color: var(--theme-accent-gold);
-            background-color: var(--theme-accent-gold-transparent);
-        }
-        .theme-toggle-btn svg {
-            width: 18px; height: 18px;
-            fill: currentColor;
-        }
+      .mat-icon {
+        color: #d4af37 !important;
+      }
+    }
+  }
 
-		.operation_border {
-		    border: 1px solid lightslategray;
-			border-radius: 5px;
-			padding: 5px;
-		}
-
-        .content-container {
-            background-color: var(--theme-secondary-bg); /* Use theme variable */
-            padding: var(--card-padding);
-            border-radius: var(--border-radius-main);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* Adjusted shadow for general use */
-            border: 1px solid var(--theme-border-color); /* Use theme variable */
-        }
-        body.theme-dark .content-container { box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); }
-
-
-        .page-actions-and-filters { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; flex-direction: row; }
-        .btn { padding: 10px 20px; border-radius: var(--border-radius-small); border: none; font-family: var(--font-primary); font-weight: 500; cursor: pointer; transition: all var(--transition-speed) ease; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-primary {
-            background-color: var(--theme-accent-gold);
-            color: var(--theme-primary-bg); /* Contrast against gold */
-            /* If gold is light, text should be dark. If gold is dark, text should be light */
-            font-weight: bold;
-            box-shadow: 0 4px 15px var(--theme-accent-gold-glow);
-        }
-        body.theme-light .btn-primary { color: #fff; /* Ensure good contrast for light theme gold */ }
-
-        .btn-primary:hover { filter: brightness(1.1); box-shadow: 0 6px 20px var(--theme-accent-gold-glow); transform: translateY(-2px); }
-        .btn-primary svg { fill: currentColor; } /* SVG should take the button's text color */
-
-        .filters-group { display: flex; gap: 15px; flex-wrap: wrap; }
-        .form-control {
-            background-color: var(--theme-primary-bg); /* Input bg matches page bg */
-            border: 1px solid var(--theme-border-color);
-            color: var(--theme-text-primary);
-            padding: 10px 15px;
-            border-radius: var(--border-radius-small);
-            font-family: var(--font-primary);
-            min-width: 180px;
-            transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
-        }
-        .form-control:focus, .form-control:hover { border-color: var(--theme-accent-gold); box-shadow: 0 0 0 3px var(--theme-accent-gold-transparent); outline: none; }
-
-        .table-title { font-size: 1.3rem; font-weight: 500; color: var(--theme-text-primary); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--theme-border-color); }
-        .table-title span { color: var(--theme-accent-gold); }
-        .data-table-wrapper { overflow-x: auto; border-radius: 10px;}
-        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
-        .data-table th, .data-table td { padding: 15px 12px; text-align: right; border-bottom: 1px solid var(--theme-border-color); vertical-align: middle; }
-        .data-table thead th {
-            background-color: var(--theme-tertiary-bg); /* Use tertiary for header within card */
-            color: var(--theme-accent-gold);
-            font-weight: bold;
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
-            position: sticky; top: 0; z-index: 1;
-        }
-        .data-table tbody tr { transition: background-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease; }
-        .data-table tbody tr:hover { background-color: var(--theme-accent-gold-transparent); }
-        .data-table td { color: var(--theme-text-secondary); font-size: 0.9rem; }
-        .data-table td.emphasize { color: var(--theme-text-primary); font-weight: 500; }
-        
-        /* Status Badges use theme variables */
-        .status-badge { padding: 5px 12px; border-radius: var(--border-radius-small); font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
-        .status-badge svg { width: 14px; height: 14px; fill: currentColor; }
-        .status-active { background-color: var(--theme-status-active-bg); color: var(--theme-status-active-color); }
-        .status-due-soon { background-color: var(--theme-status-due-soon-bg); color: var(--theme-status-due-soon-color); }
-        .status-overdue { background-color: var(--theme-status-overdue-bg); color: var(--theme-status-overdue-color); }
-        .status-returned { background-color: var(--theme-status-returned-bg); color: var(--theme-status-returned-color); }
-
-        .action-icons a { color: var(--theme-text-secondary); margin: 0 6px; transition: color var(--transition-speed) ease, transform var(--transition-speed) ease; display: inline-block; }
-        .action-icons a:hover { color: var(--theme-accent-gold); transform: scale(1.2); }
-        .action-icons svg { width: 20px; height: 20px; vertical-align: middle; }
-        
-        .pagination-controls { display: flex; justify-content: center; align-items: center; gap: 10px; padding-top: 15px; }
-        .pagination-controls .btn { background-color: transparent; border: 1px solid var(--theme-border-color); color: var(--theme-text-secondary); padding: 8px 15px; }
-        .pagination-controls .btn:hover, .pagination-controls .btn.active { background-color: var(--theme-accent-gold-transparent); color: var(--theme-accent-gold); border-color: var(--theme-accent-gold); box-shadow: var(--hover-glow); }
-        .pagination-controls .btn.disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        /* Modal Styles (ensure they use theme variables) */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); /* Overlay is usually dark */ z-index: 1000; opacity: 0; visibility: hidden; transition: opacity var(--transition-speed) ease, visibility 0s var(--transition-speed) linear; }
-        .modal-overlay.active { opacity: 1; visibility: visible; transition-delay: 0s; }
-        .modal {
-            position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%) scale(0.95);
-            background-color: var(--theme-secondary-bg); /* Use theme variable */
-            border: 1px solid var(--theme-border-color); /* Use theme variable */
-            border-radius: var(--border-radius-main);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2); /* Shadow might need theme adjustment */
-            z-index: 1001; width: 90%; max-width: 700px;
-            opacity: 0; visibility: hidden;
-            transition: opacity var(--transition-speed) ease, transform var(--transition-speed) ease, visibility 0s var(--transition-speed) linear;
-            display: flex; flex-direction: column; max-height: 90vh;
-        }
-        .modal.active { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); transition-delay: 0s; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px var(--card-padding); border-bottom: 1px solid var(--theme-border-color); }
-        .modal-title { font-size: 1.6rem; font-weight: bold; color: var(--theme-text-primary); }
-        .modal-close-btn { background: none; border: none; cursor: pointer; padding: 5px; line-height: 0; }
-        .modal-close-btn svg { transition: transform var(--transition-speed) ease; fill: var(--theme-accent-gold); }
-        .modal-close-btn:hover svg { transform: rotate(90deg) scale(1.1); }
-        .modal-body { padding: 25px var(--card-padding); overflow-y: auto; }
-        .form-row { display: flex; gap: 20px;}
-        .form-row .form-group { flex: 1; }
-        .form-group { margin-bottom: 20px; }
-        .form-group:last-child { margin-bottom: 0; }
-        .form-group label { display: block; margin-bottom: 8px; color: var(--theme-text-secondary); font-weight: 500; font-size: 0.9rem; }
-        .required-star { color: var(--theme-accent-gold); margin-right: 3px; }
-        .modal-footer { padding: 20px var(--card-padding); border-top: 1px solid var(--theme-border-color); display: flex; justify-content: flex-start; gap: 15px; }
-        .modal-footer .btn-secondary { background-color: transparent; border: 1px solid var(--theme-border-color); color: var(--theme-text-secondary); }
-        .modal-footer .btn-secondary:hover { background-color: var(--theme-accent-gold-transparent); color: var(--theme-accent-gold); border-color: var(--theme-accent-gold); }
-
-        input[type="date"].form-control { color-scheme: auto; /* Let browser decide based on theme */ min-width: 220px; }
-        body.theme-dark input[type="date"].form-control { color-scheme: dark; }
-        body.theme-light input[type="date"].form-control { color-scheme: light; }
-        
-        .search-results-dropdown {
-            position: absolute;
-            background-color: var(--theme-primary-bg); /* Match input bg */
-            border: 1px solid var(--theme-border-color);
-            border-top: none;
-            border-radius: 0 0 var(--border-radius-small) var(--border-radius-small);
-            max-height: 200px; overflow-y: auto; z-index: 10; width: 100%;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
-			display: none;
-        }
-        .search-results-dropdown ul { list-style: none; padding: 0; margin: 0; }
-        .search-results-dropdown li { padding: 10px 15px; color: var(--theme-text-secondary); cursor: pointer; transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease; }
-        .search-results-dropdown li:hover { background-color: var(--theme-accent-gold-transparent); color: var(--theme-accent-gold); }
-        .search-results-dropdown li strong { color: var(--theme-text-primary); }
-
-        /* Responsive Adjustments (No change needed specific to theming here, but ensure variables are used) */
-        @media (max-width: 992px) { /* ... */ }
-        @media (max-width: 768px) { /* ... */ }
+  .mat-mdc-divider {
+    border-top-color: rgba(212, 175, 55, 0.2) !important;
+  }
+}
+*{
+  direction: rtl;
+}

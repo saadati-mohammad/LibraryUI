@@ -1,0 +1,203 @@
+:host {
+  display: block;
+  font-family: 'Vazirmatn', sans-serif;
+--table-bg: var(--app-light-bg-secondary, #ffffff);
+  --table-header-bg: var(--app-light-bg-tertiary, #f5f7fa);
+--table-text-primary: var(--app-light-text-primary, #2c3e50);
+  --table-text-secondary: var(--app-light-text-secondary, #5a6e82);
+  --table-text-header: var(--app-light-text-primary, #1d2a39);
+--table-border-color: var(--app-light-border-color, rgba(0, 0, 0, 0.08));
+--table-hover-bg: rgba(var(--app-light-accent-primary-rgb, 0, 123, 255), 0.04);
+--table-accent-color: var(--app-light-accent-primary, #007bff);
+--table-accent-color-gold: var(--app-light-accent-secondary, #b8860b);
+
+--table-radius: var(--app-border-radius-main, 12px);
+  --table-cell-padding: 14px 18px;
+}
+
+.dynamic-table-wrapper {
+  padding: 0px;
+}
+
+.table-section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--table-text-primary);
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--table-border-color);
+
+  span {
+    color: var(--table-text-secondary);
+    font-size: 0.9rem;
+    font-weight: 400;
+  }
+}
+
+.table-container {
+  background-color: var(--table-bg);
+  border-radius: var(--table-radius);
+  overflow: hidden;
+border: 1px solid var(--table-border-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.lux-table {
+  width: 100%;
+  border-collapse: collapse;
+
+th.mat-mdc-header-cell, td.mat-mdc-cell {
+  padding: var(--table-cell-padding);
+  text-align: right;
+  border-bottom: 1px solid var(--table-border-color);
+vertical-align: middle;
+}
+
+  th.mat-mdc-header-cell {
+    background-color: var(--table-header-bg);
+    color: var(--table-text-header);
+    font-weight: 600;
+  font-size: 0.9rem;
+    letter-spacing: 0.3px;
+
+  ::ng-deep .mat-sort-header-arrow {
+    color: var(--table-text-header) !important;
+    opacity: 0.7;
+  }
+  }
+
+  tr.mat-mdc-header-row {
+    height: 56px;
+  }
+
+  tr.data-row {
+    transition: background-color var(--app-transition-speed, 0.2s) ease-out;
+    &:hover {
+      background-color: var(--table-hover-bg);
+    }
+  }
+
+  td.mat-mdc-cell {
+    color: var(--table-text-secondary);
+    font-size: 0.875rem;
+  line-height: 1.5;
+
+    &.emphasize {
+    color: var(--table-text-primary);
+      font-weight: 500;
+    }
+  }
+
+td.action-cell {
+  text-align: left;
+white-space: nowrap;
+padding-right: 8px;
+padding-left: 8px;
+
+  button[mat-icon-button] {
+    color: var(--table-text-secondary);
+    transition: color var(--app-transition-speed, 0.2s) ease, transform var(--app-transition-speed, 0.2s) ease;
+    margin: 0 2px;
+
+    &:hover:not(:disabled) {
+      color: var(--table-accent-color);
+      transform: scale(1.1);
+    }
+    &:disabled {
+      color: rgba(0,0,0,0.26);
+    }
+  }
+}
+
+.status-badge {
+  padding: 5px 12px;
+  border-radius: var(--app-border-radius-small, 8px);
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+  .status-active {
+    background-color: var(--app-light-status-active-bg, rgba(39, 174, 96, 0.1));
+    color: var(--app-light-status-active-color, #27ae60);
+  }
+  .status-due-soon {
+    background-color: var(--app-light-status-due-soon-bg, rgba(243, 156, 18, 0.1));
+    color: var(--app-light-status-due-soon-color, #f39c12);
+  }
+  .status-overdue {
+    background-color: var(--app-light-status-overdue-bg, rgba(192, 57, 43, 0.1));
+    color: var(--app-light-status-overdue-color, #c0392b);
+  }
+  .status-returned {
+    background-color: var(--app-light-status-returned-bg, rgba(149, 165, 166, 0.1));
+    color: var(--app-light-status-returned-color, #95a5a6);
+  }
+
+.date-due {
+  font-weight: 500;
+}
+  .date-due.due-soon {
+    color: var(--app-light-status-due-soon-color, #f39c12);
+  }
+  .date-due.overdue {
+    color: var(--app-light-status-overdue-color, #c0392b);
+    font-weight: bold;
+  }
+
+  .mat-mdc-row .mat-mdc-cell:first-of-type,
+  .mat-mdc-header-row .mat-mdc-header-cell:first-of-type {
+    padding-right: var(--app-card-padding, 24px);
+  }
+  .mat-mdc-row .mat-mdc-cell:last-of-type,
+  .mat-mdc-header-row .mat-mdc-header-cell:last-of-type {
+    padding-left: var(--app-card-padding, 24px);
+  }
+
+.mat-row.mat-no-data-row {
+  td.mat-cell {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--table-text-secondary);
+    font-style: italic;
+  }
+}
+}
+
+   ::ng-deep .mat-mdc-paginator {
+     background-color: var(--table-bg);
+   color: var(--table-text-secondary);
+     border-top: 1px solid var(--table-border-color);
+     border-bottom-left-radius: var(--table-radius);
+     border-bottom-right-radius: var(--table-radius);
+
+     .mat-mdc-paginator-page-size-label,
+     .mat-mdc-paginator-range-label {
+       color: var(--table-text-secondary);
+       font-size: 0.875rem;
+     }
+     .mat-mdc-select-value {
+       color: var(--table-text-primary);
+     }
+     .mat-mdc-icon-button {
+       color: var(--table-text-secondary);
+       &:hover:not(:disabled) {
+         background-color: var(--table-hover-bg);
+       }
+       &:disabled {
+         color: rgba(0,0,0,0.20);
+       }
+     }
+   }
+*{
+  direction: rtl;
+}

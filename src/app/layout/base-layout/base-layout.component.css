@@ -1,0 +1,143 @@
+:host {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.app-header {
+  background-color: #0a192f;
+  color: #ccd6f6;
+  height: 64px;
+  padding: 0 24px;
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  .logo-container {
+    display: flex;
+    align-items: center;
+    margin-left: 24px;
+
+    .app-logo {
+      height: 40px;
+      margin-left: 12px;
+    }
+
+    .app-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #d4af37;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .nav-links-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    a[mat-button] {
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+      font-weight: 500;
+      line-height: normal;
+
+      mat-icon {
+        margin-left: 8px;
+        font-size: 20px;
+        vertical-align: middle;
+      }
+
+      span {
+        vertical-align: middle;
+      }
+
+      &:hover {
+        background-color: #172a45;
+        color: #d4af37;
+        transform: translateY(-2px);
+      }
+
+      &.active-nav-link {
+        background-color: transparent;
+        color: #d4af37;
+        font-weight: bold;
+        box-shadow: inset 0 -3px 0 #d4af37;
+
+        mat-icon {
+          color: #d4af37;
+        }
+      }
+    }
+  }
+
+  .spacer {
+    flex-grow: 1;
+  }
+
+  .user-info-container {
+    display: flex;
+    align-items: center;
+    color: #ccd6f6;
+
+    .mat-mdc-icon-button {
+      color: #ccd6f6;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-right: 12px;
+
+      .user-name {
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
+
+      .user-role {
+        font-size: 0.8rem;
+        color: #ffffff;
+      }
+    }
+  }
+}
+
+::ng-deep .mat-mdc-menu-panel {
+  background-color: #172a45 !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+
+  .mat-mdc-menu-item {
+    color: #ccd6f6 !important;
+    font-family: 'Vazirmatn', sans-serif !important;
+
+    .mat-icon {
+      color: #ffffff !important;
+      margin-left: 10px !important;
+    }
+
+    &:hover {
+      background-color: #0f2340 !important;
+      color: #d4af37 !important;
+
+      .mat-icon {
+        color: #d4af37 !important;
+      }
+    }
+  }
+
+  .mat-mdc-divider {
+    border-top-color: rgba(212, 175, 55, 0.2) !important;
+  }
+}

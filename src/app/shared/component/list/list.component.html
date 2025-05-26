@@ -1,1 +1,58 @@
-<p>list works!</p>
+<div class="dynamic-table-wrapper">
+  <h3 *ngIf="tableTitle" class="table-section-title">
+    {{ tableTitle }}
+    <span *ngIf="dataSource && dataSource.data.length > 0"> ({{ dataSource.data.length }} مورد)</span>
+  </h3>
+
+  <div class="mat-elevation-z2 table-container">
+    <table mat-table [dataSource]="dataSource" matSort [matSortActive]="defaultSortColumn" [matSortDirection]="defaultSortDirection" class="lux-table">
+
+      <!-- ستون‌های داینامیک -->
+      <ng-container *ngFor="let column of columns" [matColumnDef]="column.columnDef" [sticky]="column.isSticky" [stickyEnd]="column.isStickyEnd">
+        <th mat-header-cell *matHeaderCellDef
+            [mat-sort-header]="column.isSortable !== false ? column.columnDef : ''"
+            [disabled]="column.isSortable === false">
+          {{ column.header }}
+        </th>
+        <td mat-cell *matCellDef="let element" [ngClass]="getCellClass(column, element)" [matTooltip]="getCellTooltip(column, element)" matTooltipPosition="above">
+          <span [innerHTML]="column.cell(element)"></span>
+        </td>
+      </ng-container>
+
+      <!-- ستون عملیات (Actions) -->
+      <ng-container matColumnDef="actions" [stickyEnd]="true" *ngIf="actionButtons.length > 0">
+        <th mat-header-cell *matHeaderCellDef> عملیات </th>
+        <td mat-cell *matCellDef="let element" class="action-cell">
+          <ng-container *ngFor="let button of actionButtons">
+            <button
+              *ngIf="isButtonVisible(button, element)"
+              mat-icon-button
+              [color]="button.color"
+              [matTooltip]="button.tooltip"
+              [disabled]="isButtonDisabled(button, element)"
+              (click)="onActionClick(button.actionId, element, $event)">
+              <mat-icon>{{ button.icon }}</mat-icon>
+            </button>
+          </ng-container>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
+
+      <!-- ردیف برای زمانی که داده‌ای وجود ندارد -->
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+          داده‌ای برای نمایش وجود ندارد.
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <mat-paginator
+    *ngIf="showPaginator && dataSource && dataSource.data.length > 0"
+    [pageSizeOptions]="pageSizeOptions"
+    showFirstLastButtons
+    aria-label="انتخاب صفحه">
+  </mat-paginator>
+</div>
