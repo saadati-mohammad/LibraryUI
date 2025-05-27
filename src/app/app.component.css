@@ -40,18 +40,25 @@
 /*  --app-transition-speed: 0.3s;*/
 /*}*/
 :root {
-  --app-light-bg-primary: #f0f2f5; /* پس زمینه اصلی صفحه */
-  --app-light-bg-secondary: #ffffff; /* پس زمینه کارت‌ها و جدول */
-  --app-light-bg-tertiary: #f7f9fc; /* برای هدر جدول یا بخش‌های کمی متمایز */
+  --app-light-bg-primary: #f0f2f5;
+  /* پس زمینه اصلی صفحه */
+  --app-light-bg-secondary: #ffffff;
+  /* پس زمینه کارت‌ها و جدول */
+  --app-light-bg-tertiary: #f7f9fc;
+  /* برای هدر جدول یا بخش‌های کمی متمایز */
 
-  --app-light-text-primary: #333333; /* متن اصلی تیره */
-  --app-light-text-secondary: #555555; /* متن ثانویه خاکستری */
+  --app-light-text-primary: #333333;
+  /* متن اصلی تیره */
+  --app-light-text-secondary: #555555;
+  /* متن ثانویه خاکستری */
 
-  --app-light-accent-primary: #007bff; /* یک آبی استاندارد برای تاکید */
+  --app-light-accent-primary: #007bff;
+  /* یک آبی استاندارد برای تاکید */
   --app-light-accent-primary-rgb: 0, 123, 255;
   --app-light-accent-secondary-color: #6f42c1;
 
-  --app-light-border-color: #e9ecef; /* رنگ استاندارد جداکننده */
+  --app-light-border-color: #e9ecef;
+  /* رنگ استاندارد جداکننده */
 
   --app-light-status-active-color: #28a745;
   --app-light-status-active-bg: rgba(40, 167, 69, 0.1);
@@ -102,6 +109,23 @@ body {
 }
 
 
-button[mat-button], button[mat-raised-button], button[mat-flat-button], button[mat-stroked-button] {
+/* button[mat-button], button[mat-raised-button], button[mat-flat-button], button[mat-stroked-button] {
   font-family: 'Vazirmatn', sans-serif;
+} */
+/* Vazirmatn Font */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+

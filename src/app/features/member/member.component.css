@@ -1,0 +1,46 @@
+.page-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--app-light-text-primary, #2c3e50);
+    margin: 0;
+
+    span {
+      color: var(--app-light-accent-primary, #007bff); /* یا طلایی: var(--app-light-accent-secondary)*/
+    }
+  }
+
+  button[mat-flat-button] {
+    font-size: 0.9rem;
+    padding: 8px 20px;
+
+    mat-icon {
+      margin-left: 8px;
+    }
+  }
+}
+
+.filters-panel {
+  background-color: var(--app-light-bg-secondary, #ffffff);
+  padding: 20px;
+  border-radius: var(--app-border-radius-main, 12px);
+  margin-bottom: 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--app-light-border-color, rgba(0, 0, 0, 0.08));
+
+  p {
+    margin: 0;
+    color: var(--app-light-text-secondary);
+  }
+}

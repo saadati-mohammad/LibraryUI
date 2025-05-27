@@ -26,7 +26,8 @@ interface NavLink {
 })
 export class HeaderComponent {
   navLinks: NavLink[] = [
-    { path: '/catalog', label: 'کتاب‌ها', icon: 'menu_book' },
+    { path: '/dashboard', label: 'داشبورد', icon: 'dashboard' },
+    { path: '/book', label: 'کتاب‌ها', icon: 'menu_book' },
     { path: '/member', label: 'اعضا', icon: 'groups' },
     { path: '/loan', label: 'امانت‌ها', icon: 'assignment_return' },
     { path: '/reservation', label: 'رزروها', icon: 'event_note' },

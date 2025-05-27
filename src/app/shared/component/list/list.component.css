@@ -198,6 +198,13 @@ padding-left: 8px;
        }
      }
    }
-*{
+.direction-rtl {
   direction: rtl;
 }
+/* ::ng-deep .mat-mdc-paginator-page-size-label {
+  display: none !important;
+}
+::ng-deep .mat-mdc-paginator-page-size {
+  display: none !important;
+} */
+

@@ -15,11 +15,11 @@ import {ActionButtonConfig, ListComponent, TableColumn} from '../../shared/compo
   templateUrl: './loan.component.html',
   styleUrl: './loan.component.css'
 })
-export class LoanComponent  implements OnInit {
-  loanTableTitle = 'لیست امانت‌ها';
-  loanColumns: TableColumn[] = [];
-  loanData: any[] = [];
-  loanActionButtons: ActionButtonConfig[] = [];
+export class LoanComponent implements OnInit {
+  tableTitle = 'مدیریت امانت‌ها';
+  columns: TableColumn[] = [];
+  data: any[] = [];
+  actionButtons: ActionButtonConfig[] = [];
 
   ngOnInit(): void {
     this.setupTableColumns();
@@ -28,25 +28,22 @@ export class LoanComponent  implements OnInit {
   }
 
   setupTableColumns(): void {
-    this.loanColumns = [
+    this.columns = [
       {
         columnDef: 'id',
         header: 'ردیف',
         cell: (element: any) => `${element.id}`,
-        isSortable: true
       },
       {
         columnDef: 'bookTitle',
         header: 'عنوان کتاب',
         cell: (element: any) => `${element.bookTitle}`,
-        isSortable: true,
         cellClass: () => 'emphasize'
       },
       {
         columnDef: 'memberName',
         header: 'نام عضو',
         cell: (element: any) => `${element.memberName}`,
-        isSortable: true,
         cellClass: () => 'emphasize'
       },
       {
@@ -69,7 +66,6 @@ export class LoanComponent  implements OnInit {
         columnDef: 'status',
         header: 'وضعیت',
         cell: (element: any) => this.getStatusBadge(element.status),
-        isSortable: true
       },
     ];
   }
@@ -82,7 +78,7 @@ export class LoanComponent  implements OnInit {
   }
 
   loadSampleData(): void {
-    this.loanData = [
+    this.data = [
       {
         id: 1,
         bookTitle: 'جنگ و صلح',
@@ -129,7 +125,7 @@ export class LoanComponent  implements OnInit {
   }
 
   setupActionButtons(): void {
-    this.loanActionButtons = [
+    this.actionButtons = [
       {
         icon: 'check_circle_outline',
         tooltip: 'ثبت بازگشت',

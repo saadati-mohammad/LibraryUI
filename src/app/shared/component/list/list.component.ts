@@ -1,7 +1,6 @@
 import {AfterViewInit, Component, Input, OnChanges, OnInit, SimpleChanges, ViewChild} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
-import {MatSort, MatSortModule} from '@angular/material/sort';
 import {MatPaginator, MatPaginatorModule} from '@angular/material/paginator';
 import {MatIconModule} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
@@ -11,7 +10,6 @@ export interface TableColumn {
   columnDef: string; // نام پراپرتی در آبجکت داده
   header: string;    // متنی که در هدر نمایش داده می‌شود
   cell: (element: any) => string; // تابعی برای نمایش محتوای سلول
-  isSortable?: boolean;
   cellClass?: (element: any) => string; // برای کلاس‌دهی خاص به سلول‌ها (مثلا برای badge)
   isSticky?: boolean; // برای ستون‌های چسبان (sticky)
   isStickyEnd?: boolean; // برای ستون‌های چسبان در انتها (مانند عملیات)
@@ -30,7 +28,6 @@ export interface ActionButtonConfig {
   imports: [
     CommonModule,
     MatTableModule,
-    MatSortModule,
     MatPaginatorModule,
     MatIconModule,
     MatButtonModule,
@@ -43,15 +40,12 @@ export class ListComponent  implements OnInit, AfterViewInit, OnChanges {
   @Input() columns: TableColumn[] = [];
   @Input() data: any[] = [];
   @Input() actionButtons: ActionButtonConfig[] = [];
-  @Input() defaultSortColumn: string = '';
-  @Input() defaultSortDirection: 'asc' | 'desc' = 'asc';
   @Input() pageSizeOptions: number[] = [5, 10, 25, 100];
-  @Input() showPaginator: boolean = true;
+  @Input() showPaginator: boolean = false;
 
   dataSource!: MatTableDataSource<any>;
   displayedColumns: string[] = [];
 
-  @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -70,16 +64,15 @@ export class ListComponent  implements OnInit, AfterViewInit, OnChanges {
       this.displayedColumns.push('actions'); // ستون عملیات
     }
     this.dataSource = new MatTableDataSource(this.data);
-    this.configureSortersAndPaginators();
+    this.configureAndPaginators();
   }
 
   ngAfterViewInit(): void {
-    this.configureSortersAndPaginators();
+    this.configureAndPaginators();
   }
 
-  configureSortersAndPaginators(): void {
+  configureAndPaginators(): void {
     if (this.dataSource) {
-      this.dataSource.sort = this.sort;
       if (this.showPaginator && this.paginator) {
         this.dataSource.paginator = this.paginator;
       }

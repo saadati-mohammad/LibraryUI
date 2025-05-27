@@ -1,20 +1,18 @@
 <div class="dynamic-table-wrapper">
-  <h3 *ngIf="tableTitle" class="table-section-title">
+  <h3 *ngIf="tableTitle" class="table-section-title direction-rtl">
     {{ tableTitle }}
     <span *ngIf="dataSource && dataSource.data.length > 0"> ({{ dataSource.data.length }} مورد)</span>
   </h3>
 
-  <div class="mat-elevation-z2 table-container">
-    <table mat-table [dataSource]="dataSource" matSort [matSortActive]="defaultSortColumn" [matSortDirection]="defaultSortDirection" class="lux-table">
+  <div class="mat-elevation-z2 table-container direction-rtl">
+    <table mat-table [dataSource]="dataSource" class="lux-table">
 
       <!-- ستون‌های داینامیک -->
       <ng-container *ngFor="let column of columns" [matColumnDef]="column.columnDef" [sticky]="column.isSticky" [stickyEnd]="column.isStickyEnd">
-        <th mat-header-cell *matHeaderCellDef
-            [mat-sort-header]="column.isSortable !== false ? column.columnDef : ''"
-            [disabled]="column.isSortable === false">
+        <th mat-header-cell *matHeaderCellDef>
           {{ column.header }}
         </th>
-        <td mat-cell *matCellDef="let element" [ngClass]="getCellClass(column, element)" [matTooltip]="getCellTooltip(column, element)" matTooltipPosition="above">
+        <td mat-cell *matCellDef="let element" [ngClass]="getCellClass(column, element)">
           <span [innerHTML]="column.cell(element)"></span>
         </td>
       </ng-container>

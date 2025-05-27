@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { BookService } from './core/service/book.service';
+import { BaseLayoutComponent } from "./layout/base-layout/base-layout.component";
 
 @Component({
   selector: 'app-root',
-  imports: [RouterModule],
+  imports: [RouterModule, BaseLayoutComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
