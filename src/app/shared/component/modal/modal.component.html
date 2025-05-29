@@ -1,1 +1,60 @@
-<p>modal works!</p>
+<div
+  *ngIf="isVisible"
+  class="modal-overlay"
+  (click)="onOverlayClick($event)"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-labelledby]="'modalTitle-' + title"
+>
+  <div class="modal" #modalContent [style.maxWidth]="maxWidth">
+    <div class="modal-header">
+      <h3 class="modal-title" [id]="'modalTitle-' + title">
+        {{ title }}
+        <span *ngIf="titleAccent" class="page-title-accent">{{ titleAccent }}</span>
+      </h3>
+      <button
+        mat-icon-button
+        class="modal-close-btn"
+        (click)="closeModal()"
+        [disabled]="isLoading"
+        aria-label="بستن مودال"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <ng-content select="[modal-body]"></ng-content>
+    </div>
+
+    <div class="modal-footer" *ngIf="!hideFooter">
+      <button
+        *ngIf="!hideCancelButton"
+        mat-stroked-button
+        color="basic"
+        class="modal-cancel-btn"
+        (click)="closeModal()"
+        [disabled]="isLoading"
+      >
+        {{ cancelButtonText }}
+      </button>
+      <button
+        *ngIf="!hideSubmitButton"
+        mat-raised-button
+        color="primary"
+        class="modal-submit-btn"
+        (click)="onSubmit()"
+        [disabled]="disableSubmit || isLoading"
+      >
+        <mat-progress-spinner
+          *ngIf="isLoading"
+          diameter="20"
+          mode="indeterminate"
+          class="submit-spinner"
+        ></mat-progress-spinner>
+        <mat-icon *ngIf="submitButtonIcon && !isLoading">{{ submitButtonIcon }}</mat-icon>
+        <span *ngIf="!isLoading">{{ submitButtonText }}</span>
+      </button>
+    </div>
+  </div>
+</div>

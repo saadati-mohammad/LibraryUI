@@ -6,3 +6,59 @@
     [actionButtons]="actionButtons">
   </app-list>
 </div>
+<button mat-raised-button color="primary" (click)="openAddBookModal()">افزودن کتاب جدید</button>
+
+    <app-modal
+      [(isVisible)]="isAddBookModalVisible"
+      title="افزودن"
+      titleAccent="کتاب جدید"
+      submitButtonText="ذخیره کتاب"
+      submitButtonIcon="save"
+      (submit)="onAddBookSubmit()"
+      (cancel)="onAddBookModalClose()"
+      [disableSubmit]="addBookForm.invalid || isSubmitting"
+      [isLoading]="isSubmitting"
+      maxWidth="700px"
+    >
+      <div modal-body>
+        <p>لطفاً اطلاعات کتاب جدید را وارد کنید:</p>
+        <form [formGroup]="addBookForm" id="addBookInternalForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="bookTitle">عنوان کتاب <span class="required-star">*</span></label>
+              <input type="text" id="bookTitle" formControlName="bookTitle" class="form-control" placeholder="مثال: شازده کوچولو">
+              <!-- Add mat-error for Angular Material style errors if using MatFormField -->
+            </div>
+            <div class="form-group">
+              <label for="bookAuthor">نویسنده <span class="required-star">*</span></label>
+              <input type="text" id="bookAuthor" formControlName="bookAuthor" class="form-control" placeholder="مثال: آنتوان دوسنت اگزوپری">
+            </div>
+          </div>
+          <div class="form-grid">
+             <div class="form-group">
+                <label for="bookCategory">دسته‌بندی <span class="required-star">*</span></label>
+                <select id="bookCategory" formControlName="bookCategory" class="form-control">
+                    <option value="" disabled selected>یک دسته‌بندی انتخاب کنید...</option>
+                    <option value="roman">رمان</option>
+                    <option value="tarikhi">تاریخی</option>
+                    <option value="elmi">علمی</option>
+                </select>
+            </div>
+             <div class="form-group">
+                <label for="bookCopies">تعداد نسخه‌ها <span class="required-star">*</span></label>
+                <input type="number" id="bookCopies" formControlName="bookCopies" class="form-control" value="1" min="1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="bookCover">تصویر جلد</label>
+            <div class="form-control-file-wrapper">
+                 <input type="file" id="bookCover" (change)="onFileChange($event)" class="form-control" accept="image/*">
+                 <label for="bookCover" class="form-control-file-button" role="button" tabindex="0">انتخاب فایل</label> <!-- Use label for better a11y -->
+                 <span class="form-control-file-text">{{ selectedFileName || 'هیچ فایلی انتخاب نشده' }}</span>
+            </div>
+             <small *ngIf="fileError" style="color: var(--modal-danger-color); display: block; margin-top: 5px;">{{ fileError }}</small>
+          </div>
+          <!-- Add more form fields as needed -->
+        </form>
+      </div>
+    </app-modal>

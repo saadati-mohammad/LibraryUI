@@ -1,7 +1,252 @@
-/* You can add global styles to this file, and also import other style files */
+/* styles.css - Global Styles */
 
+/* Angular Material Base Styles (Keep these if your project uses them generally) */
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; } /* Default Material font stack */
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+/* ----------------------------------------- */
+/* --- Custom Global Settings & Root Variables --- */
+/* ----------------------------------------- */
+:root {
+  /* Main Theme Colors */
+  --app-light-bg-primary: #f0f2f5;      /* اصلی صفحه */
+  --app-light-bg-secondary: #ffffff;    /* کارت‌ها و جدول */
+  --app-light-bg-tertiary: #f7f9fc;     /* هدر جدول یا بخش‌های کمی متمایز */
+
+  --app-light-text-primary: #333333;    /* متن اصلی تیره */
+  --app-light-text-secondary: #555555;   /* متن ثانویه خاکستری */
+
+  --app-light-accent-primary: #007bff;  /* تاکید اصلی (آبی) */
+  --app-light-accent-primary-rgb: 0, 123, 255;
+  --app-light-accent-secondary-color: #6f42c1; /* تاکید ثانویه (بنفش) */
+
+  --app-light-border-color: #e9ecef;    /* جداکننده استاندارد */
+  /* --app-light-border-color-input: #ced4da; /* رنگ حاشیه برای فیلدهای ورودی، مشابه Bootstrap */
+
+  /* Status Colors */
+  --app-light-status-active-color: #28a745;
+  --app-light-status-active-bg: rgba(40, 167, 69, 0.1);
+  --app-light-status-due-soon-color: #fd7e14;
+  --app-light-status-due-soon-bg: rgba(253, 126, 20, 0.1);
+  --app-light-status-overdue-color: #dc3545; /* رنگ ستاره الزامی و خطاها */
+  --app-light-status-overdue-bg: rgba(220, 53, 69, 0.1);
+  --app-light-status-returned-color: #6c757d;
+  --app-light-status-returned-bg: rgba(108, 117, 125, 0.07);
+
+  /* Sizing and Spacing */
+  --app-border-radius-main: 8px;
+  --app-border-radius-small: 4px;
+  --app-card-padding: 20px;
+  --app-transition-speed: 0.2s;
+}
+
+/* ----------------------------------------- */
+/* --- Base Body & Font Styles --- */
+/* ----------------------------------------- */
+body {
+  font-family: 'Vazirmatn', Tehran, /* Custom Persian fonts */
+               Roboto, "Helvetica Neue", /* Material Fallback */
+               Segoe UI, Tahoma, Geneva, Verdana, sans-serif; /* Generic Fallbacks */
+  margin: 0; /* Already set by Material, but good to ensure */
+  direction: rtl !important; /* Ensure RTL for the entire application */
+  background-color: var(--app-light-bg-primary);
+  color: var(--app-light-text-primary);
+  font-size: 14px; /* Base font size */
+  line-height: 1.6; /* Base line height */
+  -webkit-font-smoothing: antialiased; /* Improve font rendering on WebKit */
+  -moz-osx-font-smoothing: grayscale; /* Improve font rendering on Firefox */
+}
+
+/* Vazirmatn Font Definition */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2');
+  font-weight: normal; /* Corresponds to 400 */
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2') format('woff2');
+  font-weight: bold; /* Corresponds to 700 */
+  font-style: normal;
+  font-display: swap;
+}
+/* You can add more weights like Medium (500), SemiBold (600) if needed and available */
+
+
+/* ----------------------------------------- */
+/* --- Angular Material Overrides & Helpers (if any) --- */
+/* ----------------------------------------- */
+.mat-icon,
+.material-icons {
+  vertical-align: middle; /* Useful helper */
+}
+
+/* Ensure MatFormField respects RTL directionality */
+.mat-mdc-form-field {
+  direction: rtl;
+  text-align: right;
+}
+.mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  direction: rtl;
+}
+.mat-mdc-form-field .mat-mdc-form-field-hint-wrapper,
+.mat-mdc-form-field .mat-mdc-form-field-error-wrapper {
+  direction: rtl;
+}
+
+/* Ensure MatSelect panel respects RTL */
+.mat-mdc-select-panel {
+  direction: rtl;
+}
+
+/*
+Commented out: Material components usually handle their own font family.
+If you need to force Vazirmatn on all Material buttons, uncomment and test carefully.
+button[mat-button], button[mat-raised-button], button[mat-flat-button], button[mat-stroked-button] {
+  font-family: 'Vazirmatn', sans-serif;
+}
+*/
+
+/* ----------------------------------------- */
+/* --- Global Form Element Styles --- */
+/* ----------------------------------------- */
+.form-group {
+  margin-bottom: 1.25rem; /* 20px */
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem; /* 8px */
+  color: var(--app-light-text-secondary);
+  font-weight: 500; /* Bolder labels for better readability */
+  font-size: 0.875rem; /* 14px assuming base font-size is 16px, or if body is 14px, this is 14px */
+  line-height: 1.5;
+}
+
+.form-group label .required-star {
+  color: var(--app-light-status-overdue-color);
+  margin-right: 3px; /* RTL adjustment */
+  font-weight: bold; /* Make the star more prominent */
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem; /* 20px */
+}
+
+/* Base .form-control styling for text, email, password, number, etc. */
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.9375rem; /* 10px 15px */
+  font-size: 0.875rem; /* Consistent with label or slightly larger */
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--app-light-text-primary);
+  background-color: var(--app-light-bg-secondary);
+  background-clip: padding-box;
+  border: 1px solid var(--app-light-border-color); /* Use the main border color for consistency */
+  appearance: none; /* Removes default browser styling (especially for select) */
+  border-radius: var(--app-border-radius-small);
+  transition: border-color var(--app-transition-speed) ease-in-out, box-shadow var(--app-transition-speed) ease-in-out;
+  box-sizing: border-box; /* Crucial for predictable sizing */
+}
+
+.form-control:focus {
+  color: var(--app-light-text-primary);
+  background-color: var(--app-light-bg-secondary);
+  border-color: var(--app-light-accent-primary); /* Use a slightly lighter/brighter version of accent for focus */
+  outline: 0; /* Remove default browser outline */
+  box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25); /* Bootstrap-like focus shadow */
+}
+
+.form-control::placeholder {
+  color: #6c757d; /* Standard placeholder color, adjust if needed */
+  opacity: 1; /* Override Firefox's lower opacity */
+}
+
+/* Styling for <select> elements with .form-control class */
+select.form-control {
+  padding-right: 2.5rem; /* Space for the custom dropdown arrow (RTL) */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: left 0.75rem center; /* Arrow on the left for RTL */
+  background-size: 16px 12px;
+}
+select.form-control:disabled {
+  background-color: var(--app-light-bg-tertiary); /* Indicate disabled state */
+  opacity: 0.7;
+}
+
+
+/* Styling for <textarea> elements with .form-control class */
+textarea.form-control {
+  min-height: calc(1.6em + (0.625rem * 2) + 2px); /* Default height of about 3 lines */
+  resize: vertical; /* Allow vertical resizing only */
+}
+
+/* Custom File Input Styling */
+.form-control-file-wrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+  border: 1px solid var(--app-light-border-color);
+  border-radius: var(--app-border-radius-small);
+  background-color: var(--app-light-bg-secondary);
+  transition: border-color var(--app-transition-speed) ease-in-out, box-shadow var(--app-transition-speed) ease-in-out;
+  overflow: hidden; /* Important for border-radius on children */
+}
+
+.form-control-file-wrapper:focus-within,
+.form-control-file-wrapper:hover {
+  border-color: var(--app-light-accent-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
+}
+
+/* The actual <input type="file">, visually hidden but interactive */
+input[type="file"].form-control-file-input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0; /* For LTR, or right: 0 for RTL covering the whole area */
+  opacity: 0; /* Make it invisible */
+  cursor: pointer;
+  z-index: 2; /* Ensure it's on top of the styled button/text */
+}
+
+/* The styled "Choose File" button part */
+.form-control-file-button {
+  padding: 0.625rem 0.9375rem; /* Match .form-control padding */
+  background-color: var(--app-light-bg-tertiary);
+  color: var(--app-light-text-primary);
+  /* For RTL, the button is on the right, so border-left makes sense */
+  border-left: 1px solid var(--app-light-border-color);
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 1.6; /* Match .form-control line-height */
+  flex-shrink: 0; /* Prevent the button from shrinking if text is long */
+  z-index: 1; /* Behind the actual input */
+  display: flex; /* To center content if needed, or for icon */
+  align-items: center;
+  margin: 0 !important; /* Reset any margin */
+}
+
+/* The styled text part showing "No file chosen" or the filename */
+.form-control-file-text {
+  padding: 0.625rem 0.9375rem; /* Match .form-control padding */
+  color: #6c757d; /* Placeholder-like color */
+  flex-grow: 1; /* Take remaining space */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 1.6; /* Match .form-control line-height */
+  z-index: 1; /* Behind the actual input */
+  display: flex; /* To center content if needed */
+  align-items: center;
+}

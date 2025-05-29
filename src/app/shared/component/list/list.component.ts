@@ -5,6 +5,7 @@ import {MatPaginator, MatPaginatorModule} from '@angular/material/paginator';
 import {MatIconModule} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 export interface TableColumn {
   columnDef: string; // نام پراپرتی در آبجکت داده
@@ -54,6 +55,8 @@ export class ListComponent  implements OnInit, AfterViewInit, OnChanges {
     }
   }
 
+  constructor(private sanitizer: DomSanitizer) {}
+
   ngOnInit(): void {
     // this.setupTable(); // به ngOnChanges منتقل شد تا با تغییرات ورودی هم آپدیت شود
   }
@@ -78,6 +81,11 @@ export class ListComponent  implements OnInit, AfterViewInit, OnChanges {
       }
     }
   }
+
+  getCellHtml(column: TableColumn, element: any): SafeHtml {
+  const rawHtml = column.cell(element);
+  return this.sanitizer.bypassSecurityTrustHtml(rawHtml);
+}
 
   onActionClick(actionId: string, element: any, event: MouseEvent): void {
     event.stopPropagation(); // جلوگیری از تریگر شدن رویداد کلیک روی سطر

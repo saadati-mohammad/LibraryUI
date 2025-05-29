@@ -1,0 +1,142 @@
+/* modal.component.css */
+:host {
+  display: contents; /* Allows the modal to be positioned correctly relative to body */
+  direction: rtl; /* Ensure RTL direction for the component itself if needed */
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0; /* top: 0; right: 0; bottom: 0; left: 0; */
+  background-color: var(--modal-overlay-bg, rgba(33, 37, 41, 0.6)); /* Darker overlay for better contrast, adjust as needed */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 15px;
+  opacity: 1; /* Controlled by *ngIf, no need for separate opacity transition on overlay */
+  visibility: visible; /* Controlled by *ngIf */
+}
+
+.modal {
+  background-color: var(--app-light-bg-secondary, #ffffff); /* Uses your global variable */
+  border: 1px solid var(--app-light-border-color, #e9ecef); /* Uses your global variable */
+  border-radius: var(--app-border-radius-main, 8px); /* Uses your global variable */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* Slightly enhanced shadow */
+  width: 100%; /* Default for small screens */
+  /* max-width is set by @Input() maxWidth in the template */
+  display: flex;
+  flex-direction: column;
+  animation: modal-scale-up var(--app-transition-speed, 0.2s) cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+  overflow: hidden; /* Prevents content from breaking border-radius if body scrolls */
+}
+
+@keyframes modal-scale-up {
+  from {
+    transform: scale(0.9) translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(var(--app-card-padding, 20px) * 0.8) var(--app-card-padding, 20px); /* Slightly adjusted padding */
+  border-bottom: 1px solid var(--app-light-border-color, #e9ecef);
+  flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.modal-title {
+  font-size: 1.35rem; /* Slightly larger title */
+  font-weight: 600; /* Bolder title */
+  color: var(--app-light-text-primary, #333333);
+  margin: 0;
+}
+
+.modal-title .page-title-accent {
+  color: var(--app-light-accent-secondary-color, #6f42c1); /* Uses your defined secondary accent */
+}
+
+.modal-close-btn.mat-mdc-icon-button {
+  color: var(--app-light-text-secondary, #555555);
+  transition: color var(--app-transition-speed, 0.2s) ease, transform var(--app-transition-speed, 0.2s) ease;
+}
+
+.modal-close-btn.mat-mdc-icon-button:hover:not(:disabled) {
+  color: var(--app-light-accent-primary, #007bff); /* Primary accent on hover */
+  transform: rotate(90deg) scale(1.1); /* Enhanced hover effect */
+  /* background-color: rgba(var(--app-light-accent-primary-rgb, 0,123,255), 0.08); */ /* Optional: if you want a background */
+}
+.modal-close-btn.mat-mdc-icon-button:disabled {
+  opacity: 0.5;
+}
+
+.modal-body {
+  padding: var(--app-card-padding, 20px);
+  max-height: calc(70vh - 120px); /* Adjusted max-height considering header/footer */
+  min-height: 100px; /* Ensure a minimum height */
+  overflow-y: auto;
+  color: var(--app-light-text-secondary, #555555);
+  flex-grow: 1; /* Allow body to take available space */
+}
+
+.modal-body::-webkit-scrollbar { width: 7px; }
+.modal-body::-webkit-scrollbar-track { background: var(--app-light-bg-tertiary, #f7f9fc); border-radius: 10px;}
+.modal-body::-webkit-scrollbar-thumb { background: var(--app-light-border-color, #cccccc); border-radius: 10px;} /* Softer scrollbar thumb */
+.modal-body::-webkit-scrollbar-thumb:hover { background: var(--app-light-text-secondary, #bbbbbb); }
+
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-start; /* For RTL */
+  align-items: center;
+  padding: calc(var(--app-card-padding, 20px) * 0.8) var(--app-card-padding, 20px); /* Slightly adjusted padding */
+  border-top: 1px solid var(--app-light-border-color, #e9ecef);
+  gap: 12px; /* Slightly increased gap */
+  flex-shrink: 0; /* Prevent footer from shrinking */
+  background-color: var(--app-light-bg-tertiary, #f7f9fc); /* Subtle background for footer */
+}
+
+.modal-footer .modal-cancel-btn.mat-mdc-stroked-button {
+  color: var(--app-light-text-secondary, #555555);
+  border-color: var(--app-light-border-color, #cccccc); /* Slightly darker border for cancel button */
+}
+ .modal-footer .modal-cancel-btn.mat-mdc-stroked-button:hover:not(:disabled) {
+   color: var(--app-light-text-primary, #333333);
+   border-color: var(--app-light-text-secondary, #555555);
+   background-color: rgba(0,0,0, 0.04); /* Subtle hover for cancel */
+ }
+
+.modal-footer .modal-submit-btn.mat-mdc-raised-button[color="primary"] {
+  /* Material's primary color should be fine, using your accent variable */
+  background-color: var(--app-light-accent-primary, #007bff);
+  color: #ffffff; /* Ensure contrast */
+}
+.modal-footer .modal-submit-btn.mat-mdc-raised-button[color="primary"]:hover:not(:disabled) {
+  background-color: #0056b3; /* Darken primary accent for hover (example, adjust if needed) */
+}
+
+.modal-footer .modal-submit-btn.mat-mdc-raised-button .mat-icon {
+  margin-right: -6px; /* Adjust icon spacing for RTL */
+  margin-left: 6px;
+}
+/* Spinner color is handled by Material if inside a themed button, or use ::ng-deep if needed */
+
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .modal-title { font-size: 1.2rem; }
+  .modal-body { padding: calc(var(--app-card-padding, 20px) * 0.8); max-height: 60vh; }
+  .modal-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  .modal-footer .mat-mdc-button-base {
+    width: 100%;
+    margin: 0;
+  }
+}
