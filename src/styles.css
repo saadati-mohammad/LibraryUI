@@ -11,8 +11,9 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; } /* Defaul
   /* Main Theme Colors */
   --app-light-bg-primary: #f0f2f5;      /* اصلی صفحه */
   --app-light-bg-secondary: #ffffff;    /* کارت‌ها و جدول */
-  --app-light-bg-tertiary: #f7f9fc;     /* هدر جدول یا بخش‌های کمی متمایز */
-
+  --app-light-bg-tertiary: #ebebebd7;     /* هدر جدول یا بخش‌های کمی متمایز */
+  --app-light-border-color-stronger: #d8dde3;
+  
   --app-light-text-primary: #333333;    /* متن اصلی تیره */
   --app-light-text-secondary: #555555;   /* متن ثانویه خاکستری */
 
@@ -147,21 +148,25 @@ button[mat-button], button[mat-raised-button], button[mat-flat-button], button[m
   font-weight: 400;
   line-height: 1.6;
   color: var(--app-light-text-primary);
-  background-color: var(--app-light-bg-secondary);
+  background-color: var(--app-light-bg-tertiary); /* Use a lighter background for inputs */
   background-clip: padding-box;
-  border: 1px solid var(--app-light-border-color); /* Use the main border color for consistency */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075); 
+  border: 1px solid var(--app-light-border-color-stronger); /* Use the main border color for consistency */
   appearance: none; /* Removes default browser styling (especially for select) */
   border-radius: var(--app-border-radius-small);
   transition: border-color var(--app-transition-speed) ease-in-out, box-shadow var(--app-transition-speed) ease-in-out;
   box-sizing: border-box; /* Crucial for predictable sizing */
 }
-
+.form-control.fileInput {
+display: none !important;
+}
 .form-control:focus {
   color: var(--app-light-text-primary);
   background-color: var(--app-light-bg-secondary);
   border-color: var(--app-light-accent-primary); /* Use a slightly lighter/brighter version of accent for focus */
   outline: 0; /* Remove default browser outline */
-  box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25); /* Bootstrap-like focus shadow */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075),
+                0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
 }
 
 .form-control::placeholder {
@@ -194,17 +199,19 @@ textarea.form-control {
   position: relative;
   display: flex;
   width: 100%;
-  border: 1px solid var(--app-light-border-color);
+  border: 1px solid var(--app-light-border-color-stronger);
   border-radius: var(--app-border-radius-small);
-  background-color: var(--app-light-bg-secondary);
+  background-color: var(--app-light-bg-tertiary);
   transition: border-color var(--app-transition-speed) ease-in-out, box-shadow var(--app-transition-speed) ease-in-out;
   overflow: hidden; /* Important for border-radius on children */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
 }
 
 .form-control-file-wrapper:focus-within,
 .form-control-file-wrapper:hover {
   border-color: var(--app-light-accent-primary);
-  box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
+   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075),
+                0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
 }
 
 /* The actual <input type="file">, visually hidden but interactive */
