@@ -1,8 +1,16 @@
 /* styles.css - Global Styles */
 
 /* Angular Material Base Styles (Keep these if your project uses them generally) */
-html, body { height: 100%; }
-body { margin: 0; /* font-family: Roboto, "Helvetica Neue", sans-serif; */ /* Using Vazirmatn below */ }
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  /* font-family: Roboto, "Helvetica Neue", sans-serif; */
+  /* Using Vazirmatn below */
+}
 
 /* ----------------------------------------- */
 /* --- Custom Global Settings & Root Variables --- */
@@ -11,7 +19,8 @@ body { margin: 0; /* font-family: Roboto, "Helvetica Neue", sans-serif; */ /* Us
   /* Main Theme Colors */
   --app-light-bg-primary: #f0f2f5;
   --app-light-bg-secondary: #ffffff;
-  --app-light-bg-tertiary: #f7f9fc; /* Lighter tertiary for general use, table header can be this */
+  --app-light-bg-tertiary: #f7f9fc;
+  /* Lighter tertiary for general use, table header can be this */
   --app-light-border-color-stronger: #d8dde3;
 
   --app-light-text-primary: #333333;
@@ -36,7 +45,8 @@ body { margin: 0; /* font-family: Roboto, "Helvetica Neue", sans-serif; */ /* Us
   /* Sizing and Spacing */
   --app-border-radius-main: 8px;
   --app-border-radius-small: 4px;
-  --app-card-padding: 20px; /* Default padding for cards */
+  --app-card-padding: 20px;
+  /* Default padding for cards */
   --app-transition-speed: 0.2s;
 }
 
@@ -84,9 +94,11 @@ body {
   direction: rtl;
   text-align: right;
 }
+
 .mat-mdc-form-field .mat-mdc-text-field-wrapper {
   direction: rtl;
 }
+
 .mat-mdc-form-field .mat-mdc-form-field-hint-wrapper,
 .mat-mdc-form-field .mat-mdc-form-field-error-wrapper {
   direction: rtl;
@@ -98,7 +110,8 @@ body {
 
 /* Global styles for MatPaginator (previously with ::ng-deep) */
 .mat-mdc-paginator {
-  background-color: var(--app-light-bg-secondary); /* Paginator background */
+  background-color: var(--app-light-bg-secondary);
+  /* Paginator background */
   color: var(--app-light-text-secondary);
   border-top: 1px solid var(--app-light-border-color);
   /* border-radius for paginator is handled by parent (.content-card-body app-list .mat-mdc-paginator) */
@@ -117,16 +130,19 @@ body {
 .mat-mdc-paginator .mat-mdc-icon-button {
   color: var(--app-light-text-secondary);
 }
+
 .mat-mdc-paginator .mat-mdc-icon-button:hover:not(:disabled) {
   background-color: rgba(var(--app-light-accent-primary-rgb), 0.04);
 }
+
 .mat-mdc-paginator .mat-mdc-icon-button:disabled {
-  color: rgba(0,0,0,0.20);
+  color: rgba(0, 0, 0, 0.20);
 }
 
 /* Global style for MatSort header arrow (previously with ::ng-deep) */
 .mat-sort-header-arrow {
-  color: var(--app-light-text-primary) !important; /* Match header text color */
+  color: var(--app-light-text-primary) !important;
+  /* Match header text color */
   opacity: 0.7 !important;
 }
 
@@ -135,12 +151,14 @@ body {
 /* --- Global Form Element Styles (As you provided, with slight adjustments) --- */
 /* ----------------------------------------- */
 .form-group {
-  margin-bottom: 1.25rem; /* 20px */
+  margin-bottom: 1.25rem;
+  /* 20px */
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem; /* 8px */
+  margin-bottom: 0.5rem;
+  /* 8px */
   color: var(--app-light-text-secondary);
   font-weight: 500;
   font-size: 0.875rem;
@@ -156,18 +174,21 @@ body {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem; /* 20px */
+  gap: 1.25rem;
+  /* 20px */
 }
 
 .form-control {
   display: block;
   width: 100%;
-  padding: 0.625rem 0.9375rem; /* 10px 15px */
+  padding: 0.625rem 0.9375rem;
+  /* 10px 15px */
   font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.6;
   color: var(--app-light-text-primary);
-  background-color: var(--app-light-bg-secondary); /* Inputs should be white for light theme */
+  background-color: var(--app-light-bg-secondary);
+  /* Inputs should be white for light theme */
   background-clip: padding-box;
   border: 1px solid var(--app-light-border-color-stronger);
   appearance: none;
@@ -175,12 +196,16 @@ body {
   transition: border-color var(--app-transition-speed) ease-in-out, box-shadow var(--app-transition-speed) ease-in-out;
   box-sizing: border-box;
 }
-.form-control.fileInput { /* This was in your global styles, keep it if used elsewhere */
+
+.form-control.fileInput {
+  /* This was in your global styles, keep it if used elsewhere */
   display: none !important;
 }
+
 .form-control:focus {
   color: var(--app-light-text-primary);
-  background-color: var(--app-light-bg-secondary); /* Focus remains white */
+  background-color: var(--app-light-bg-secondary);
+  /* Focus remains white */
   border-color: var(--app-light-accent-primary);
   outline: 0;
   box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
@@ -198,6 +223,7 @@ select.form-control {
   background-position: left 0.75rem center;
   background-size: 16px 12px;
 }
+
 select.form-control:disabled {
   background-color: var(--app-light-bg-tertiary);
   opacity: 0.7;
@@ -214,7 +240,8 @@ textarea.form-control {
   width: 100%;
   border: 1px solid var(--app-light-border-color-stronger);
   border-radius: var(--app-border-radius-small);
-  background-color: var(--app-light-bg-secondary); /* File input wrapper should be white */
+  background-color: var(--app-light-bg-secondary);
+  /* File input wrapper should be white */
   transition: border-color var(--app-transition-speed) ease-in-out, box-shadow var(--app-transition-speed) ease-in-out;
   overflow: hidden;
 }
@@ -222,10 +249,11 @@ textarea.form-control {
 .form-control-file-wrapper:focus-within,
 .form-control-file-wrapper:hover {
   border-color: var(--app-light-accent-primary);
-   box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
 }
 
-input[type="file"].form-control-file-input { /* This is the actual hidden input */
+input[type="file"].form-control-file-input {
+  /* This is the actual hidden input */
   position: absolute;
   width: 100%;
   height: 100%;
@@ -238,7 +266,8 @@ input[type="file"].form-control-file-input { /* This is the actual hidden input 
 
 .form-control-file-button {
   padding: 0.625rem 0.9375rem;
-  background-color: var(--app-light-bg-tertiary); /* Button part can be slightly different */
+  background-color: var(--app-light-bg-tertiary);
+  /* Button part can be slightly different */
   color: var(--app-light-text-primary);
   border-left: 1px solid var(--app-light-border-color);
   white-space: nowrap;

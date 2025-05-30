@@ -21,14 +21,14 @@ export class MemberComponent implements OnInit {
   columns: TableColumn[] = [];
   data: any[] = [];
   actionButtons: ActionButtonConfig[] = [];
-  
+
   isAddBookModalVisible = false;
   addBookForm: FormGroup;
   selectedFileName: string | null = null;
   isSubmitting: boolean = false;
   fileError: string | null = null;
 
-  constructor(private fb: FormBuilder, private bookService:BookService) {
+  constructor(private fb: FormBuilder, private bookService: BookService) {
     this.addBookForm = this.fb.group({
       bookTitle: ['', Validators.required],
       bookAuthor: ['', Validators.required],
@@ -160,7 +160,7 @@ export class MemberComponent implements OnInit {
   }
 
   loadSampleData(): void {
-    this.bookService.getBookList().subscribe((data: any[]) => {
+    this.bookService.getBookList().subscribe((data: any) => {
       console.log(data);
     })
     this.data = [

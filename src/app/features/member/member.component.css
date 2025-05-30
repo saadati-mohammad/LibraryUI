@@ -288,7 +288,7 @@ select.form-control {
   :host ::ng-deep app-list .table-section-title {
     padding: 15px 15px 10px 15px;
     font-size: 1.1rem;
-  }
+  }F
   :host ::ng-deep app-list .dynamic-table-wrapper {
     padding: 0px 15px 15px 15px;
   }

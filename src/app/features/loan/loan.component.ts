@@ -160,7 +160,7 @@ export class LoanComponent implements OnInit {
   }
 
   loadSampleData(): void {
-    this.bookService.getBookList().subscribe((data: any[]) => {
+    this.bookService.getBookList().subscribe((data: any) => {
       console.log(data);
     })
     this.data = [

@@ -1,17 +1,16 @@
-<!-- book-page.component.html -->
 <div class="page-container">
-
   <div class="page-main-header">
     <h1 class="page-main-title">مدیریت <span>کتاب‌ها</span></h1>
-    <!-- Optional: User profile or theme toggle button can go here -->
   </div>
 
   <div class="content-card">
     <div class="content-card-header">
       <div class="filters-section">
+        <!-- بخش فیلترها در آینده می‌تواند اینجا پیاده‌سازی شود -->
       </div>
       <div class="actions-section">
-        <button mat-raised-button color="primary" class="btn btn-primary" (click)="openAddBookModal()">
+        <button mat-raised-button color="primary" class="btn btn-primary"
+          (click)="openBookModal(FormOperationEnum.ADD)">
           <mat-icon>add_circle_outline</mat-icon>
           افزودن کتاب جدید
         </button>
@@ -19,57 +18,122 @@
     </div>
 
     <div class="content-card-body">
-      <app-list
-        [tableTitle]="tableTitle"
-        [columns]="columns"
-        [data]="data"
-        [actionButtons]="actionButtons"
-        [showPaginator]="false"
-        [pageSizeOptions]="[]">
+      <app-list [tableTitle]="tableTitle" [columns]="columns" [data]="data" [showPaginator]="false"
+        [pageSizeOptions]="[]" [actionsTemplate]="bookActionsTemplate">
       </app-list>
     </div>
   </div>
-
 </div>
 
-<!-- Modal for adding book (app-modal) -->
-<app-modal
-  [(isVisible)]="isAddBookModalVisible"
-  title="افزودن"
-  titleAccent="کتاب جدید"
-  submitButtonText="ذخیره کتاب"
-  submitButtonIcon="save"
-  (submit)="onAddBookSubmit()"
-  (cancel)="onAddBookModalClose()"
-  [disableSubmit]="addBookForm.invalid || isSubmitting"
-  [isLoading]="isSubmitting"
-  maxWidth="700px">
+<!-- قالب ستون عملیات برای app-list -->
+<ng-template #bookActionsTemplate let-bookRow>
+  <button mat-icon-button color="primary" [matTooltip]="'ویرایش کتاب: ' + bookRow.title"
+    (click)="openBookModal(FormOperationEnum.UPDATE, bookRow)">
+    <mat-icon>edit</mat-icon>
+  </button>
+
+  <button mat-icon-button color="warn" [matTooltip]="'حذف کتاب: ' + bookRow.title" (click)="deleteBook(bookRow)">
+    <mat-icon>delete_outline</mat-icon>
+  </button>
+  <!-- می‌توانید دکمه‌های بیشتری با mat-menu اضافه کنید -->
+</ng-template>
+
+<!-- مودال افزودن/ویرایش کتاب -->
+<app-modal [(isVisible)]="isBookModalVisible"
+  [title]="currentFormOperation === FormOperationEnum.ADD ? 'افزودن' : 'ویرایش'"
+  [titleAccent]="currentFormOperation === FormOperationEnum.ADD ? 'کتاب جدید' : ('کتاب: ' + (bookForm.get('title')?.value || ''))"
+  [submitButtonText]="currentFormOperation === FormOperationEnum.ADD ? 'ذخیره کتاب' : 'بروزرسانی کتاب'"
+  submitButtonIcon="save" (submit)="onBookSubmit()" (cancel)="onBookModalClose()"
+  [disableSubmit]="bookForm.invalid || isSubmitting" [isLoading]="isSubmitting" maxWidth="700px">
   <div modal-body>
-    <p>لطفاً اطلاعات کتاب جدید را وارد کنید:</p>
-    <form [formGroup]="addBookForm" id="addBookInternalForm">
+    <p *ngIf="currentFormOperation === FormOperationEnum.ADD">لطفاً اطلاعات کتاب جدید را وارد کنید:</p>
+    <p *ngIf="currentFormOperation === FormOperationEnum.UPDATE">اطلاعات کتاب را ویرایش کنید:</p>
+
+    <form [formGroup]="bookForm" id="bookFormInternal">
       <div class="form-grid">
         <div class="form-group">
-          <label for="bookTitle">عنوان کتاب <span class="required-star">*</span></label>
-          <input type="text" id="bookTitle" formControlName="title" class="form-control" placeholder="مثال: شازده کوچولو">
+          <label for="bookTitleForm">عنوان کتاب <span class="required-star">*</span></label>
+          <input type="text" id="bookTitleForm" formControlName="title" class="form-control"
+            placeholder="مثال: شازده کوچولو">
+          <!-- نمایش خطای ولیدیشن (مثال) -->
+          <small *ngIf="bookForm.get('title')?.invalid && bookForm.get('title')?.touched" class="text-danger">
+            عنوان کتاب الزامی است.
+          </small>
         </div>
         <div class="form-group">
-          <label for="bookAuthor">نویسنده <span class="required-star">*</span></label>
-          <input type="text" id="bookAuthor" formControlName="author" class="form-control" placeholder="مثال: آنتوان دوسنت اگزوپری">
+          <label for="bookAuthorForm">نویسنده <span class="required-star">*</span></label>
+          <input type="text" id="bookAuthorForm" formControlName="author" class="form-control"
+            placeholder="مثال: آنتوان دوسنت اگزوپری">
+          <small *ngIf="bookForm.get('author')?.invalid && bookForm.get('author')?.touched" class="text-danger">
+            نویسنده الزامی است.
+          </small>
         </div>
       </div>
+
       <div class="form-grid">
         <div class="form-group">
-          <label for="bookAuthor">شابک <span class="required-star">*</span></label>
-          <input type="text" id="bookAuthor" formControlName="isbn10" class="form-control" placeholder="مثال: آنتوان دوسنت اگزوپری">
+          <label for="bookIsbn10Form">شابک (۱۰ رقمی) <span class="required-star">*</span></label>
+          <input type="text" id="bookIsbn10Form" formControlName="isbn10" class="form-control"
+            placeholder="مثال: 964-321-000-0">
+          <small *ngIf="bookForm.get('isbn10')?.invalid && bookForm.get('isbn10')?.touched" class="text-danger">
+            شابک الزامی است.
+          </small>
         </div>
-         <div class="form-group">
-            <label for="bookCopies">مترجم<span class="required-star">*</span></label>
-            <input type="number" id="bookCopies" formControlName="translator" class="form-control" min="1"> 
+        <div class="form-group">
+          <label for="bookTranslatorForm">مترجم</label>
+          <input type="text" id="bookTranslatorForm" formControlName="translator" class="form-control"
+            placeholder="مثال: احمد شاملو">
         </div>
       </div>
-               <div class="form-group">
-            <label for="bookCopies">توضیحات<span class="required-star">*</span></label>
-            <textarea type="number" id="bookCopies" formControlName="description" class="form-control" min="1"> 
+
+      <div class="form-group">
+        <label for="bookDescriptionForm">توضیحات</label>
+        <textarea id="bookDescriptionForm" formControlName="description" class="form-control" rows="3"
+          placeholder="توضیحاتی درباره کتاب..."></textarea>
+      </div>
+
+      <hr>
+      <p>اطلاعات تکمیلی (اختیاری):</p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="bookPublisherForm">ناشر</label>
+          <input type="text" id="bookPublisherForm" formControlName="publisher" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="bookIsbn13Form">شابک (۱۳ رقمی)</label>
+          <input type="text" id="bookIsbn13Form" formControlName="isbn13" class="form-control">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="bookPageCountForm">تعداد صفحات</label>
+          <input type="number" id="bookPageCountForm" formControlName="pageCount" class="form-control" min="1">
+        </div>
+        <div class="form-group">
+          <label for="bookLanguageForm">زبان</label>
+          <input type="text" id="bookLanguageForm" formControlName="language" class="form-control"
+            placeholder="مثال: فارسی">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="bookActiveForm" formControlName="active">
+          <label class="form-check-label" for="bookActiveForm">
+            کتاب فعال و قابل نمایش باشد
+          </label>
+        </div>
+      </div>
+
+      <!-- بخش آپلود فایل (اگر دارید) -->
+      <div class="form-group">
+        <label for="bookCoverFileForm">جلد کتاب</label>
+        <input type="file" id="bookCoverFileForm" (change)="onFileChange($event)" class="form-control-file"
+          accept="image/*">
+        <small *ngIf="selectedFileName">{{ selectedFileName }}</small>
+        <small *ngIf="fileError" class="text-danger d-block">{{ fileError }}</small>
       </div>
 
     </form>

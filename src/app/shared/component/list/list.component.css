@@ -10,49 +10,65 @@
 }
 
 .dynamic-table-wrapper {
-  padding: 0; /* Removed padding, will be handled by parent or content-card-body */
+  padding: 0;
+  /* Removed padding, will be handled by parent or content-card-body */
 }
 
 .table-section-title {
-  font-size: 1.2rem; /* Slightly smaller as it's now inside a card */
+  font-size: 1.2rem;
+  /* Slightly smaller as it's now inside a card */
   font-weight: 600;
-  color: var(--app-light-text-primary); /* Use global variable */
-  margin-bottom: 15px; /* Space before the table container */
+  color: var(--app-light-text-primary);
+  /* Use global variable */
+  margin-bottom: 15px;
+  /* Space before the table container */
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--app-light-border-color); /* Use global variable */
+  border-bottom: 1px solid var(--app-light-border-color);
+  /* Use global variable */
   /* Default padding from parent will position this title */
 }
 
 .table-section-title span {
-  color: var(--app-light-text-secondary); /* Use global variable */
+  color: var(--app-light-text-secondary);
+  /* Use global variable */
   font-size: 0.9rem;
   font-weight: 400;
 }
 
 .table-container {
-  background-color: var(--app-light-bg-secondary); /* Use global variable */
-  border-radius: var(--app-border-radius-small); /* Rounded corners for table within card */
-  overflow: hidden; /* Essential for border-radius on table */
-  border: 1px solid var(--app-light-border-color); /* Use global variable */
-  box-shadow: none; /* Shadow is on the parent card now */
+  background-color: var(--app-light-bg-secondary);
+  /* Use global variable */
+  border-radius: var(--app-border-radius-small);
+  /* Rounded corners for table within card */
+  overflow: hidden;
+  /* Essential for border-radius on table */
+  border: 1px solid var(--app-light-border-color);
+  /* Use global variable */
+  box-shadow: none;
+  /* Shadow is on the parent card now */
 }
 
 .lux-table {
   width: 100%;
-  border-collapse: collapse; /* Important for table styling */
+  border-collapse: collapse;
+  /* Important for table styling */
 }
 
 .lux-table th.mat-mdc-header-cell,
 .lux-table td.mat-mdc-cell {
-  padding: 14px 18px; /* Original padding */
+  padding: 14px 18px;
+  /* Original padding */
   text-align: right;
-  border-bottom: 1px solid var(--app-light-border-color); /* Use global variable */
+  border-bottom: 1px solid var(--app-light-border-color);
+  /* Use global variable */
   vertical-align: middle;
 }
 
 .lux-table th.mat-mdc-header-cell {
-  background-color: var(--app-light-bg-tertiary); /* Use global variable */
-  color: var(--app-light-text-primary); /* Header text color */
+  background-color: var(--app-light-bg-tertiary);
+  /* Use global variable */
+  color: var(--app-light-text-primary);
+  /* Header text color */
   font-weight: 600;
   font-size: 0.9rem;
   letter-spacing: 0.3px;
@@ -69,46 +85,57 @@
 .lux-table tr.data-row {
   transition: background-color var(--app-transition-speed, 0.2s) ease-out;
 }
+
 .lux-table tr.data-row:hover {
-  background-color: rgba(var(--app-light-accent-primary-rgb), 0.04); /* Use global variable */
+  background-color: rgba(var(--app-light-accent-primary-rgb), 0.04);
+  /* Use global variable */
 }
 
 .lux-table td.mat-mdc-cell {
-  color: var(--app-light-text-secondary); /* Use global variable */
+  color: var(--app-light-text-secondary);
+  /* Use global variable */
   font-size: 0.875rem;
   line-height: 1.5;
 }
 
-.lux-table td.mat-mdc-cell.emphasize { /* Class from your original list component */
-  color: var(--app-light-text-primary); /* Use global variable */
+.lux-table td.mat-mdc-cell.emphasize {
+  /* Class from your original list component */
+  color: var(--app-light-text-primary);
+  /* Use global variable */
   font-weight: 500;
 }
 
 .lux-table td.action-cell {
-  text-align: right; /* Actions usually on the left in RTL if they are last visually */
+  text-align: right;
+  /* Actions usually on the left in RTL if they are last visually */
   white-space: nowrap;
   padding-right: 8px;
   padding-left: 8px;
 }
 
 .lux-table td.action-cell button[mat-icon-button] {
-  color: var(--app-light-text-secondary); /* Use global variable */
+  color: var(--app-light-text-secondary);
+  /* Use global variable */
   transition: color var(--app-transition-speed, 0.2s) ease, transform var(--app-transition-speed, 0.2s) ease;
   margin: 0 2px;
 }
 
 .lux-table td.action-cell button[mat-icon-button]:hover:not(:disabled) {
-  color: var(--app-light-accent-primary); /* Use global variable */
+  color: var(--app-light-accent-primary);
+  /* Use global variable */
   transform: scale(1.1);
 }
+
 .lux-table td.action-cell button[mat-icon-button]:disabled {
-  color: rgba(0,0,0,0.26); /* Standard disabled color */
+  color: rgba(0, 0, 0, 0.26);
+  /* Standard disabled color */
 }
 
 /* Status Badge Styles (assuming these are applied via cellClass or directly in cell HTML) */
 .status-badge {
   padding: 5px 12px;
-  border-radius: var(--app-border-radius-small, 8px); /* Use global variable */
+  border-radius: var(--app-border-radius-small, 8px);
+  /* Use global variable */
   font-size: 0.8rem;
   font-weight: 500;
   display: inline-flex;
@@ -117,7 +144,8 @@
   white-space: nowrap;
 }
 
-.status-badge mat-icon { /* If mat-icon is used inside status-badge */
+.status-badge mat-icon {
+  /* If mat-icon is used inside status-badge */
   font-size: 16px;
   width: 16px;
   height: 16px;
@@ -127,25 +155,31 @@
   background-color: var(--app-light-status-active-bg);
   color: var(--app-light-status-active-color);
 }
+
 .status-due-soon {
   background-color: var(--app-light-status-due-soon-bg);
   color: var(--app-light-status-due-soon-color);
 }
+
 .status-overdue {
   background-color: var(--app-light-status-overdue-bg);
   color: var(--app-light-status-overdue-color);
 }
+
 .status-returned {
   background-color: var(--app-light-status-returned-bg);
   color: var(--app-light-status-returned-color);
 }
 
-.date-due { /* For styling due dates */
+.date-due {
+  /* For styling due dates */
   font-weight: 500;
 }
+
 .date-due.due-soon {
   color: var(--app-light-status-due-soon-color);
 }
+
 .date-due.overdue {
   color: var(--app-light-status-overdue-color);
   font-weight: bold;
@@ -154,18 +188,26 @@
 /* Adjust first/last cell padding if table-container has its own padding */
 .lux-table .mat-mdc-row .mat-mdc-cell:first-of-type,
 .lux-table .mat-mdc-header-row .mat-mdc-header-cell:first-of-type {
-  padding-right: 18px; /* Match general cell padding */
-}
-.lux-table .mat-mdc-row .mat-mdc-cell:last-of-type,
-.lux-table .mat-mdc-header-row .mat-mdc-header-cell:last-of-type {
-  padding-left: 18px; /* Match general cell padding */
+  padding-right: 18px;
+  /* Match general cell padding */
 }
 
-.mat-row.mat-no-data-row td.mat-cell { /* For the "no data" row */
-  text-align: right;
+.lux-table .mat-mdc-row .mat-mdc-cell:last-of-type,
+.lux-table .mat-mdc-header-row .mat-mdc-header-cell:last-of-type {
+  padding-left: 18px;
+  /* Match general cell padding */
+}
+
+.mat-row.mat-no-data-row td.mat-cell {
+  /* For the "no data" row */
+  text-align: center;
   padding: 40px 0;
   color: var(--app-light-text-secondary);
   font-style: italic;
+}
+
+.mat-row {
+  text-align: center;
 }
 
 /* Paginator styling - it should be placed after table-container */
@@ -175,8 +217,10 @@
   or if the paginator is part of this component's direct template.
   If paginator is part of app-list's template, these styles are fine here.
 */
-:host .mat-mdc-paginator { /* Target paginator within this component's scope */
-  background-color: var(--app-light-bg-secondary); /* Match card background */
+:host .mat-mdc-paginator {
+  /* Target paginator within this component's scope */
+  background-color: var(--app-light-bg-secondary);
+  /* Match card background */
   color: var(--app-light-text-secondary);
   border-top: 1px solid var(--app-light-border-color);
   /* Radius should match the table-container's bottom radius */
@@ -194,19 +238,24 @@
   color: var(--app-light-text-secondary);
   font-size: 0.875rem;
 }
+
 :host .mat-mdc-paginator .mat-mdc-select-value {
   color: var(--app-light-text-primary);
 }
+
 :host .mat-mdc-paginator .mat-mdc-icon-button {
   color: var(--app-light-text-secondary);
 }
+
 :host .mat-mdc-paginator .mat-mdc-icon-button:hover:not(:disabled) {
   background-color: rgba(var(--app-light-accent-primary-rgb), 0.04);
 }
+
 :host .mat-mdc-paginator .mat-mdc-icon-button:disabled {
-  color: rgba(0,0,0,0.20);
+  color: rgba(0, 0, 0, 0.20);
 }
 
-.direction-rtl { /* Utility class if needed, though body should handle it */
+.direction-rtl {
+  /* Utility class if needed, though body should handle it */
   direction: rtl;
 }

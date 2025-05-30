@@ -1,131 +1,87 @@
-import { Component, OnInit } from '@angular/core';
-import { ActionButtonConfig, TableColumn, ListComponent } from '../../shared/component/list/list.component';
-import { BookService } from '../../core/service/book.service';
-import { FormGroup, FormBuilder, Validators, ReactiveFormsModule, FormControl } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
-import { ModalComponent } from '../../shared/component/modal/modal.component';
+import { CommonModule } from "@angular/common";
+import { Component, OnInit } from "@angular/core";
+import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
+import { MatButtonModule } from "@angular/material/button";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatIconModule } from "@angular/material/icon";
+import { MatInputModule } from "@angular/material/input";
+import { MatMenuModule } from "@angular/material/menu";
+import { MatSelectModule } from "@angular/material/select";
+import { MatTooltipModule } from "@angular/material/tooltip";
+import { Observable } from "rxjs";
+import { BookModel } from "../../core/model/bookModel";
+import { BookService, PaginatedResponse } from "../../core/service/book.service";
+import { ListComponent, TableColumn } from "../../shared/component/list/list.component";
+import { ModalComponent } from "../../shared/component/modal/modal.component";
+
+// برای تعیین وضعیت فرم (افزودن یا ویرایش)
+export enum FormOperation {
+  ADD = 'ADD',
+  UPDATE = 'UPDATE',
+}
 
 @Component({
   selector: 'app-book',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatIconModule, ListComponent, ModalComponent],
+  imports: [
+    ReactiveFormsModule,
+    CommonModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
+    MatIconModule,
+    MatButtonModule, // اضافه شد
+    MatTooltipModule, // اضافه شد
+    MatMenuModule, // اضافه شد
+    ListComponent,
+    ModalComponent
+  ],
   templateUrl: './book.component.html',
-  styleUrl: './book.component.css'
+  styleUrls: ['./book.component.css'] // styleUrls به جای styleUrl
 })
 export class BookComponent implements OnInit {
-  tableTitle = 'لیست کتاب ها';
+  tableTitle = 'لیست کتاب‌ها';
   columns: TableColumn[] = [];
-  data: any[] = [];
-  actionButtons: ActionButtonConfig[] = [];
+  data: BookModel[] = []; // تایپ دقیق‌تر برای داده‌ها
 
-  isAddBookModalVisible = false;
-  addBookForm: FormGroup;
+  isBookModalVisible = false; // نام متغیر خواناتر شد
+  bookForm: FormGroup;
   selectedFileName: string | null = null;
   isSubmitting: boolean = false;
   fileError: string | null = null;
 
-  constructor(private fb: FormBuilder, private bookService: BookService) {
-    this.addBookForm = this.fb.group({
-      isbn10: new FormControl(null),
-      title: new FormControl(null),
-      author: new FormControl(null),
-      translator: new FormControl(null),
-      description: new FormControl(null),
+  currentFormOperation: FormOperation = FormOperation.ADD;
+  private currentEditingBookId: number | null = null;
 
-      publisher: new FormControl(null),
-      isbn13: new FormControl(null),
-      deweyDecimal: new FormControl(null),
-      congressClassification: new FormControl(null),
-      subject: new FormControl(null),
-      summary: new FormControl(null),
-      publicationDate: new FormControl(null),
-      pageCount: new FormControl(null),
-      language: new FormControl(null),
-      edition: new FormControl(null),
-      active: new FormControl(null)
+  // آبجکت فیلترها (اگر در آینده استفاده شود)
+  // bookFilters: Partial<BookModel> = {}; 
+
+  constructor(private fb: FormBuilder, private bookService: BookService) {
+    this.bookForm = this.fb.group({
+      // id: [null], // اگر آی‌دی را در فرم برای ارسال نیاز دارید، در غیر اینصورت currentEditingBookId کافیست
+      isbn10: [null, Validators.required],
+      title: [null, Validators.required],
+      author: [null, Validators.required],
+      translator: [null],
+      description: [null],
+      publisher: [null],
+      isbn13: [null],
+      deweyDecimal: [null],
+      congressClassification: [null],
+      subject: [null],
+      summary: [null],
+      publicationDate: [null], // می‌توانید از یک DatePicker استفاده کنید و نوع داده را Date قرار دهید
+      pageCount: [null, [Validators.min(1), Validators.pattern('^[0-9]*$')]],
+      language: [null],
+      edition: [null],
+      active: [true, Validators.required], // مقدار پیش‌فرض و Validator
+      bookCoverFile: [null] // برای آپلود فایل جلد کتاب (نیاز به بررسی نحوه ارسال به بک‌اند)
     });
   }
 
-  openAddBookModal(): void {
-    this.addBookForm.reset({ bookCopies: 1 }); // Reset form with defaults
-    this.selectedFileName = null;
-    this.fileError = null;
-    this.isAddBookModalVisible = true;
-  }
-
-  onAddBookModalClose(): void {
-    this.isAddBookModalVisible = false;
-  }
-
-  onAddBookSubmit(): void {
-    if (this.addBookForm.valid) {
-      this.isSubmitting = true;
-      console.log('Form Data:', this.addBookForm.value);
-      this.bookService.addBook(this.addBookForm.value).subscribe({
-        next: (response) => {
-          console.log('Book added successfully:', response);
-          alert('کتاب با موفقیت اضافه شد!');
-          this.isSubmitting = false;
-          this.isAddBookModalVisible = false;
-          this.addBookForm.reset(); // Reset form after submission
-        }
-        , error: (error) => {
-          console.error('Error adding book:', error);
-          alert('خطا در اضافه کردن کتاب. لطفاً دوباره تلاش کنید.');
-          this.isSubmitting = false;
-        }
-      });
-    } else {
-      console.error('Form is invalid');
-      // Optionally touch all fields to show errors
-      this.addBookForm.markAllAsTouched();
-    }
-  }
-
-  onFileChange(event: Event): void {
-    const inputElement = event.target as HTMLInputElement;
-    if (inputElement.files && inputElement.files.length > 0) {
-      const file = inputElement.files[0];
-      // Basic validation (example: file size < 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        this.fileError = 'حجم فایل نباید بیشتر از 2 مگابایت باشد.';
-        this.selectedFileName = 'فایل نامعتبر';
-        this.addBookForm.patchValue({ bookCoverFile: null });
-        inputElement.value = ''; // Clear the input
-        return;
-      }
-      if (!file.type.startsWith('image/')) {
-        this.fileError = 'فقط فایل‌های تصویری مجاز هستند.';
-        this.selectedFileName = 'فایل نامعتبر';
-        this.addBookForm.patchValue({ bookCoverFile: null });
-        inputElement.value = ''; // Clear the input
-        return;
-      }
-
-      this.selectedFileName = file.name;
-      this.addBookForm.patchValue({ bookCoverFile: file });
-      this.fileError = null;
-    } else {
-      this.selectedFileName = null;
-      this.addBookForm.patchValue({ bookCoverFile: null });
-      this.fileError = null;
-    }
-  }
-
-
-
-
-
-
-
   ngOnInit(): void {
     this.setupTableColumns();
-    this.loadSampleData();
-    this.setupActionButtons();
+    this.loadBooks();
   }
 
   setupTableColumns(): void {
@@ -133,135 +89,166 @@ export class BookComponent implements OnInit {
       {
         columnDef: 'id',
         header: 'ردیف',
-        cell: (element: any) => `${element.id}`,
+        cell: (element: BookModel) => `${element.id}`,
       },
       {
-        columnDef: 'bookTitle',
+        columnDef: 'title',
         header: 'عنوان کتاب',
-        cell: (element: any) => `${element.bookTitle}`,
+        cell: (element: BookModel) => `${element.title}`,
         cellClass: () => 'emphasize'
       },
       {
-        columnDef: 'memberName',
-        header: 'نام عضو',
-        cell: (element: any) => `${element.memberName}`,
+        columnDef: 'author',
+        header: 'نویسنده',
+        cell: (element: BookModel) => `${element.author}`,
         cellClass: () => 'emphasize'
       },
       {
-        columnDef: 'memberCode',
-        header: 'کد عضو',
-        cell: (element: any) => `${element.memberCode}`
+        columnDef: 'isbn10',
+        header: 'شابک',
+        cell: (element: BookModel) => `${element.isbn10 || '---'}` // نمایش پیش‌فرض اگر خالی بود
       },
       {
-        columnDef: 'loanDate',
-        header: 'تاریخ امانت',
-        cell: (element: any) => `${element.loanDate}`
+        columnDef: 'translator',
+        header: 'مترجم',
+        cell: (element: BookModel) => `${element.translator || '---'}`
       },
       {
-        columnDef: 'dueDate',
-        header: 'تاریخ سررسید',
-        cell: (element: any) => `${element.dueDate}`,
-        cellClass: (element: any) => `date-due ${element.dueDateStatus || ''}` // کلاس‌های due-soon یا overdue
-      },
-      {
-        columnDef: 'status',
+        columnDef: 'status', // این پراپرتی باید در BookModel یا در map ایجاد شود
         header: 'وضعیت',
-        cell: (element: any) => this.getStatusBadge(element.status),
+        cell: (element: BookModel & { status?: string }) => `${element.status || (element.active ? 'فعال' : 'غیر فعال')}`,
       },
     ];
   }
 
-  getStatusBadge(status: { text: string, type: string, icon: string }): string {
-    return `<span class="status-badge status-${status.type}">
-              <mat-icon role="img" class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font">${status.icon}</mat-icon>
-              ${status.text}
-            </span>`;
-  }
-
-  loadSampleData(): void {
-    this.bookService.getBookList().subscribe((data: any[]) => {
-      console.log(data);
-    })
-    this.data = [
-      {
-        id: 1,
-        bookTitle: 'جنگ و صلح',
-        memberName: 'آنا کارنینا',
-        memberCode: 'C00123',
-        loanDate: '۱۴۰۳/۰۲/۱۰',
-        dueDate: '۱۴۰۳/۰۲/۲۴',
-        dueDateRaw: '2024-05-13', // برای مرتب سازی و محاسبات احتمالی
-        dueDateStatus: 'overdue', // اضافه شده برای استایل خاص تاریخ سررسید
-        status: { text: 'سررسید شده', type: 'overdue', icon: 'error_outline' },
+  loadBooks(): void {
+    // اگر از فیلترها استفاده می‌کنید: this.bookService.getBookList(this.bookFilters)
+    this.bookService.getBookList().subscribe({
+      next: (response: PaginatedResponse<BookModel>) => {
+        this.data = response.content.map(book => ({
+          ...book,
+          status: book.active ? 'فعال' : 'غیر فعال' // ایجاد پراپرتی status برای نمایش
+        }));
       },
-      {
-        id: 2,
-        bookTitle: 'غرور و تعصب',
-        memberName: 'الیزابت بنت',
-        memberCode: 'C00456',
-        loanDate: '۱۴۰۳/۰۳/۰۵',
-        dueDate: '۱۴۰۳/0۳/۱۹',
-        dueDateRaw: '2024-06-08',
-        dueDateStatus: 'due-soon',
-        status: { text: 'نزدیک به سررسید', type: 'due-soon', icon: 'warning_amber' },
-      },
-      {
-        id: 3,
-        bookTitle: 'کیمیاگر',
-        memberName: 'سانتیاگو چوپان',
-        memberCode: 'C00789',
-        loanDate: '۱۴۰۳/۰۳/۱۰',
-        dueDate: '۱۴۰۳/۰۳/۲۴',
-        dueDateRaw: '2024-06-13',
-        status: { text: 'در حال امانت', type: 'active', icon: 'hourglass_empty' },
-      },
-      {
-        id: 4,
-        bookTitle: 'صد سال تنهایی',
-        memberName: 'اورسولا ایگواران',
-        memberCode: 'C00101',
-        loanDate: '۱۴۰۳/۰۱/۱۵',
-        dueDate: '۱۴۰۳/۰۱/۲۹',
-        dueDateRaw: '2024-04-18',
-        status: { text: 'بازگشت داده شده', type: 'returned', icon: 'check_circle_outline' },
+      error: (err) => {
+        console.error('Error loading books:', err);
+        alert('خطا در بارگذاری لیست کتاب‌ها. لطفاً کنسول را بررسی کنید.');
+        this.data = []; // خالی کردن داده‌ها در صورت خطا
       }
-    ];
+    });
   }
 
-  setupActionButtons(): void {
-    this.actionButtons = [
-      {
-        icon: 'check_circle_outline',
-        tooltip: 'ثبت بازگشت',
-        actionId: 'return',
-        color: 'primary',
-        condition: (element: any) => element.status.type === 'active' || element.status.type === 'due-soon' || element.status.type === 'overdue'
+  openBookModal(operation: FormOperation, book?: BookModel): void {
+    this.currentFormOperation = operation;
+    this.bookForm.reset({ active: true }); // ریست کردن فرم و تنظیم مقدار پیش‌فرض برای active
+    this.selectedFileName = null;
+    this.fileError = null;
+    this.currentEditingBookId = null;
+
+    if (operation === FormOperation.UPDATE && book) {
+      this.bookForm.patchValue(book);
+      this.currentEditingBookId = book.id ?? null;
+      // اگر جلد کتاب قبلا آپلود شده و اطلاعات آن را دارید، اینجا selectedFileName را تنظیم کنید
+    }
+    this.isBookModalVisible = true;
+  }
+
+  onBookModalClose(): void {
+    this.isBookModalVisible = false;
+  }
+
+  onBookSubmit(): void {
+    if (this.bookForm.invalid) {
+      this.bookForm.markAllAsTouched(); // نمایش خطاهای ولیدیشن
+      alert('لطفاً تمامی فیلدهای ضروری را به درستی پر کنید.');
+      return;
+    }
+
+    this.isSubmitting = true;
+    const bookDataFromForm: BookModel = this.bookForm.value;
+    let serviceCall: Observable<BookModel | void>;
+    let successMessage: string;
+
+    if (this.currentFormOperation === FormOperation.UPDATE && this.currentEditingBookId) {
+      serviceCall = this.bookService.updateBook(this.currentEditingBookId, bookDataFromForm);
+      successMessage = 'کتاب با موفقیت بروزرسانی شد!';
+    } else {
+      serviceCall = this.bookService.addBook(bookDataFromForm);
+      successMessage = 'کتاب با موفقیت اضافه شد!';
+    }
+
+    serviceCall.subscribe({
+      next: () => {
+        alert(successMessage);
+        this.isSubmitting = false;
+        this.isBookModalVisible = false;
+        this.loadBooks(); // بارگذاری مجدد لیست کتاب‌ها
+        // ریست کردن selectedFileName و fileError همراه با فرم انجام شده است
       },
-      {
-        icon: 'autorenew',
-        tooltip: 'تمدید',
-        actionId: 'renew',
-        color: 'accent',
-        condition: (element: any) => element.status.type === 'active' || element.status.type === 'due-soon',
-        disabled: (element: any) => element.bookTitle === 'جنگ و صلح' // مثال: تمدید برای این کتاب غیرفعال است
-      },
-      {
-        icon: 'notifications_active',
-        tooltip: 'ارسال یادآوری',
-        actionId: 'remind',
-        condition: (element: any) => element.status.type === 'overdue'
-      },
-      {
-        icon: 'visibility',
-        tooltip: 'مشاهده جزئیات',
-        actionId: 'viewDetails',
-        condition: (element: any) => element.status.type === 'returned'
+      error: (error) => {
+        console.error('Error submitting book:', error);
+        // نمایش پیام خطای مناسب‌تر از بک‌اند اگر وجود دارد
+        const backendError = error.error?.message || error.error?.title || 'خطا در ثبت اطلاعات کتاب.';
+        alert(`خطا: ${backendError} لطفاً دوباره تلاش کنید.`);
+        this.isSubmitting = false;
       }
-    ];
+    });
   }
 
-  addNewLoan(): void {
-    console.log('Open modal to add new loan');
-    alert('باز کردن مودال ثبت امانت جدید');
+  onFileChange(event: Event): void {
+    const inputElement = event.target as HTMLInputElement;
+    if (inputElement.files && inputElement.files.length > 0) {
+      const file = inputElement.files[0];
+      // ولیدیشن‌های پایه فایل
+      if (file.size > 2 * 1024 * 1024) { // حداکثر ۲ مگابایت
+        this.fileError = 'حجم فایل نباید بیشتر از ۲ مگابایت باشد.';
+        this.selectedFileName = 'فایل نامعتبر';
+        this.bookForm.patchValue({ bookCoverFile: null });
+        inputElement.value = ''; // پاک کردن مقدار input
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        this.fileError = 'فقط فایل‌های تصویری مجاز هستند.';
+        this.selectedFileName = 'فایل نامعتبر';
+        this.bookForm.patchValue({ bookCoverFile: null });
+        inputElement.value = '';
+        return;
+      }
+
+      this.selectedFileName = file.name;
+      this.bookForm.patchValue({ bookCoverFile: file }); // فایل در فرم ذخیره می‌شود
+      this.fileError = null;
+      // نکته: ارسال فایل به همراه JSON نیاز به بررسی روش سرور دارد (معمولا FormData یا Base64)
+      // اگر سرور فایل را جداگانه می‌گیرد، باید پس از ثبت موفق کتاب، فایل آپلود شود.
+    } else {
+      this.selectedFileName = null;
+      this.bookForm.patchValue({ bookCoverFile: null });
+      this.fileError = null;
+    }
+  }
+
+  deleteBook(book: BookModel): void {
+    if (!book.id) {
+      alert('امکان حذف کتاب بدون شناسه وجود ندارد.');
+      return;
+    }
+    // استفاده از confirm برای تاییدیه بهتر از alert است
+    if (confirm(`آیا از حذف کتاب "${book.title}" با شناسه ${book.id} مطمئن هستید؟`)) {
+      this.bookService.deleteBook(book.id).subscribe({
+        next: () => {
+          alert(`کتاب "${book.title}" با موفقیت حذف شد.`);
+          this.loadBooks(); // بارگذاری مجدد لیست
+        },
+        error: (err) => {
+          console.error('Error deleting book:', err);
+          alert('خطا در حذف کتاب. لطفاً دوباره تلاش کنید.');
+        }
+      });
+    }
+  }
+
+  // این متد برای استفاده در قالب HTML جهت دسترسی به enum
+  get FormOperationEnum() {
+    return FormOperation;
   }
 }

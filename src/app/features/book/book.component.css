@@ -54,6 +54,7 @@
   min-width: 180px;
   /* Material form fields will have their own styling for height and padding */
 }
+
 .filters-section .filter-search {
   min-width: 220px;
 }
@@ -66,16 +67,21 @@
 .add-new-button.mat-mdc-raised-button {
   /* mat-raised-button with color="primary" should look good by default */
   /* Add specific overrides if needed */
-  font-weight: 500; /* Example override */
+  font-weight: 500;
+  /* Example override */
 }
+
 .add-new-button mat-icon {
-    margin-left: 8px; /* RTL */
-    margin-right: -4px; /* Adjust default spacing */
+  margin-left: 8px;
+  /* RTL */
+  margin-right: -4px;
+  /* Adjust default spacing */
 }
 
 
 .content-card-body {
-  padding: 0; /* Padding will be handled by app-list or elements within */
+  padding: 0;
+  /* Padding will be handled by app-list or elements within */
 }
 
 /*
@@ -103,17 +109,20 @@
 }
 
 :host ::ng-deep app-list .dynamic-table-wrapper {
-  padding: 0px 25px 25px 25px; /* Wrapper for table and paginator */
+  padding: 0px 25px 25px 25px;
+  /* Wrapper for table and paginator */
 }
 
 :host ::ng-deep app-list .table-container {
   border-radius: var(--app-border-radius-small, 8px);
   border: 1px solid var(--app-light-border-color);
-  box-shadow: none; /* Remove shadow from table container if card has one */
+  box-shadow: none;
+  /* Remove shadow from table container if card has one */
 }
 
 :host ::ng-deep app-list .mat-mdc-paginator {
-  border-bottom-left-radius: var(--app-border-radius-small, 8px) !important; /* Ensure it fits card radius */
+  border-bottom-left-radius: var(--app-border-radius-small, 8px) !important;
+  /* Ensure it fits card radius */
   border-bottom-right-radius: var(--app-border-radius-small, 8px) !important;
 }
 
@@ -123,16 +132,19 @@
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem; /* 20px */
+  gap: 1.25rem;
+  /* 20px */
 }
 
 .form-group {
-  margin-bottom: 1.25rem; /* 20px */
+  margin-bottom: 1.25rem;
+  /* 20px */
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem; /* 8px */
+  margin-bottom: 0.5rem;
+  /* 8px */
   color: var(--app-light-text-secondary);
   font-weight: 500;
   font-size: 0.875rem;
@@ -161,7 +173,9 @@
   transition: border-color var(--app-transition-speed) ease-in-out, box-shadow var(--app-transition-speed) ease-in-out;
   box-sizing: border-box;
 }
-.form-control.fileInput { /* This class is used to hide the default file input */
+
+.form-control.fileInput {
+  /* This class is used to hide the default file input */
   display: none !important;
 }
 
@@ -171,7 +185,7 @@
   border-color: var(--app-light-accent-primary);
   outline: 0;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075),
-                0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
+    0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
 }
 
 .form-control::placeholder {
@@ -180,10 +194,12 @@
 }
 
 select.form-control {
-  padding-right: 2.5rem; /* RTL */
+  padding-right: 2.5rem;
+  /* RTL */
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
-  background-position: left 0.75rem center; /* RTL */
+  background-position: left 0.75rem center;
+  /* RTL */
   background-size: 16px 12px;
 }
 
@@ -203,18 +219,21 @@ select.form-control {
 .form-control-file-wrapper:hover {
   border-color: var(--app-light-accent-primary);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075),
-                0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
+    0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
 }
 
 .form-control-file-button {
   padding: 0.625rem 0.9375rem;
-  background-color: var(--app-light-bg-tertiary); /* Slightly different from main input for distinction */
+  background-color: var(--app-light-bg-tertiary);
+  /* Slightly different from main input for distinction */
   color: var(--app-light-text-primary);
-  border-left: 1px solid var(--app-light-border-color); /* RTL */
+  border-left: 1px solid var(--app-light-border-color);
+  /* RTL */
   white-space: nowrap;
   font-size: 0.875rem;
   line-height: 1.6;
-  cursor: pointer; /* Make it clear it's clickable */
+  cursor: pointer;
+  /* Make it clear it's clickable */
 }
 
 .form-control-file-text {
@@ -227,6 +246,7 @@ select.form-control {
   font-size: 0.875rem;
   line-height: 1.6;
 }
+
 .file-error-message {
   color: var(--app-light-status-overdue-color);
   display: block;
@@ -235,22 +255,23 @@ select.form-control {
 }
 
 .btn-primary {
-    background-color: #b8860b;
-    color: var(--theme-primary-bg);
-    font-weight: bolder;
-    box-shadow: 0 4px 15px rgba(184, 134, 11, 0.3);
-    color: #fff
+  background-color: #b8860b;
+  color: var(--theme-primary-bg);
+  font-weight: bolder;
+  box-shadow: 0 4px 15px rgba(184, 134, 11, 0.3);
+  color: #fff
 }
+
 .btn {
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: none;
-    font-family: var(--font-primary);
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Responsive Adjustments */
@@ -259,9 +280,11 @@ select.form-control {
     flex-direction: column;
     align-items: stretch;
   }
+
   .filters-section {
     width: 100%;
   }
+
   /* Optional: make individual filters full width on smaller screens */
   /* .filters-section .filter-item {
     width: 100%;
@@ -269,9 +292,12 @@ select.form-control {
   .actions-section {
     width: 100%;
   }
-  .add-new-button.mat-mdc-raised-button { /* Or your custom class */
+
+  .add-new-button.mat-mdc-raised-button {
+    /* Or your custom class */
     width: 100%;
-    margin-top: 10px; /* Add some space if it stacks below filters */
+    margin-top: 10px;
+    /* Add some space if it stacks below filters */
   }
 }
 
@@ -279,16 +305,20 @@ select.form-control {
   .page-container {
     padding: 15px;
   }
+
   .page-main-title {
     font-size: 1.6rem;
   }
+
   .content-card-header {
     padding: 15px;
   }
+
   :host ::ng-deep app-list .table-section-title {
     padding: 15px 15px 10px 15px;
     font-size: 1.1rem;
   }
+
   :host ::ng-deep app-list .dynamic-table-wrapper {
     padding: 0px 15px 15px 15px;
   }

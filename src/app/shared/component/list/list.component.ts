@@ -1,10 +1,10 @@
-import {AfterViewInit, Component, Input, OnChanges, OnInit, SimpleChanges, ViewChild} from '@angular/core';
-import {CommonModule} from '@angular/common';
-import {MatTableDataSource, MatTableModule} from '@angular/material/table';
-import {MatPaginator, MatPaginatorModule} from '@angular/material/paginator';
-import {MatIconModule} from '@angular/material/icon';
-import {MatButtonModule} from '@angular/material/button';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, TemplateRef, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 export interface TableColumn {
@@ -23,6 +23,7 @@ export interface ActionButtonConfig {
   color?: 'primary' | 'accent' | 'warn'; // رنگ دکمه متریال
   disabled?: (element: any) => boolean;
   condition?: (element: any) => boolean; // شرط نمایش دکمه
+  onClick?: (element: any, event: MouseEvent) => void; // تابعی برای کلیک روی دکمه
 }
 @Component({
   selector: 'app-list',
@@ -36,26 +37,28 @@ export interface ActionButtonConfig {
   templateUrl: './list.component.html',
   styleUrl: './list.component.css'
 })
-export class ListComponent  implements OnInit, AfterViewInit, OnChanges {
+export class ListComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() tableTitle?: string;
   @Input() columns: TableColumn[] = [];
   @Input() data: any[] = [];
-  @Input() actionButtons: ActionButtonConfig[] = [];
+  // @Input() actionButtons: ActionButtonConfig[] = [];
   @Input() pageSizeOptions: number[] = [5, 10, 25, 100];
   @Input() showPaginator: boolean = false;
+  @Input() actionsTemplate: TemplateRef<any> | null = null;
 
+  @Output() actionClicked = new EventEmitter<any>();
   dataSource!: MatTableDataSource<any>;
   displayedColumns: string[] = [];
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] || changes['columns']) {
+    if (changes['data'] || changes['columns'] || changes['actionsTemplate']) {
       this.setupTable();
     }
   }
 
-  constructor(private sanitizer: DomSanitizer) {}
+  constructor(private sanitizer: DomSanitizer) { }
 
   ngOnInit(): void {
     // this.setupTable(); // به ngOnChanges منتقل شد تا با تغییرات ورودی هم آپدیت شود
@@ -63,7 +66,7 @@ export class ListComponent  implements OnInit, AfterViewInit, OnChanges {
 
   setupTable(): void {
     this.displayedColumns = this.columns.map(c => c.columnDef);
-    if (this.actionButtons.length > 0) {
+    if (this.actionsTemplate) {
       this.displayedColumns.push('actions'); // ستون عملیات
     }
     this.dataSource = new MatTableDataSource(this.data);
@@ -83,15 +86,14 @@ export class ListComponent  implements OnInit, AfterViewInit, OnChanges {
   }
 
   getCellHtml(column: TableColumn, element: any): SafeHtml {
-  const rawHtml = column.cell(element);
-  return this.sanitizer.bypassSecurityTrustHtml(rawHtml);
-}
+    const rawHtml = column.cell(element);
+    return this.sanitizer.bypassSecurityTrustHtml(rawHtml);
+  }
 
   onActionClick(actionId: string, element: any, event: MouseEvent): void {
     event.stopPropagation(); // جلوگیری از تریگر شدن رویداد کلیک روی سطر
     // TODO: Emit an event or handle action here
-    console.log(`Action '${actionId}' clicked for element:`, element);
-    alert(`عملیات '${actionId}' برای آیتم ${element.id || ''} کلیک شد.`);
+    this.actionClicked.emit({ actionId, element });
   }
 
   // برای استایل‌دهی خاص به سلول بر اساس وضعیت
