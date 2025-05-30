@@ -1,210 +1,212 @@
+/* list.component.css */
 :host {
   display: block;
   font-family: 'Vazirmatn', sans-serif;
---table-bg: var(--app-light-bg-secondary, #ffffff);
-  --table-header-bg: var(--app-light-bg-tertiary, #f5f7fa);
---table-text-primary: var(--app-light-text-primary, #2c3e50);
-  --table-text-secondary: var(--app-light-text-secondary, #5a6e82);
-  --table-text-header: var(--app-light-text-primary, #1d2a39);
---table-border-color: var(--app-light-border-color, rgba(0, 0, 0, 0.08));
---table-hover-bg: rgba(var(--app-light-accent-primary-rgb, 0, 123, 255), 0.04);
---table-accent-color: var(--app-light-accent-primary, #007bff);
---table-accent-color-gold: var(--app-light-accent-secondary, #b8860b);
-
---table-radius: var(--app-border-radius-main, 12px);
-  --table-cell-padding: 14px 18px;
+  /*
+    --table-bg, --table-header-bg, etc. are fine as they are,
+    they will inherit from the global :root variables you've set.
+    The key is to ensure these variables are defined globally.
+  */
 }
 
 .dynamic-table-wrapper {
-  padding: 0px;
+  padding: 0; /* Removed padding, will be handled by parent or content-card-body */
 }
 
 .table-section-title {
-  font-size: 1.5rem;
+  font-size: 1.2rem; /* Slightly smaller as it's now inside a card */
   font-weight: 600;
-  color: var(--table-text-primary);
-  margin-bottom: 20px;
+  color: var(--app-light-text-primary); /* Use global variable */
+  margin-bottom: 15px; /* Space before the table container */
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--table-border-color);
+  border-bottom: 1px solid var(--app-light-border-color); /* Use global variable */
+  /* Default padding from parent will position this title */
+}
 
-  span {
-    color: var(--table-text-secondary);
-    font-size: 0.9rem;
-    font-weight: 400;
-  }
+.table-section-title span {
+  color: var(--app-light-text-secondary); /* Use global variable */
+  font-size: 0.9rem;
+  font-weight: 400;
 }
 
 .table-container {
-  background-color: var(--table-bg);
-  border-radius: var(--table-radius);
-  overflow: hidden;
-border: 1px solid var(--table-border-color);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  background-color: var(--app-light-bg-secondary); /* Use global variable */
+  border-radius: var(--app-border-radius-small); /* Rounded corners for table within card */
+  overflow: hidden; /* Essential for border-radius on table */
+  border: 1px solid var(--app-light-border-color); /* Use global variable */
+  box-shadow: none; /* Shadow is on the parent card now */
 }
 
 .lux-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: collapse; /* Important for table styling */
+}
 
-th.mat-mdc-header-cell, td.mat-mdc-cell {
-  padding: var(--table-cell-padding);
+.lux-table th.mat-mdc-header-cell,
+.lux-table td.mat-mdc-cell {
+  padding: 14px 18px; /* Original padding */
   text-align: right;
-  border-bottom: 1px solid var(--table-border-color);
-vertical-align: middle;
+  border-bottom: 1px solid var(--app-light-border-color); /* Use global variable */
+  vertical-align: middle;
 }
 
-  th.mat-mdc-header-cell {
-    background-color: var(--table-header-bg);
-    color: var(--table-text-header);
-    font-weight: 600;
+.lux-table th.mat-mdc-header-cell {
+  background-color: var(--app-light-bg-tertiary); /* Use global variable */
+  color: var(--app-light-text-primary); /* Header text color */
+  font-weight: 600;
   font-size: 0.9rem;
-    letter-spacing: 0.3px;
-
-  ::ng-deep .mat-sort-header-arrow {
-    color: var(--table-text-header) !important;
-    opacity: 0.7;
-  }
-  }
-
-  tr.mat-mdc-header-row {
-    height: 56px;
-  }
-
-  tr.data-row {
-    transition: background-color var(--app-transition-speed, 0.2s) ease-out;
-    &:hover {
-      background-color: var(--table-hover-bg);
-    }
-  }
-
-  td.mat-mdc-cell {
-    color: var(--table-text-secondary);
-    font-size: 0.875rem;
-  line-height: 1.5;
-
-    &.emphasize {
-    color: var(--table-text-primary);
-      font-weight: 500;
-    }
-  }
-
-td.action-cell {
-  text-align: left;
-white-space: nowrap;
-padding-right: 8px;
-padding-left: 8px;
-
-  button[mat-icon-button] {
-    color: var(--table-text-secondary);
-    transition: color var(--app-transition-speed, 0.2s) ease, transform var(--app-transition-speed, 0.2s) ease;
-    margin: 0 2px;
-
-    &:hover:not(:disabled) {
-      color: var(--table-accent-color);
-      transform: scale(1.1);
-    }
-    &:disabled {
-      color: rgba(0,0,0,0.26);
-    }
-  }
+  letter-spacing: 0.3px;
 }
 
+/* For ::ng-deep .mat-sort-header-arrow, if you use sorting and it's inside this component's template */
+/* This kind of styling is tricky with pure CSS and encapsulation. */
+/* If sort arrow color is an issue, consider theming Material components globally. */
+
+.lux-table tr.mat-mdc-header-row {
+  height: 56px;
+}
+
+.lux-table tr.data-row {
+  transition: background-color var(--app-transition-speed, 0.2s) ease-out;
+}
+.lux-table tr.data-row:hover {
+  background-color: rgba(var(--app-light-accent-primary-rgb), 0.04); /* Use global variable */
+}
+
+.lux-table td.mat-mdc-cell {
+  color: var(--app-light-text-secondary); /* Use global variable */
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.lux-table td.mat-mdc-cell.emphasize { /* Class from your original list component */
+  color: var(--app-light-text-primary); /* Use global variable */
+  font-weight: 500;
+}
+
+.lux-table td.action-cell {
+  text-align: right; /* Actions usually on the left in RTL if they are last visually */
+  white-space: nowrap;
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
+.lux-table td.action-cell button[mat-icon-button] {
+  color: var(--app-light-text-secondary); /* Use global variable */
+  transition: color var(--app-transition-speed, 0.2s) ease, transform var(--app-transition-speed, 0.2s) ease;
+  margin: 0 2px;
+}
+
+.lux-table td.action-cell button[mat-icon-button]:hover:not(:disabled) {
+  color: var(--app-light-accent-primary); /* Use global variable */
+  transform: scale(1.1);
+}
+.lux-table td.action-cell button[mat-icon-button]:disabled {
+  color: rgba(0,0,0,0.26); /* Standard disabled color */
+}
+
+/* Status Badge Styles (assuming these are applied via cellClass or directly in cell HTML) */
 .status-badge {
   padding: 5px 12px;
-  border-radius: var(--app-border-radius-small, 8px);
+  border-radius: var(--app-border-radius-small, 8px); /* Use global variable */
   font-size: 0.8rem;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
-
-  mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-  }
 }
 
-  .status-active {
-    background-color: var(--app-light-status-active-bg, rgba(39, 174, 96, 0.1));
-    color: var(--app-light-status-active-color, #27ae60);
-  }
-  .status-due-soon {
-    background-color: var(--app-light-status-due-soon-bg, rgba(243, 156, 18, 0.1));
-    color: var(--app-light-status-due-soon-color, #f39c12);
-  }
-  .status-overdue {
-    background-color: var(--app-light-status-overdue-bg, rgba(192, 57, 43, 0.1));
-    color: var(--app-light-status-overdue-color, #c0392b);
-  }
-  .status-returned {
-    background-color: var(--app-light-status-returned-bg, rgba(149, 165, 166, 0.1));
-    color: var(--app-light-status-returned-color, #95a5a6);
-  }
+.status-badge mat-icon { /* If mat-icon is used inside status-badge */
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
 
-.date-due {
+.status-active {
+  background-color: var(--app-light-status-active-bg);
+  color: var(--app-light-status-active-color);
+}
+.status-due-soon {
+  background-color: var(--app-light-status-due-soon-bg);
+  color: var(--app-light-status-due-soon-color);
+}
+.status-overdue {
+  background-color: var(--app-light-status-overdue-bg);
+  color: var(--app-light-status-overdue-color);
+}
+.status-returned {
+  background-color: var(--app-light-status-returned-bg);
+  color: var(--app-light-status-returned-color);
+}
+
+.date-due { /* For styling due dates */
   font-weight: 500;
 }
-  .date-due.due-soon {
-    color: var(--app-light-status-due-soon-color, #f39c12);
-  }
-  .date-due.overdue {
-    color: var(--app-light-status-overdue-color, #c0392b);
-    font-weight: bold;
-  }
-
-  .mat-mdc-row .mat-mdc-cell:first-of-type,
-  .mat-mdc-header-row .mat-mdc-header-cell:first-of-type {
-    padding-right: var(--app-card-padding, 24px);
-  }
-  .mat-mdc-row .mat-mdc-cell:last-of-type,
-  .mat-mdc-header-row .mat-mdc-header-cell:last-of-type {
-    padding-left: var(--app-card-padding, 24px);
-  }
-
-.mat-row.mat-no-data-row {
-  td.mat-cell {
-    text-align: center;
-    padding: 40px 0;
-    color: var(--table-text-secondary);
-    font-style: italic;
-  }
+.date-due.due-soon {
+  color: var(--app-light-status-due-soon-color);
 }
+.date-due.overdue {
+  color: var(--app-light-status-overdue-color);
+  font-weight: bold;
 }
 
-   ::ng-deep .mat-mdc-paginator {
-     background-color: var(--table-bg);
-   color: var(--table-text-secondary);
-     border-top: 1px solid var(--table-border-color);
-     border-bottom-left-radius: var(--table-radius);
-     border-bottom-right-radius: var(--table-radius);
+/* Adjust first/last cell padding if table-container has its own padding */
+.lux-table .mat-mdc-row .mat-mdc-cell:first-of-type,
+.lux-table .mat-mdc-header-row .mat-mdc-header-cell:first-of-type {
+  padding-right: 18px; /* Match general cell padding */
+}
+.lux-table .mat-mdc-row .mat-mdc-cell:last-of-type,
+.lux-table .mat-mdc-header-row .mat-mdc-header-cell:last-of-type {
+  padding-left: 18px; /* Match general cell padding */
+}
 
-     .mat-mdc-paginator-page-size-label,
-     .mat-mdc-paginator-range-label {
-       color: var(--table-text-secondary);
-       font-size: 0.875rem;
-     }
-     .mat-mdc-select-value {
-       color: var(--table-text-primary);
-     }
-     .mat-mdc-icon-button {
-       color: var(--table-text-secondary);
-       &:hover:not(:disabled) {
-         background-color: var(--table-hover-bg);
-       }
-       &:disabled {
-         color: rgba(0,0,0,0.20);
-       }
-     }
-   }
-.direction-rtl {
+.mat-row.mat-no-data-row td.mat-cell { /* For the "no data" row */
+  text-align: right;
+  padding: 40px 0;
+  color: var(--app-light-text-secondary);
+  font-style: italic;
+}
+
+/* Paginator styling - it should be placed after table-container */
+/*
+  Directly styling .mat-mdc-paginator from a component's CSS with encapsulation
+  is difficult. These styles are more effective if applied globally (styles.css)
+  or if the paginator is part of this component's direct template.
+  If paginator is part of app-list's template, these styles are fine here.
+*/
+:host .mat-mdc-paginator { /* Target paginator within this component's scope */
+  background-color: var(--app-light-bg-secondary); /* Match card background */
+  color: var(--app-light-text-secondary);
+  border-top: 1px solid var(--app-light-border-color);
+  /* Radius should match the table-container's bottom radius */
+  border-bottom-left-radius: var(--app-border-radius-small);
+  border-bottom-right-radius: var(--app-border-radius-small);
+  /* Remove top radius if table-container is directly above it */
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  /* Ensure paginator is not wider than the table/card */
+  box-sizing: border-box;
+}
+
+:host .mat-mdc-paginator .mat-mdc-paginator-page-size-label,
+:host .mat-mdc-paginator .mat-mdc-paginator-range-label {
+  color: var(--app-light-text-secondary);
+  font-size: 0.875rem;
+}
+:host .mat-mdc-paginator .mat-mdc-select-value {
+  color: var(--app-light-text-primary);
+}
+:host .mat-mdc-paginator .mat-mdc-icon-button {
+  color: var(--app-light-text-secondary);
+}
+:host .mat-mdc-paginator .mat-mdc-icon-button:hover:not(:disabled) {
+  background-color: rgba(var(--app-light-accent-primary-rgb), 0.04);
+}
+:host .mat-mdc-paginator .mat-mdc-icon-button:disabled {
+  color: rgba(0,0,0,0.20);
+}
+
+.direction-rtl { /* Utility class if needed, though body should handle it */
   direction: rtl;
 }
-/* ::ng-deep .mat-mdc-paginator-page-size-label {
-  display: none !important;
-}
-::ng-deep .mat-mdc-paginator-page-size {
-  display: none !important;
-} */
-

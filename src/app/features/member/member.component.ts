@@ -1,17 +1,107 @@
 import { Component, OnInit } from '@angular/core';
 import { TableColumn, ActionButtonConfig, ListComponent } from '../../shared/component/list/list.component';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { BookService } from '../../core/service/book.service';
+import { ModalComponent } from '../../shared/component/modal/modal.component';
 
 @Component({
   selector: 'app-member',
-  imports: [ListComponent],
+  standalone: true,
+  imports: [ListComponent, CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatIconModule, ModalComponent, ReactiveFormsModule],
   templateUrl: './member.component.html',
   styleUrl: './member.component.css'
 })
 export class MemberComponent implements OnInit {
-  tableTitle = 'مدیریت اعضا';
+  tableTitle = 'لیست امانت ها';
   columns: TableColumn[] = [];
   data: any[] = [];
   actionButtons: ActionButtonConfig[] = [];
+  
+  isAddBookModalVisible = false;
+  addBookForm: FormGroup;
+  selectedFileName: string | null = null;
+  isSubmitting: boolean = false;
+  fileError: string | null = null;
+
+  constructor(private fb: FormBuilder, private bookService:BookService) {
+    this.addBookForm = this.fb.group({
+      bookTitle: ['', Validators.required],
+      bookAuthor: ['', Validators.required],
+      bookCategory: ['', Validators.required],
+      bookCopies: [1, [Validators.required, Validators.min(1)]],
+      bookCoverFile: [null]
+      // ... other fields
+    });
+  }
+
+  openAddBookModal(): void {
+    this.addBookForm.reset({ bookCopies: 1 }); // Reset form with defaults
+    this.selectedFileName = null;
+    this.fileError = null;
+    this.isAddBookModalVisible = true;
+  }
+
+  onAddBookModalClose(): void {
+    this.isAddBookModalVisible = false;
+  }
+
+  onAddBookSubmit(): void {
+    if (this.addBookForm.valid) {
+      this.isSubmitting = true;
+      console.log('Form Data:', this.addBookForm.value);
+      // Simulate API call
+      setTimeout(() => {
+        alert('کتاب با موفقیت اضافه شد! (اطلاعات در کنسول)');
+        this.isSubmitting = false;
+        this.isAddBookModalVisible = false;
+      }, 1500);
+    } else {
+      console.error('Form is invalid');
+      // Optionally touch all fields to show errors
+      this.addBookForm.markAllAsTouched();
+    }
+  }
+
+  onFileChange(event: Event): void {
+    const inputElement = event.target as HTMLInputElement;
+    if (inputElement.files && inputElement.files.length > 0) {
+      const file = inputElement.files[0];
+      // Basic validation (example: file size < 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        this.fileError = 'حجم فایل نباید بیشتر از 2 مگابایت باشد.';
+        this.selectedFileName = 'فایل نامعتبر';
+        this.addBookForm.patchValue({ bookCoverFile: null });
+        inputElement.value = ''; // Clear the input
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        this.fileError = 'فقط فایل‌های تصویری مجاز هستند.';
+        this.selectedFileName = 'فایل نامعتبر';
+        this.addBookForm.patchValue({ bookCoverFile: null });
+        inputElement.value = ''; // Clear the input
+        return;
+      }
+
+      this.selectedFileName = file.name;
+      this.addBookForm.patchValue({ bookCoverFile: file });
+      this.fileError = null;
+    } else {
+      this.selectedFileName = null;
+      this.addBookForm.patchValue({ bookCoverFile: null });
+      this.fileError = null;
+    }
+  }
+
+
+
+
+
+
 
   ngOnInit(): void {
     this.setupTableColumns();
@@ -70,6 +160,9 @@ export class MemberComponent implements OnInit {
   }
 
   loadSampleData(): void {
+    this.bookService.getBookList().subscribe((data: any[]) => {
+      console.log(data);
+    })
     this.data = [
       {
         id: 1,

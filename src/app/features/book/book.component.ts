@@ -4,25 +4,24 @@ import { BookService } from '../../core/service/book.service';
 import { ModalComponent } from "../../shared/component/modal/modal.component";
 import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-book',
   standalone: true,
-  imports: [ListComponent, ModalComponent, ReactiveFormsModule, CommonModule],
+  imports: [ListComponent, ModalComponent, ReactiveFormsModule, CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatIconModule],
   templateUrl: './book.component.html',
   styleUrl: './book.component.css'
 })
 export class BookComponent implements OnInit {
-  tableTitle = 'مدیریت کتاب ها';
+  tableTitle = 'لیست کتاب ها';
   columns: TableColumn[] = [];
   data: any[] = [];
   actionButtons: ActionButtonConfig[] = [];
-
-
-
-
- 
-
+  
   isAddBookModalVisible = false;
   addBookForm: FormGroup;
   selectedFileName: string | null = null;
