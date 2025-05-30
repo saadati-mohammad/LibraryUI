@@ -1,18 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { ActionButtonConfig, TableColumn, ListComponent } from '../../shared/component/list/list.component';
 import { BookService } from '../../core/service/book.service';
-import { ModalComponent } from "../../shared/component/modal/modal.component";
-import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormGroup, FormBuilder, Validators, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
+import { ModalComponent } from '../../shared/component/modal/modal.component';
 
 @Component({
   selector: 'app-book',
   standalone: true,
-  imports: [ListComponent, ModalComponent, ReactiveFormsModule, CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatIconModule],
+  imports: [ReactiveFormsModule, CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatIconModule, ListComponent, ModalComponent],
   templateUrl: './book.component.html',
   styleUrl: './book.component.css'
 })
@@ -21,21 +21,32 @@ export class BookComponent implements OnInit {
   columns: TableColumn[] = [];
   data: any[] = [];
   actionButtons: ActionButtonConfig[] = [];
-  
+
   isAddBookModalVisible = false;
   addBookForm: FormGroup;
   selectedFileName: string | null = null;
   isSubmitting: boolean = false;
   fileError: string | null = null;
 
-  constructor(private fb: FormBuilder, private bookService:BookService) {
+  constructor(private fb: FormBuilder, private bookService: BookService) {
     this.addBookForm = this.fb.group({
-      bookTitle: ['', Validators.required],
-      bookAuthor: ['', Validators.required],
-      bookCategory: ['', Validators.required],
-      bookCopies: [1, [Validators.required, Validators.min(1)]],
-      bookCoverFile: [null]
-      // ... other fields
+      isbn10: new FormControl(null),
+      title: new FormControl(null),
+      author: new FormControl(null),
+      translator: new FormControl(null),
+      description: new FormControl(null),
+
+      publisher: new FormControl(null),
+      isbn13: new FormControl(null),
+      deweyDecimal: new FormControl(null),
+      congressClassification: new FormControl(null),
+      subject: new FormControl(null),
+      summary: new FormControl(null),
+      publicationDate: new FormControl(null),
+      pageCount: new FormControl(null),
+      language: new FormControl(null),
+      edition: new FormControl(null),
+      active: new FormControl(null)
     });
   }
 
@@ -54,12 +65,20 @@ export class BookComponent implements OnInit {
     if (this.addBookForm.valid) {
       this.isSubmitting = true;
       console.log('Form Data:', this.addBookForm.value);
-      // Simulate API call
-      setTimeout(() => {
-        alert('کتاب با موفقیت اضافه شد! (اطلاعات در کنسول)');
-        this.isSubmitting = false;
-        this.isAddBookModalVisible = false;
-      }, 1500);
+      this.bookService.addBook(this.addBookForm.value).subscribe({
+        next: (response) => {
+          console.log('Book added successfully:', response);
+          alert('کتاب با موفقیت اضافه شد!');
+          this.isSubmitting = false;
+          this.isAddBookModalVisible = false;
+          this.addBookForm.reset(); // Reset form after submission
+        }
+        , error: (error) => {
+          console.error('Error adding book:', error);
+          alert('خطا در اضافه کردن کتاب. لطفاً دوباره تلاش کنید.');
+          this.isSubmitting = false;
+        }
+      });
     } else {
       console.error('Form is invalid');
       // Optionally touch all fields to show errors

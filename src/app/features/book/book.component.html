@@ -50,37 +50,28 @@
       <div class="form-grid">
         <div class="form-group">
           <label for="bookTitle">عنوان کتاب <span class="required-star">*</span></label>
-          <input type="text" id="bookTitle" formControlName="bookTitle" class="form-control" placeholder="مثال: شازده کوچولو">
+          <input type="text" id="bookTitle" formControlName="title" class="form-control" placeholder="مثال: شازده کوچولو">
         </div>
         <div class="form-group">
           <label for="bookAuthor">نویسنده <span class="required-star">*</span></label>
-          <input type="text" id="bookAuthor" formControlName="bookAuthor" class="form-control" placeholder="مثال: آنتوان دوسنت اگزوپری">
+          <input type="text" id="bookAuthor" formControlName="author" class="form-control" placeholder="مثال: آنتوان دوسنت اگزوپری">
         </div>
       </div>
       <div class="form-grid">
-         <div class="form-group">
-            <label for="bookCategory">دسته‌بندی <span class="required-star">*</span></label>
-            <select id="bookCategory" formControlName="bookCategory" class="form-control">
-                <option value="" disabled>یک دسته‌بندی انتخاب کنید...</option> <!-- Removed selected attribute, rely on formControl -->
-                <option value="roman">رمان</option>
-                <option value="tarikhi">تاریخی</option>
-                <option value="elmi">علمی</option>
-            </select>
+        <div class="form-group">
+          <label for="bookAuthor">شابک <span class="required-star">*</span></label>
+          <input type="text" id="bookAuthor" formControlName="isbn10" class="form-control" placeholder="مثال: آنتوان دوسنت اگزوپری">
         </div>
          <div class="form-group">
-            <label for="bookCopies">تعداد نسخه‌ها <span class="required-star">*</span></label>
-            <input type="number" id="bookCopies" formControlName="bookCopies" class="form-control" min="1"> <!-- Removed value="1", rely on formControl -->
+            <label for="bookCopies">مترجم<span class="required-star">*</span></label>
+            <input type="number" id="bookCopies" formControlName="translator" class="form-control" min="1"> 
         </div>
       </div>
-      <div class="form-group">
-        <label for="bookCover">تصویر جلد</label>
-        <div class="form-control-file-wrapper">
-             <input type="file" id="bookCover" (change)="onFileChange($event)" class="form-control fileInput" accept="image/*"> <!-- fileInput class is for hiding if needed -->
-             <label for="bookCover" class="form-control-file-button" role="button" tabindex="0">انتخاب فایل</label>
-             <span class="form-control-file-text">{{ selectedFileName || 'هیچ فایلی انتخاب نشده' }}</span>
-        </div>
-         <small *ngIf="fileError" class="file-error-message">{{ fileError }}</small>
+               <div class="form-group">
+            <label for="bookCopies">توضیحات<span class="required-star">*</span></label>
+            <textarea type="number" id="bookCopies" formControlName="description" class="form-control" min="1"> 
       </div>
+
     </form>
   </div>
 </app-modal>

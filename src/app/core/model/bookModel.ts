@@ -1,12 +1,14 @@
 export class BookModel {
     id?: number;
+    
+    isbn10?: string;
     title?: string;
     author?: string;
     translator?: string;
-    publisher?: string;
-    isbn10?: string;
-    isbn13?: string;
     description?: string;
+
+    publisher?: string;
+    isbn13?: string;
     deweyDecimal?: string;
     congressClassification?: string;
     subject?: string;
