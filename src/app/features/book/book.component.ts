@@ -30,14 +30,14 @@ export enum FormOperation {
     MatSelectModule,
     MatInputModule,
     MatIconModule,
-    MatButtonModule, // اضافه شد
-    MatTooltipModule, // اضافه شد
-    MatMenuModule, // اضافه شد
+    MatButtonModule,
+    MatTooltipModule,
+    MatMenuModule,
     ListComponent,
     ModalComponent
   ],
   templateUrl: './book.component.html',
-  styleUrls: ['./book.component.css'] // styleUrls به جای styleUrl
+  styleUrls: ['./book.component.css']
 })
 export class BookComponent implements OnInit {
   tableTitle = 'لیست کتاب‌ها';
@@ -63,19 +63,25 @@ export class BookComponent implements OnInit {
       title: [null, Validators.required],
       author: [null, Validators.required],
       translator: [null],
-      description: [null],
+      description: [''],
       publisher: [null],
       isbn13: [null],
       deweyDecimal: [null],
       congressClassification: [null],
       subject: [null],
-      summary: [null],
+      summary: [''],
       publicationDate: [null], // می‌توانید از یک DatePicker استفاده کنید و نوع داده را Date قرار دهید
       pageCount: [null, [Validators.min(1), Validators.pattern('^[0-9]*$')]],
       language: [null],
       edition: [null],
       active: [true, Validators.required], // مقدار پیش‌فرض و Validator
-      bookCoverFile: [null] // برای آپلود فایل جلد کتاب (نیاز به بررسی نحوه ارسال به بک‌اند)
+      bookCoverFile: [null], // برای آپلود فایل جلد کتاب (نیاز به بررسی نحوه ارسال به بک‌اند)
+      copyCount: [null],
+      librarySection: [null],
+      shelfCode: [null],
+      rowNumber: [null],
+      columnNumber: [null],
+      positionNote: [''],
     });
   }
 
@@ -104,20 +110,36 @@ export class BookComponent implements OnInit {
         cellClass: () => 'emphasize'
       },
       {
+        columnDef: 'subject',
+        header: 'موضوع',
+        cell: (element: BookModel) => `${element.subject}`,
+        cellClass: () => 'emphasize'
+      },
+      {
+        columnDef: 'translator',
+        header: 'مترجم',
+        cell: (element: BookModel) => `${element.translator || '---'}` // نمایش پیش‌فرض اگر خالی بود
+      },
+      {
         columnDef: 'isbn10',
         header: 'شابک',
         cell: (element: BookModel) => `${element.isbn10 || '---'}` // نمایش پیش‌فرض اگر خالی بود
       },
       {
-        columnDef: 'translator',
-        header: 'مترجم',
-        cell: (element: BookModel) => `${element.translator || '---'}`
+        columnDef: 'deweyDecimal',
+        header: 'رده بندی دیویی',
+        cell: (element: BookModel) => `${element.deweyDecimal || '---'}` // نمایش پیش‌فرض اگر خالی بود
+      },
+      {
+        columnDef: 'congressClassification',
+        header: 'رده بندی کنگره',
+        cell: (element: BookModel) => `${element.congressClassification || '---'}` // نمایش پیش‌فرض اگر خالی بود
       },
       {
         columnDef: 'status', // این پراپرتی باید در BookModel یا در map ایجاد شود
         header: 'وضعیت',
         cell: (element: BookModel & { status?: string }) => `${element.status || (element.active ? 'فعال' : 'غیر فعال')}`,
-      },
+      }
     ];
   }
 
@@ -125,10 +147,7 @@ export class BookComponent implements OnInit {
     // اگر از فیلترها استفاده می‌کنید: this.bookService.getBookList(this.bookFilters)
     this.bookService.getBookList().subscribe({
       next: (response: PaginatedResponse<BookModel>) => {
-        this.data = response.content.map(book => ({
-          ...book,
-          status: book.active ? 'فعال' : 'غیر فعال' // ایجاد پراپرتی status برای نمایش
-        }));
+        this.data = response.content;
       },
       error: (err) => {
         console.error('Error loading books:', err);

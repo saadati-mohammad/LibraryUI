@@ -27,12 +27,12 @@
 
 <!-- قالب ستون عملیات برای app-list -->
 <ng-template #bookActionsTemplate let-bookRow>
-  <button mat-icon-button color="primary" [matTooltip]="'ویرایش کتاب: ' + bookRow.title"
+  <button mat-icon-button color="primary" [matTooltip]="'ویرایش کتاب ' + bookRow.title"
     (click)="openBookModal(FormOperationEnum.UPDATE, bookRow)">
     <mat-icon>edit</mat-icon>
   </button>
 
-  <button mat-icon-button color="warn" [matTooltip]="'حذف کتاب: ' + bookRow.title" (click)="deleteBook(bookRow)">
+  <button mat-icon-button color="warn" [matTooltip]="'حذف کتاب ' + bookRow.title" (click)="deleteBook(bookRow)">
     <mat-icon>delete_outline</mat-icon>
   </button>
   <!-- می‌توانید دکمه‌های بیشتری با mat-menu اضافه کنید -->
@@ -41,7 +41,7 @@
 <!-- مودال افزودن/ویرایش کتاب -->
 <app-modal [(isVisible)]="isBookModalVisible"
   [title]="currentFormOperation === FormOperationEnum.ADD ? 'افزودن' : 'ویرایش'"
-  [titleAccent]="currentFormOperation === FormOperationEnum.ADD ? 'کتاب جدید' : ('کتاب: ' + (bookForm.get('title')?.value || ''))"
+  [titleAccent]="currentFormOperation === FormOperationEnum.ADD ? 'کتاب جدید' : ('کتاب ' + (bookForm.get('title')?.value || ''))"
   [submitButtonText]="currentFormOperation === FormOperationEnum.ADD ? 'ذخیره کتاب' : 'بروزرسانی کتاب'"
   submitButtonIcon="save" (submit)="onBookSubmit()" (cancel)="onBookModalClose()"
   [disableSubmit]="bookForm.invalid || isSubmitting" [isLoading]="isSubmitting" maxWidth="700px">
@@ -61,12 +61,41 @@
           </small>
         </div>
         <div class="form-group">
+          <label for="bookSubjectForm">موضوع <span class="required-star">*</span></label>
+          <input type="text" id="bookSubjectForm" formControlName="subject" class="form-control"
+            placeholder="مثال: آنتوان دوسنت اگزوپری">
+          <small *ngIf="bookForm.get('subject')?.invalid && bookForm.get('subject')?.touched" class="text-danger">
+            موضوع الزامی است.
+          </small>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
           <label for="bookAuthorForm">نویسنده <span class="required-star">*</span></label>
           <input type="text" id="bookAuthorForm" formControlName="author" class="form-control"
             placeholder="مثال: آنتوان دوسنت اگزوپری">
           <small *ngIf="bookForm.get('author')?.invalid && bookForm.get('author')?.touched" class="text-danger">
             نویسنده الزامی است.
           </small>
+        </div>
+        <div class="form-group">
+          <label for="bookTranslatorForm">مترجم</label>
+          <input type="text" id="bookTranslatorForm" formControlName="translator" class="form-control"
+            placeholder="مثال: احمد شاملو">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="bookDeweyDecimalForm">رده بندی دیویی <span class="required-star">*</span></label>
+          <input type="text" id="bookDeweyDecimalForm" formControlName="deweyDecimal" class="form-control"
+            placeholder="مثال: 000.123">
+        </div>
+        <div class="form-group">
+          <label for="bookCongressClassificationForm">رده بندی کنگره <span class="required-star">*</span></label>
+          <input type="text" id="bookCongressClassificationForm" formControlName="congressClassification"
+            class="form-control" placeholder="مثال: 123.456">
         </div>
       </div>
 
@@ -80,9 +109,9 @@
           </small>
         </div>
         <div class="form-group">
-          <label for="bookTranslatorForm">مترجم</label>
-          <input type="text" id="bookTranslatorForm" formControlName="translator" class="form-control"
-            placeholder="مثال: احمد شاملو">
+          <label for="bookIsbn13Form">شابک (۱۳ رقمی) <span class="required-star">*</span></label>
+          <input type="text" id="bookIsbn13Form" formControlName="isbn13" class="form-control"
+            placeholder="مثال: 978-964-321-000-0">
         </div>
       </div>
 
@@ -98,11 +127,13 @@
       <div class="form-grid">
         <div class="form-group">
           <label for="bookPublisherForm">ناشر</label>
-          <input type="text" id="bookPublisherForm" formControlName="publisher" class="form-control">
+          <input type="text" id="bookPublisherForm" formControlName="publisher" class="form-control"
+            placeholder="مثال: انتشارات امیرکبیر">
         </div>
         <div class="form-group">
-          <label for="bookIsbn13Form">شابک (۱۳ رقمی)</label>
-          <input type="text" id="bookIsbn13Form" formControlName="isbn13" class="form-control">
+          <label for="bookPublicationDateForm">تاریخ انتشار</label>
+          <input type="text" id="bookPublicationDateForm" formControlName="publicationDate" class="form-control"
+            placeholder="مثال: 1400/01/01">
         </div>
       </div>
 
@@ -116,6 +147,49 @@
           <input type="text" id="bookLanguageForm" formControlName="language" class="form-control"
             placeholder="مثال: فارسی">
         </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="bookEditionForm">ویرایش</label>
+          <input type="text" id="bookEditionForm" formControlName="edition" class="form-control" min="1">
+        </div>
+        <div class="form-group">
+          <label for="bookCopyCountForm">تعداد نسخه</label>
+          <input type="number" id="bookCopyCountForm" formControlName="copyCount" class="form-control" min="1">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="bookLibrarySectionForm">بخش کتابخانه</label>
+          <input type="text" id="bookLibrarySectionForm" formControlName="librarySection" class="form-control"
+            placeholder="مثال: علوم انسانی، مهندسی">
+        </div>
+        <div class="form-group">
+          <label for="bookShelfCodeForm">کد قفسه</label>
+          <input type="text" id="bookShelfCodeForm" formControlName="shelfCode" class="form-control"
+            placeholder="مثال: A2 , B5">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="bookRowNumberForm">ردیف</label>
+          <input type="text" id="bookRowNumberForm" formControlName="rowNumber" class="form-control"
+            placeholder="مثال: ردیف ۲">
+        </div>
+        <div class="form-group">
+          <label for="bookColumnNumberForm">ستون</label>
+          <input type="text" id="bookColumnNumberForm" formControlName="columnNumber" class="form-control"
+            placeholder="مثال: ستون ۴">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="bookDescriptionForm">توضیحات مکان نگهداری</label>
+        <textarea id="bookPositionNoteForm" formControlName="positionNote" class="form-control" rows="3"
+          placeholder="توضیح اضافی درباره مکان یا شرایط خاص نگهداری ..."></textarea>
       </div>
 
       <div class="form-group">

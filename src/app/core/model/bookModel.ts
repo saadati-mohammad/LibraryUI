@@ -18,4 +18,12 @@ export class BookModel {
     language?: string;
     edition?: string;
     active?: boolean;
+    bookCoverFile?: any;
+
+    copyCount?: number;
+    librarySection?: string;
+    shelfCode?: string;     
+    rowNumber?: string;     
+    columnNumber?: string;  
+    positionNote?: string;  
 }
