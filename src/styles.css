@@ -1,4 +1,5 @@
 /* styles.css - Global Styles */
+@import "tailwindcss";
 
 /* Angular Material Base Styles (Keep these if your project uses them generally) */
 html,
