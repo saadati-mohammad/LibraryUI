@@ -19,7 +19,7 @@ body {
   /* Main Theme Colors */
   --app-light-bg-primary: #f0f2f5;
   --app-light-bg-secondary: #ffffff;
-  --app-light-bg-tertiary: #f7f9fc;
+  --app-light-bg-tertiary: rgb(241 244 247);
   /* Lighter tertiary for general use, table header can be this */
   --app-light-border-color-stronger: #d8dde3;
 
@@ -187,7 +187,7 @@ body {
   font-weight: 400;
   line-height: 1.6;
   color: var(--app-light-text-primary);
-  background-color: var(--app-light-bg-secondary);
+  background-color: var(--app-light-bg-tertiary);
   /* Inputs should be white for light theme */
   background-clip: padding-box;
   border: 1px solid var(--app-light-border-color-stronger);

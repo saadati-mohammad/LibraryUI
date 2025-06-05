@@ -1,9 +1,12 @@
-/* book-page.component.css */
+/* src/app/features/book/book.component.css */
 
+/* ==========================================================================
+   Page Layout & Main Header
+   ========================================================================== */
 .page-container {
   padding: 24px 30px;
-  max-width: 100%;
-  margin: 0 auto;
+  max-width: 100%; /* Occupy full available width */
+  margin: 0 auto; /* Center the container if max-width is ever restricted */
   box-sizing: border-box;
 }
 
@@ -11,153 +14,253 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
+  margin-bottom: 25px; /* Space below the main page title */
 }
 
 .page-main-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--app-light-text-primary);
-  margin: 0;
+  font-size: 2rem; /* Large title for the page */
+  font-weight: 700; /* Bold title */
+  color: var(--app-light-text-primary); /* Primary text color from global variables */
+  margin: 0; /* Remove default margin */
 }
 
 .page-main-title span {
-  color: var(--app-light-accent-primary);
+  color: var(--app-light-accent-primary); /* Accent color for a part of the title */
 }
 
+/* ==========================================================================
+   Content Card Styling
+   ========================================================================== */
 .content-card {
-  background-color: var(--app-light-bg-secondary);
-  border-radius: var(--app-border-radius-main, 12px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--app-light-border-color);
-  overflow: hidden;
+  background-color: var(--app-light-bg-secondary); /* White background for the card */
+  border-radius: var(--app-border-radius-main, 12px); /* Rounded corners for the card */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--app-light-border-color); /* Subtle shadow and border */
+  /* overflow: hidden; /* Generally good, but can interfere with absolutely positioned elements if not careful. Keep if needed for panel. */
 }
 
 .content-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start; /* Align items to the top for filter panel and button */
   padding: 20px 25px;
   border-bottom: 1px solid var(--app-light-border-color);
-  flex-wrap: wrap;
-  gap: 15px;
+  flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+  gap: 20px; /* Space between filter section and actions section */
 }
-
-.filters-section {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  align-items: center;
-  flex-grow: 1;
-}
-
-.filters-section .filter-item {
-  min-width: 180px;
-  /* Material form fields will have their own styling for height and padding */
-}
-
-.filters-section .filter-search {
-  min-width: 220px;
-}
-
-.actions-section {
-  flex-shrink: 0;
-}
-
-/* Styling for Angular Material button if you use it */
-.add-new-button.mat-mdc-raised-button {
-  /* mat-raised-button with color="primary" should look good by default */
-  /* Add specific overrides if needed */
-  font-weight: 500;
-  /* Example override */
-}
-
-.add-new-button mat-icon {
-  margin-left: 8px;
-  /* RTL */
-  margin-right: -4px;
-  /* Adjust default spacing */
-}
-
 
 .content-card-body {
-  padding: 0;
-  /* Padding will be handled by app-list or elements within */
+  padding: 0; /* Padding will be handled by app-list or specific content inside */
 }
 
-/*
-  Since ::ng-deep is for SCSS and emulated/none view encapsulation,
-  and you are using CSS files, direct deep styling is not standard.
-  It's better if app-list has its own appropriate styling or inputs to control its appearance.
-  However, if you MUST override from parent CSS (not recommended for maintainability),
-  you might need to set ViewEncapsulation.None on the parent component, which has side effects.
+/* ==========================================================================
+   Filters Section (Expansion Panel)
+   ========================================================================== */
+.filters-section {
+  flex-grow: 1; /* Allow filter section to take available space */
+  min-width: 300px; /* Minimum width before wrapping */
+}
 
-  Assuming app-list's internal structure is as per your provided CSS,
-  we are adjusting app-list's title and wrapper *if they appear directly under content-card-body*.
-  This might not work perfectly if app-list is further nested or if its encapsulation prevents this.
-*/
+.filters-expansion-panel {
+  background-color: var(--app-light-bg-secondary) !important; /* Light background for the panel itself */
+  border: 1px solid var(--app-light-border-color) !important; /* Light border for the panel */
+  border-radius: var(--app-border-radius-small) !important; /* Consistent small border radius */
+  box-shadow: none !important; /* Remove default Material shadow to blend with card */
+}
 
-/*
-  The following attempts to style app-list content.
-  These selectors might need to be more specific or use ViewEncapsulation.None
-  if they don't apply due to Angular's view encapsulation.
-*/
+.filters-expansion-panel .mat-expansion-panel-header {
+  padding: 0 16px; /* Horizontal padding for header content */
+  min-height: 48px; /* Standard height for clickable headers */
+  font-size: 0.9rem; /* Slightly smaller font for panel title */
+}
+
+.filters-expansion-panel .mat-expansion-panel-header:hover {
+  background-color: rgba(0,0,0,0.03); /* Subtle hover effect */
+}
+
+.mat-expansion-panel-header-title,
+.mat-expansion-panel-header-description {
+  align-items: center; /* Vertically align icon and text */
+  color: var(--app-light-text-primary);
+}
+
+.mat-expansion-panel-header-title mat-icon {
+  margin-left: 8px; /* Space between icon and title text (RTL) */
+  font-size: 20px; /* Icon size */
+}
+
+.mat-expansion-panel-header-description {
+  justify-content: flex-end; /* Align description text to the left (RTL) */
+  font-size: 0.8em; /* Smaller font for description */
+  color: var(--app-light-text-secondary);
+}
+
+.filter-indicator {
+  font-size: 0.8em; /* Font size for "(Filters active)" text */
+  font-weight: 500; /* Slightly bolder */
+  color: var(--app-light-accent-primary); /* Accent color for indicator */
+  margin-right: 8px; /* Space from description text (RTL) */
+}
+
+/* Form inside the expansion panel */
+.filters-form {
+  padding: 16px; /* Padding around the filter fields */
+  background-color: var(--app-light-bg-secondary); /* Ensure light background */
+}
+
+.filter-grid-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 columns for filter fields */
+  gap: 12px 16px; /* Row and column gap */
+}
+
+.filter-grid-container .filter-item {
+  /* Each mat-form-field will take up one grid cell */
+}
+
+.filter-grid-container .mat-mdc-form-field {
+  width: 100%; /* Make form fields take full width of their cell */
+  font-size: 0.8rem; /* Smaller font for labels and inputs within filters */
+}
+/* Specific styling for mat-select in the grid if needed */
+.filter-grid-container .mat-mdc-select {
+    /* Specific styles for select if different from input */
+}
+
+/* For the inline reset button and status select in the last row */
+.filter-actions-inline {
+  display: flex;
+  align-items: center; /* Vertically center the button with adjacent form fields */
+}
+
+.filter-actions-inline .reset-button {
+  width: 100%; /* Make button take full width of its cell */
+  height: 52px; /* Match approximate height of Material outline form fields */
+  border-color: var(--app-light-accent-primary) !important; /* Accent border for stroked button */
+  color: var(--app-light-accent-primary) !important; /* Accent text color */
+  font-size: 0.8rem; /* Match font size of other filter elements */
+}
+.filter-actions-inline .reset-button mat-icon {
+  margin-left: 4px; /* RTL */
+}
+
+
+/* Main action buttons for the filter form (Apply Filters) */
+.filter-actions-main {
+  display: flex;
+  justify-content: flex-end; /* Align button to the left (RTL) */
+  margin-top: 20px; /* Space above the action buttons */
+  padding-top: 16px; /* Space above the action buttons, inside the bordered area */
+  border-top: 1px solid var(--app-light-border-color); /* Separator line */
+}
+
+.filter-actions-main .apply-button {
+  min-width: 180px; /* Minimum width for the apply button */
+  font-size: 0.85rem;
+}
+.filter-actions-main .apply-button mat-icon {
+  margin-left: 6px; /* Space between icon and text (RTL) */
+}
+
+/* ==========================================================================
+   Actions Section (Add New Book Button)
+   ========================================================================== */
+.actions-section {
+  flex-shrink: 0; /* Prevent this section from shrinking */
+  align-self: flex-start; /* Align with the top of the filter panel */
+  padding-top: 6px; /* Fine-tune vertical alignment with expansion panel header */
+}
+
+.add-book-button { /* General class for the add book button */
+  min-width: 180px; /* Minimum width */
+  /* .btn and .btn-primary styles will also apply from global or this file */
+}
+.add-book-button mat-icon {
+  margin-left: 8px; /* Space for icon (RTL) */
+}
+
+/* ==========================================================================
+   Styling for app-list (deep) - If not globally styled
+   ========================================================================== */
 :host ::ng-deep app-list .table-section-title {
   font-size: 1.2rem;
   padding: 20px 25px 15px 25px;
   margin-bottom: 0;
-  border-bottom: none;
+  border-bottom: none; /* No border if title is part of the card */
 }
 
 :host ::ng-deep app-list .dynamic-table-wrapper {
-  padding: 0px 25px 25px 25px;
-  /* Wrapper for table and paginator */
+  padding: 0px 25px 25px 25px; /* Padding around the table and paginator */
 }
 
 :host ::ng-deep app-list .table-container {
   border-radius: var(--app-border-radius-small, 8px);
   border: 1px solid var(--app-light-border-color);
-  box-shadow: none;
-  /* Remove shadow from table container if card has one */
+  box-shadow: none; /* Shadow is on the parent .content-card */
 }
 
 :host ::ng-deep app-list .mat-mdc-paginator {
   border-bottom-left-radius: var(--app-border-radius-small, 8px) !important;
-  /* Ensure it fits card radius */
   border-bottom-right-radius: var(--app-border-radius-small, 8px) !important;
+  /* Other paginator styles might be global */
 }
 
+/* ==========================================================================
+   Status Badge Styles (for table cells)
+   ========================================================================== */
+:host ::ng-deep .status-badge {
+  padding: 4px 10px;
+  border-radius: 12px; /* Pill-like shape */
+  font-size: 0.75rem; /* Small font for badges */
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  text-transform: uppercase; /* Optional: for a more distinct look */
+  letter-spacing: 0.5px; /* Optional: spacing for uppercase */
+  line-height: 1.4; /* Adjust line height for badge text */
+}
 
-/* Styles for form elements inside the modal (copied from your global styles for completeness) */
-/* These should ideally be in your global styles.css */
-.form-grid {
+:host ::ng-deep .status-badge.status-active {
+  background-color: var(--app-light-status-active-bg); /* Light green background */
+  color: var(--app-light-status-active-color); /* Dark green text */
+}
+
+:host ::ng-deep .status-badge.status-inactive {
+  background-color: #f8f9fa; /* Very light grey background */
+  color: #6c757d; /* Muted text color */
+  border: 1px solid #dee2e6; /* Subtle border for inactive */
+}
+
+/* ==========================================================================
+   Modal Form Styles (if specific overrides are needed beyond global)
+   These are mostly from your original global styles, ensure they are consistent.
+   ========================================================================== */
+.form-grid { /* Used in modal */
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem;
-  /* 20px */
+  gap: 1.25rem; /* 20px */
 }
 
-.form-group {
-  margin-bottom: 1.25rem;
-  /* 20px */
+.form-group { /* Used in modal */
+  margin-bottom: 1.25rem; /* 20px */
 }
 
-.form-group label {
+.form-group label { /* Used in modal */
   display: block;
-  margin-bottom: 0.5rem;
-  /* 8px */
+  margin-bottom: 0.5rem; /* 8px */
   color: var(--app-light-text-secondary);
   font-weight: 500;
   font-size: 0.875rem;
   line-height: 1.5;
 }
 
-.form-group label .required-star {
-  color: var(--app-light-status-overdue-color);
-  margin-right: 3px;
+.form-group label .required-star { /* Used in modal */
+  color: var(--app-light-status-overdue-color); /* Red star for required fields */
+  margin-right: 3px; /* RTL */
   font-weight: bold;
 }
 
-.form-control {
+.form-control { /* Used in modal */
+  /* These styles should ideally come from global styles.css for consistency */
   display: block;
   width: 100%;
   padding: 0.625rem 0.9375rem;
@@ -165,7 +268,7 @@
   font-weight: 400;
   line-height: 1.6;
   color: var(--app-light-text-primary);
-  background-color: var(--app-light-bg-tertiary);
+  background-color: var(--app-light-bg-secondary); /* Ensure modal inputs are also light */
   background-clip: padding-box;
   border: 1px solid var(--app-light-border-color-stronger);
   appearance: none;
@@ -174,152 +277,130 @@
   box-sizing: border-box;
 }
 
-.form-control.fileInput {
-  /* This class is used to hide the default file input */
-  display: none !important;
-}
-
-.form-control:focus {
+.form-control:focus { /* Used in modal */
   color: var(--app-light-text-primary);
   background-color: var(--app-light-bg-secondary);
   border-color: var(--app-light-accent-primary);
   outline: 0;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075),
-    0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25); /* Focus ring */
 }
 
-.form-control::placeholder {
-  color: #6c757d;
-  opacity: 1;
-}
-
-select.form-control {
-  padding-right: 2.5rem;
-  /* RTL */
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: left 0.75rem center;
-  /* RTL */
-  background-size: 16px 12px;
-}
-
-.form-control-file-wrapper {
-  position: relative;
-  display: flex;
-  width: 100%;
-  border: 1px solid var(--app-light-border-color-stronger);
-  border-radius: var(--app-border-radius-small);
-  background-color: var(--app-light-bg-tertiary);
-  transition: border-color var(--app-transition-speed) ease-in-out, box-shadow var(--app-transition-speed) ease-in-out;
-  overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
-}
-
-.form-control-file-wrapper:focus-within,
-.form-control-file-wrapper:hover {
-  border-color: var(--app-light-accent-primary);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075),
-    0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
-}
-
-.form-control-file-button {
-  padding: 0.625rem 0.9375rem;
-  background-color: var(--app-light-bg-tertiary);
-  /* Slightly different from main input for distinction */
-  color: var(--app-light-text-primary);
-  border-left: 1px solid var(--app-light-border-color);
-  /* RTL */
-  white-space: nowrap;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  cursor: pointer;
-  /* Make it clear it's clickable */
-}
-
-.form-control-file-text {
-  padding: 0.625rem 0.9375rem;
-  color: #6c757d;
-  flex-grow: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
-.file-error-message {
-  color: var(--app-light-status-overdue-color);
+/* Styles for file input and preview in modal */
+.current-cover-preview img {
+  max-width: 100px;
+  max-height: 150px;
+  margin-bottom: 10px;
   display: block;
-  margin-top: 5px;
+  border: 1px solid var(--app-light-border-color);
+  border-radius: var(--app-border-radius-small);
+}
+.remove-cover-btn {
+  margin-top: 5px !important;
+  margin-bottom: 10px !important;
+  font-size: 0.8rem !important;
+  padding: 2px 8px !important;
+  line-height: 1.5; /* Ensure text is vertically centered */
+}
+.remove-cover-btn mat-icon {
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin-left: 4px !important; /* RTL */
+  vertical-align: middle;
+}
+.text-warn { /* For "cover will be removed" message */
+  color: var(--app-light-status-due-soon-color); /* Orange/Warning color */
   font-size: 0.8rem;
 }
+.d-block { display: block !important; }
+.mt-1 { margin-top: 0.25rem !important; }
+.text-danger { color: var(--app-light-status-overdue-color); font-size: 0.8rem; }
 
-.btn-primary {
-  background-color: #b8860b;
-  color: var(--theme-primary-bg);
-  font-weight: bolder;
-  box-shadow: 0 4px 15px rgba(184, 134, 11, 0.3);
-  color: #fff
-}
 
-.btn {
+/* ==========================================================================
+   General Button Styles (if .btn, .btn-primary are used locally)
+   ========================================================================== */
+.btn { /* General button styling, ensure it doesn't conflict with MatButton */
   padding: 10px 20px;
   border-radius: 8px;
   border: none;
-  font-family: var(--font-primary);
+  font-family: var(--font-primary); /* Vazirmatn */
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  line-height: 1.5; /* Ensure text is centered */
 }
 
-/* Responsive Adjustments */
-@media (max-width: 992px) {
+.btn-primary { /* Specific style for primary buttons like "Add New Book" */
+  background-color: #efad0a; /* Your specific yellow/orange color */
+  color: #fff; /* White text for contrast */
+  font-weight: bolder;
+  box-shadow: 0 4px 15px rgba(239, 173, 10, 0.3); /* Shadow matching the button color */
+}
+.btn-primary:hover {
+    background-color: #d69800; /* Slightly darker on hover */
+}
+
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+@media (max-width: 1300px) { /* Breakpoint for when 4 filter columns are too much */
+  .filter-grid-container {
+    grid-template-columns: repeat(3, 1fr); /* 3 columns */
+  }
+}
+
+@media (max-width: 992px) { /* Tablet and smaller */
   .content-card-header {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: column; /* Stack filter section and actions section */
+    align-items: stretch; /* Make them full width */
   }
-
   .filters-section {
-    width: 100%;
+    width: 100%; /* Full width */
   }
-
-  /* Optional: make individual filters full width on smaller screens */
-  /* .filters-section .filter-item {
-    width: 100%;
-  } */
   .actions-section {
     width: 100%;
+    margin-top: 15px; /* Space when stacked */
   }
-
-  .add-new-button.mat-mdc-raised-button {
-    /* Or your custom class */
+  .add-book-button { /* Make add button full width */
     width: 100%;
-    margin-top: 10px;
-    /* Add some space if it stacks below filters */
+    justify-content: center; /* Center text and icon in button */
+  }
+  .filter-grid-container {
+    grid-template-columns: repeat(2, 1fr); /* 2 columns for filters */
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) { /* Mobile */
   .page-container {
-    padding: 15px;
+    padding: 15px; /* Reduced padding for smaller screens */
   }
-
   .page-main-title {
-    font-size: 1.6rem;
+    font-size: 1.6rem; /* Smaller page title */
   }
-
   .content-card-header {
-    padding: 15px;
+    padding: 15px; /* Reduced padding */
   }
-
+  .filter-grid-container {
+    grid-template-columns: 1fr; /* 1 column for filters */
+  }
+  .filter-actions-main {
+    flex-direction: column; /* Stack apply filter button if needed, or keep as is */
+    justify-content: stretch;
+  }
+  .filter-actions-main .apply-button {
+      width: 100%;
+  }
+  .filter-actions-inline .reset-button {
+    /* Reset button might also go full width or stack */
+  }
   :host ::ng-deep app-list .table-section-title {
     padding: 15px 15px 10px 15px;
     font-size: 1.1rem;
   }
-
   :host ::ng-deep app-list .dynamic-table-wrapper {
-    padding: 0px 15px 15px 15px;
+    padding: 0px 15px 15px 15px; /* Reduced padding around table */
   }
 }

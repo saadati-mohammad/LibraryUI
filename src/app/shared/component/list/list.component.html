@@ -4,6 +4,11 @@
     <span *ngIf="dataSource && dataSource.data.length > 0"> ({{ dataSource.data.length }} مورد)</span>
   </h3>
 
+  <div *ngIf="isLoading" class="loading-shade">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>در حال بارگذاری اطلاعات...</p>
+  </div>
+
   <div class="mat-elevation-z2 table-container direction-rtl">
     <table mat-table [dataSource]="dataSource" class="lux-table">
 
@@ -38,7 +43,13 @@
     </table>
   </div>
 
-  <mat-paginator *ngIf="showPaginator && dataSource && dataSource.data.length > 0" [pageSizeOptions]="pageSizeOptions"
-    showFirstLastButtons aria-label="انتخاب صفحه">
+ <mat-paginator *ngIf="showPaginator && !isLoading && totalItems > 0"
+                 [length]="totalItems"
+                 [pageIndex]="currentPage"
+                 [pageSize]="pageSize"
+                 [pageSizeOptions]="pageSizeOptions"
+                 (page)="onPageChange($event)"
+                 showFirstLastButtons
+                 aria-label="انتخاب صفحه">
   </mat-paginator>
 </div>

@@ -1,72 +1,175 @@
 <div class="page-container">
-  <div class="page-main-header">
-    <h1 class="page-main-title">مدیریت <span>کتاب‌ها</span></h1>
-  </div>
+
 
   <div class="content-card">
-    <div class="content-card-header">
-      <div class="filters-section">
-        <!-- بخش فیلترها در آینده می‌تواند اینجا پیاده‌سازی شود -->
-      </div>
+    <div class="page-main-header">
+      <h1 class="page-main-title">مدیریت <span>کتاب‌ها</span></h1>
       <div class="actions-section">
-        <button mat-raised-button color="primary" class="btn btn-primary"
+        <button mat-raised-button color="primary" class="btn btn-primary add-book-button"
           (click)="openBookModal(FormOperationEnum.ADD)">
           <mat-icon>add_circle_outline</mat-icon>
           افزودن کتاب جدید
         </button>
       </div>
     </div>
+    <div class="content-card-header">
+            <!-- BEGIN MODIFICATION: Filters Section -->
+      <div class="filters-section">
+        <mat-expansion-panel [(expanded)]="filterPanelOpenState" class="filters-expansion-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon>filter_list</mat-icon>
+              فیلترها
+            </mat-panel-title>
+            <mat-panel-description>
+              {{ filterPanelOpenState ? 'مخفی کردن فیلترها' : 'نمایش فیلترها' }}
+               <span *ngIf="bookFiltersForm.dirty && !filterPanelOpenState" class="filter-indicator"> (فیلترها فعال هستند)</span>
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <form [formGroup]="bookFiltersForm" (ngSubmit)="applyFilters()" class="filters-form">
+            <!-- چیدمان فیلدها مطابق عکس نمونه -->
+            <div class="filter-grid-container">
+              <!-- Row 1 -->
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>عنوان کتاب</mat-label>
+                <input matInput formControlName="title" placeholder="جستجو عنوان...">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>نویسنده</mat-label>
+                <input matInput formControlName="author" placeholder="جستجو نویسنده...">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>موضوع</mat-label>
+                <input matInput formControlName="subject" placeholder="جستجو موضوع...">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>شابک (۱۰ رقمی)</mat-label>
+                <input matInput formControlName="isbn10" placeholder="جستجو شابک ۱۰...">
+              </mat-form-field>
+
+              <!-- Row 2 -->
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>شابک (۱۳ رقمی)</mat-label>
+                <input matInput formControlName="isbn13" placeholder="جستجو شابک ۱۳...">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>مترجم</mat-label>
+                <input matInput formControlName="translator" placeholder="جستجو مترجم...">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>ناشر</mat-label>
+                <input matInput formControlName="publisher" placeholder="جستجو ناشر...">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>زبان</mat-label>
+                <input matInput formControlName="language" placeholder="جستجو زبان...">
+              </mat-form-field>
+
+              <!-- Row 3 -->
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>رده دیویی</mat-label>
+                <input matInput formControlName="deweyDecimal" placeholder="جستجو رده دیویی...">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>رده کنگره</mat-label>
+                <input matInput formControlName="congressClassification" placeholder="جستجو رده کنگره...">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>بخش کتابخانه</mat-label>
+                <input matInput formControlName="librarySection" placeholder="جستجو بخش...">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>کد قفسه</mat-label>
+                <input matInput formControlName="shelfCode" placeholder="جستجو کد...">
+              </mat-form-field>
+
+              <!-- Row 4 - Actions and Status -->
+              <div class="filter-item filter-actions-inline">
+                <button mat-stroked-button type="button" (click)="resetFilters()" color="primary" class="filter-button reset-button">
+                  پاک کردن فیلترها
+                </button>
+              </div>
+              <div class="filter-item">
+                <!-- این فیلد خالی است تا دکمه و وضعیت در یک ردیف با سایر فیلدها قرار گیرند، یا می‌توانید فیلد دیگری اینجا بگذارید -->
+              </div>
+              <div class="filter-item">
+                <!-- این فیلد خالی است -->
+              </div>
+              <mat-form-field appearance="outline" class="filter-item">
+                <mat-label>وضعیت</mat-label>
+                <mat-select formControlName="active">
+                  <mat-option [value]="null">همه</mat-option>
+                  <mat-option [value]="true">فعال</mat-option>
+                  <mat-option [value]="false">غیرفعال</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- دکمه اعمال فیلترها را می‌توان جداگانه پایین فرم گذاشت یا همراه با دکمه ریست -->
+            <div class="filter-actions-main">
+              <button mat-raised-button type="submit" color="primary" [disabled]="isLoadingTable" class="filter-button apply-button">
+                <mat-icon>search</mat-icon>
+                اعمال فیلترها
+              </button>
+            </div>
+          </form>
+        </mat-expansion-panel>
+      </div>
+      <!-- END MODIFICATION: Filters Section -->
+
+
+    </div>
 
     <div class="content-card-body">
-      <app-list [tableTitle]="tableTitle" [columns]="columns" [data]="data" [showPaginator]="false"
-        [pageSizeOptions]="[]" [actionsTemplate]="bookActionsTemplate">
+      <app-list [tableTitle]="tableTitle" [columns]="columns" [data]="data" [showPaginator]="true"
+        [pageSizeOptions]="pageSizeOptions" [actionsTemplate]="bookActionsTemplate" [isLoading]="isLoadingTable"
+        [totalItems]="totalElements" [currentPage]="currentPage" [pageSize]="pageSize"
+        (pageChanged)="handlePageEvent($event)">
       </app-list>
     </div>
   </div>
 </div>
 
-<!-- قالب ستون عملیات برای app-list -->
+<!-- قالب ستون عملیات (بدون تغییر) -->
 <ng-template #bookActionsTemplate let-bookRow>
   <button mat-icon-button color="primary" [matTooltip]="'ویرایش کتاب ' + bookRow.title"
     (click)="openBookModal(FormOperationEnum.UPDATE, bookRow)">
     <mat-icon>edit</mat-icon>
   </button>
-
   <button mat-icon-button color="warn" [matTooltip]="'حذف کتاب ' + bookRow.title" (click)="deleteBook(bookRow)">
     <mat-icon>delete_outline</mat-icon>
   </button>
-  <!-- می‌توانید دکمه‌های بیشتری با mat-menu اضافه کنید -->
 </ng-template>
 
-<!-- مودال افزودن/ویرایش کتاب -->
+<!-- مودال افزودن/ویرایش کتاب (بدون تغییر عمده در ساختار، فقط ممکن است placeholder ها یا label ها را بخواهید دقیق‌تر کنید) -->
 <app-modal [(isVisible)]="isBookModalVisible"
   [title]="currentFormOperation === FormOperationEnum.ADD ? 'افزودن' : 'ویرایش'"
   [titleAccent]="currentFormOperation === FormOperationEnum.ADD ? 'کتاب جدید' : ('کتاب ' + (bookForm.get('title')?.value || ''))"
   [submitButtonText]="currentFormOperation === FormOperationEnum.ADD ? 'ذخیره کتاب' : 'بروزرسانی کتاب'"
   submitButtonIcon="save" (submit)="onBookSubmit()" (cancel)="onBookModalClose()"
   [disableSubmit]="bookForm.invalid || isSubmitting" [isLoading]="isSubmitting" maxWidth="700px">
+
   <div modal-body>
     <p *ngIf="currentFormOperation === FormOperationEnum.ADD">لطفاً اطلاعات کتاب جدید را وارد کنید:</p>
     <p *ngIf="currentFormOperation === FormOperationEnum.UPDATE">اطلاعات کتاب را ویرایش کنید:</p>
 
     <form [formGroup]="bookForm" id="bookFormInternal">
+      <!-- فیلدهای اصلی -->
       <div class="form-grid">
         <div class="form-group">
           <label for="bookTitleForm">عنوان کتاب <span class="required-star">*</span></label>
           <input type="text" id="bookTitleForm" formControlName="title" class="form-control"
             placeholder="مثال: شازده کوچولو">
-          <!-- نمایش خطای ولیدیشن (مثال) -->
-          <small *ngIf="bookForm.get('title')?.invalid && bookForm.get('title')?.touched" class="text-danger">
-            عنوان کتاب الزامی است.
-          </small>
+          <small *ngIf="bookForm.get('title')?.invalid && bookForm.get('title')?.touched" class="text-danger">عنوان
+            الزامی است.</small>
         </div>
         <div class="form-group">
           <label for="bookSubjectForm">موضوع <span class="required-star">*</span></label>
           <input type="text" id="bookSubjectForm" formControlName="subject" class="form-control"
-            placeholder="مثال: آنتوان دوسنت اگزوپری">
-          <small *ngIf="bookForm.get('subject')?.invalid && bookForm.get('subject')?.touched" class="text-danger">
-            موضوع الزامی است.
-          </small>
+            placeholder="مثال: داستان خارجی">
+          <small *ngIf="bookForm.get('subject')?.invalid && bookForm.get('subject')?.touched" class="text-danger">موضوع
+            الزامی است.</small>
         </div>
       </div>
 
@@ -75,9 +178,8 @@
           <label for="bookAuthorForm">نویسنده <span class="required-star">*</span></label>
           <input type="text" id="bookAuthorForm" formControlName="author" class="form-control"
             placeholder="مثال: آنتوان دوسنت اگزوپری">
-          <small *ngIf="bookForm.get('author')?.invalid && bookForm.get('author')?.touched" class="text-danger">
-            نویسنده الزامی است.
-          </small>
+          <small *ngIf="bookForm.get('author')?.invalid && bookForm.get('author')?.touched" class="text-danger">نویسنده
+            الزامی است.</small>
         </div>
         <div class="form-group">
           <label for="bookTranslatorForm">مترجم</label>
@@ -88,30 +190,29 @@
 
       <div class="form-grid">
         <div class="form-group">
-          <label for="bookDeweyDecimalForm">رده بندی دیویی <span class="required-star">*</span></label>
-          <input type="text" id="bookDeweyDecimalForm" formControlName="deweyDecimal" class="form-control"
-            placeholder="مثال: 000.123">
+          <label for="bookIsbn10Form">شابک (۱۰ رقمی) <span class="required-star">*</span></label>
+          <input type="text" id="bookIsbn10Form" formControlName="isbn10" class="form-control"
+            placeholder="مثال: 964-321-000-0">
+          <small *ngIf="bookForm.get('isbn10')?.invalid && bookForm.get('isbn10')?.touched" class="text-danger">شابک ۱۰
+            رقمی الزامی است.</small>
         </div>
         <div class="form-group">
-          <label for="bookCongressClassificationForm">رده بندی کنگره <span class="required-star">*</span></label>
-          <input type="text" id="bookCongressClassificationForm" formControlName="congressClassification"
-            class="form-control" placeholder="مثال: 123.456">
+          <label for="bookIsbn13Form">شابک (۱۳ رقمی)</label>
+          <input type="text" id="bookIsbn13Form" formControlName="isbn13" class="form-control"
+            placeholder="مثال: 978-964-321-000-0">
         </div>
       </div>
 
       <div class="form-grid">
         <div class="form-group">
-          <label for="bookIsbn10Form">شابک (۱۰ رقمی) <span class="required-star">*</span></label>
-          <input type="text" id="bookIsbn10Form" formControlName="isbn10" class="form-control"
-            placeholder="مثال: 964-321-000-0">
-          <small *ngIf="bookForm.get('isbn10')?.invalid && bookForm.get('isbn10')?.touched" class="text-danger">
-            شابک الزامی است.
-          </small>
+          <label for="bookDeweyDecimalForm">رده بندی دیویی</label>
+          <input type="text" id="bookDeweyDecimalForm" formControlName="deweyDecimal" class="form-control"
+            placeholder="مثال: 000.123">
         </div>
         <div class="form-group">
-          <label for="bookIsbn13Form">شابک (۱۳ رقمی) <span class="required-star">*</span></label>
-          <input type="text" id="bookIsbn13Form" formControlName="isbn13" class="form-control"
-            placeholder="مثال: 978-964-321-000-0">
+          <label for="bookCongressClassificationForm">رده بندی کنگره</label>
+          <input type="text" id="bookCongressClassificationForm" formControlName="congressClassification"
+            class="form-control" placeholder="مثال: 123.456">
         </div>
       </div>
 
@@ -120,9 +221,14 @@
         <textarea id="bookDescriptionForm" formControlName="description" class="form-control" rows="3"
           placeholder="توضیحاتی درباره کتاب..."></textarea>
       </div>
+      <div class="form-group">
+        <label for="bookSummaryForm">خلاصه</label>
+        <textarea id="bookSummaryForm" formControlName="summary" class="form-control" rows="3"
+          placeholder="خلاصه‌ای از کتاب..."></textarea>
+      </div>
 
       <hr>
-      <p>اطلاعات تکمیلی (اختیاری):</p>
+      <p>اطلاعات تکمیلی:</p>
 
       <div class="form-grid">
         <div class="form-group">
@@ -133,7 +239,7 @@
         <div class="form-group">
           <label for="bookPublicationDateForm">تاریخ انتشار</label>
           <input type="text" id="bookPublicationDateForm" formControlName="publicationDate" class="form-control"
-            placeholder="مثال: 01-01-1400">
+            placeholder="مثال: 1375/01/15 یا YYYY-MM-DD">
         </div>
       </div>
 
@@ -152,24 +258,28 @@
       <div class="form-grid">
         <div class="form-group">
           <label for="bookEditionForm">ویرایش</label>
-          <input type="text" id="bookEditionForm" formControlName="edition" class="form-control" min="1">
+          <input type="text" id="bookEditionForm" formControlName="edition" class="form-control"
+            placeholder="مثال: چاپ سوم">
         </div>
         <div class="form-group">
           <label for="bookCopyCountForm">تعداد نسخه</label>
-          <input type="number" id="bookCopyCountForm" formControlName="copyCount" class="form-control" min="1">
+          <input type="number" id="bookCopyCountForm" formControlName="copyCount" class="form-control" min="0"
+            placeholder="مثال: 5">
         </div>
       </div>
 
+      <hr>
+      <p>اطلاعات مکانی:</p>
       <div class="form-grid">
         <div class="form-group">
           <label for="bookLibrarySectionForm">بخش کتابخانه</label>
           <input type="text" id="bookLibrarySectionForm" formControlName="librarySection" class="form-control"
-            placeholder="مثال: علوم انسانی، مهندسی">
+            placeholder="مثال: علوم انسانی, مهندسی">
         </div>
         <div class="form-group">
           <label for="bookShelfCodeForm">کد قفسه</label>
           <input type="text" id="bookShelfCodeForm" formControlName="shelfCode" class="form-control"
-            placeholder="مثال: A2 , B5">
+            placeholder="مثال: A2, B5">
         </div>
       </div>
 
@@ -187,29 +297,37 @@
       </div>
 
       <div class="form-group">
-        <label for="bookDescriptionForm">توضیحات مکان نگهداری</label>
+        <label for="bookPositionNoteForm">توضیحات مکان نگهداری</label>
         <textarea id="bookPositionNoteForm" formControlName="positionNote" class="form-control" rows="3"
           placeholder="توضیح اضافی درباره مکان یا شرایط خاص نگهداری ..."></textarea>
       </div>
 
       <div class="form-group">
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="bookActiveForm" formControlName="active">
-          <label class="form-check-label" for="bookActiveForm">
-            کتاب فعال و قابل نمایش باشد
-          </label>
+          <input class="form-check-input" type="checkbox" id="bookActiveFormModal" formControlName="active">
+          <!-- تغییر id برای جلوگیری از تداخل -->
+          <label class="form-check-label" for="bookActiveFormModal">کتاب فعال و قابل نمایش باشد</label>
         </div>
       </div>
 
-      <!-- بخش آپلود فایل (اگر دارید) -->
       <div class="form-group">
         <label for="bookCoverFileForm">جلد کتاب</label>
+        <div class="current-cover-preview" *ngIf="currentCoverUrl && !selectedFile && !shouldRemoveCover">
+          <img [src]="currentCoverUrl" alt="جلد فعلی کتاب">
+          <button mat-stroked-button type="button" color="warn" (click)="removeSelectedCover()"
+            class="remove-cover-btn">
+            <mat-icon>delete_forever</mat-icon> حذف جلد
+          </button>
+        </div>
+        <div class="current-cover-preview" *ngIf="selectedFile && currentCoverUrl">
+          <img [src]="currentCoverUrl" alt="پیش نمایش جلد جدید">
+        </div>
         <input type="file" id="bookCoverFileForm" (change)="onFileChange($event)" class="form-control-file"
           accept="image/*">
-        <small *ngIf="selectedFileName">{{ selectedFileName }}</small>
-        <small *ngIf="fileError" class="text-danger d-block">{{ fileError }}</small>
+        <small *ngIf="selectedFileName" class="d-block mt-1">{{ selectedFileName }}</small>
+        <small *ngIf="fileError" class="text-danger d-block mt-1">{{ fileError }}</small>
+        <small *ngIf="shouldRemoveCover" class="text-warn d-block mt-1">جلد کتاب در زمان ذخیره حذف خواهد شد.</small>
       </div>
-
     </form>
   </div>
 </app-modal>

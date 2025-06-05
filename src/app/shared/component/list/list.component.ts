@@ -1,11 +1,12 @@
 import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 export interface TableColumn {
   columnDef: string; // نام پراپرتی در آبجکت داده
@@ -32,6 +33,7 @@ export interface ActionButtonConfig {
     MatTableModule,
     MatPaginatorModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     MatButtonModule,
     MatTooltipModule],
   templateUrl: './list.component.html',
@@ -45,6 +47,12 @@ export class ListComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() pageSizeOptions: number[] = [5, 10, 25, 100];
   @Input() showPaginator: boolean = false;
   @Input() actionsTemplate: TemplateRef<any> | null = null;
+
+  @Input() isLoading: boolean = false; // برای نمایش اسپینر لودینگ
+  @Input() totalItems: number = 0;
+  @Input() currentPage: number = 0; // صفحه فعلی (0-indexed)
+  @Input() pageSize: number = 10; // آیتم در هر صفحه
+  @Output() pageChanged = new EventEmitter<PageEvent>();
 
   @Output() actionClicked = new EventEmitter<any>();
   dataSource!: MatTableDataSource<any>;
@@ -120,5 +128,9 @@ export class ListComponent implements OnInit, AfterViewInit, OnChanges {
       return button.disabled(element);
     }
     return false; // Default to enabled
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageChanged.emit(event);
   }
 }

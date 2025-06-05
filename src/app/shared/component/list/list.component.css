@@ -259,3 +259,33 @@
   /* Utility class if needed, though body should handle it */
   direction: rtl;
 }
+
+.loading-shade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0; /* Adjust if paginator is outside */
+  right: 0;
+  background: rgba(255, 255, 255, 0.8); /* نیمه شفاف سفید */
+  z-index: 10; /* بالاتر از جدول */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--app-border-radius-small); /* اگر table-container هم دارد */
+}
+
+.loading-shade p {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: var(--app-light-text-secondary);
+}
+
+.table-container.loading {
+  opacity: 0.5; /* کمی محو کردن جدول در زمان لودینگ */
+}
+
+.dynamic-table-wrapper {
+  position: relative; /* برای اینکه loading-shade درست قرار بگیرد */
+  /* padding: 0;  این قبلا بوده */
+}
