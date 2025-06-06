@@ -165,11 +165,13 @@ export class BookComponent implements OnInit, OnDestroy {
 
   setupTableColumns(): void {
     this.columns = [
-      { columnDef: 'id', header: 'ردیف', cell: (element: BookModel) => `${element.id}` },
+      // { columnDef: 'id', header: 'ردیف', cell: (element: BookModel) => `${element.id}` },
       { columnDef: 'title', header: 'عنوان کتاب', cell: (element: BookModel) => `${element.title}`, cellClass: () => 'emphasize' },
       { columnDef: 'author', header: 'نویسنده', cell: (element: BookModel) => `${element.author}`, cellClass: () => 'emphasize' },
+      { columnDef: 'translator', header: 'مترجم', cell: (element: BookModel) => `${element.translator}`, cellClass: () => 'emphasize' },
       { columnDef: 'subject', header: 'موضوع', cell: (element: BookModel) => `${element.subject || '---'}` },
       { columnDef: 'isbn10', header: 'شابک ۱۰', cell: (element: BookModel) => `${element.isbn10 || '---'}` },
+      { columnDef: 'deweyDecimal', header: 'رده دیویی', cell: (element: BookModel) => `${element.deweyDecimal || '---'}` },
       { columnDef: 'active', header: 'وضعیت', cell: (element: BookModel) => element.active ? `<span class="status-badge status-active">فعال</span>` : `<span class="status-badge status-inactive">غیرفعال</span>` }
     ];
   }
