@@ -1,5 +1,5 @@
-import {Component, OnInit} from '@angular/core';
-import {CommonModule} from '@angular/common';
+import {Component, Inject, OnInit, PLATFORM_ID} from '@angular/core';
+import {CommonModule, isPlatformBrowser} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import {ActionButtonConfig, ListComponent, TableColumn} from '../../shared/component/list/list.component';
@@ -9,240 +9,199 @@ import { MatInputModule } from '@angular/material/input';
 import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { BookService } from '../../core/service/book.service';
 import { ModalComponent } from "../../shared/component/modal/modal.component";
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatMenuModule } from '@angular/material/menu';
+import { PageEvent } from '@angular/material/paginator';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { BookLoanModel, BookLoanFilterModel, CreateLoanRequest } from '../../core/model/bookLoanModel';
+import { BookModel } from '../../core/model/bookModel';
+import { PersonModel } from '../../core/model/personModel';
+import { BookLoanService } from '../../core/service/book-loan.service';
+import { PersonService } from '../../core/service/person.service';
+
+
 @Component({
   selector: 'app-loan',
   standalone: true,
-  imports: [ListComponent, CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatIconModule, ModalComponent, ReactiveFormsModule],
+  imports: [ /* All necessary Angular Material and custom modules */
+    ReactiveFormsModule, CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule,
+    MatIconModule, MatButtonModule, MatTooltipModule, MatMenuModule, MatProgressSpinnerModule,
+    MatExpansionModule, MatCheckboxModule, MatCardModule, MatSnackBarModule, ListComponent, ModalComponent
+  ],
   templateUrl: './loan.component.html',
-  styleUrl: './loan.component.css'
+  styleUrls: ['./loan.component.css']
 })
 export class LoanComponent implements OnInit {
-  tableTitle = 'لیست امانت ها';
-  columns: TableColumn[] = [];
-  data: any[] = [];
-  actionButtons: ActionButtonConfig[] = [];
-  
-  isAddBookModalVisible = false;
-  addBookForm: FormGroup;
-  selectedFileName: string | null = null;
-  isSubmitting: boolean = false;
-  fileError: string | null = null;
 
-  constructor(private fb: FormBuilder, private bookService:BookService) {
-    this.addBookForm = this.fb.group({
-      bookTitle: ['', Validators.required],
-      bookAuthor: ['', Validators.required],
-      bookCategory: ['', Validators.required],
-      bookCopies: [1, [Validators.required, Validators.min(1)]],
-      bookCoverFile: [null]
-      // ... other fields
+  tableTitle = 'لیست امانت‌ها';
+  columns: TableColumn[] = [];
+  data: BookLoanModel[] = [];
+
+  // Modal & Form state
+  isLoanModalVisible = false;
+  loanForm: FormGroup;
+  isSubmitting = false;
+
+  // For populating modal dropdowns
+  allActivePersons: PersonModel[] = [];
+  allAvailableBooks: BookModel[] = [];
+
+  // Pagination & Loading state
+  isLoadingTable = false;
+  totalElements = 0;
+  currentPage = 0;
+  pageSize = 10;
+  pageSizeOptions = [5, 10, 25, 50];
+
+  // Filtering
+  filtersForm: FormGroup;
+
+  constructor(
+    private fb: FormBuilder,
+    private loanService: BookLoanService,
+    private personService: PersonService, // To get persons for dropdown
+    private bookService: BookService,   // To get books for dropdown
+    private snackBar: MatSnackBar,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    this.loanForm = this.fb.group({
+      personId: [null, Validators.required],
+      bookId: [null, Validators.required],
+      notes: ['']
+    });
+
+    this.filtersForm = this.fb.group({
+      personNationalId: [''],
+      bookIsbn: [''],
+      status: [null]
     });
   }
 
-  openAddBookModal(): void {
-    this.addBookForm.reset({ bookCopies: 1 }); // Reset form with defaults
-    this.selectedFileName = null;
-    this.fileError = null;
-    this.isAddBookModalVisible = true;
-  }
-
-  onAddBookModalClose(): void {
-    this.isAddBookModalVisible = false;
-  }
-
-  onAddBookSubmit(): void {
-    if (this.addBookForm.valid) {
-      this.isSubmitting = true;
-      console.log('Form Data:', this.addBookForm.value);
-      // Simulate API call
-      setTimeout(() => {
-        alert('کتاب با موفقیت اضافه شد! (اطلاعات در کنسول)');
-        this.isSubmitting = false;
-        this.isAddBookModalVisible = false;
-      }, 1500);
-    } else {
-      console.error('Form is invalid');
-      // Optionally touch all fields to show errors
-      this.addBookForm.markAllAsTouched();
-    }
-  }
-
-  onFileChange(event: Event): void {
-    const inputElement = event.target as HTMLInputElement;
-    if (inputElement.files && inputElement.files.length > 0) {
-      const file = inputElement.files[0];
-      // Basic validation (example: file size < 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        this.fileError = 'حجم فایل نباید بیشتر از 2 مگابایت باشد.';
-        this.selectedFileName = 'فایل نامعتبر';
-        this.addBookForm.patchValue({ bookCoverFile: null });
-        inputElement.value = ''; // Clear the input
-        return;
-      }
-      if (!file.type.startsWith('image/')) {
-        this.fileError = 'فقط فایل‌های تصویری مجاز هستند.';
-        this.selectedFileName = 'فایل نامعتبر';
-        this.addBookForm.patchValue({ bookCoverFile: null });
-        inputElement.value = ''; // Clear the input
-        return;
-      }
-
-      this.selectedFileName = file.name;
-      this.addBookForm.patchValue({ bookCoverFile: file });
-      this.fileError = null;
-    } else {
-      this.selectedFileName = null;
-      this.addBookForm.patchValue({ bookCoverFile: null });
-      this.fileError = null;
-    }
-  }
-
-
-
-
-
-
-
   ngOnInit(): void {
     this.setupTableColumns();
-    this.loadSampleData();
-    this.setupActionButtons();
+    this.loadLoans();
+
+    this.filtersForm.valueChanges.pipe(
+      debounceTime(700),
+      distinctUntilChanged()
+    ).subscribe(() => this.applyFilters());
   }
 
   setupTableColumns(): void {
     this.columns = [
+      { columnDef: 'bookTitle', header: 'عنوان کتاب', cell: (el: BookLoanModel) => el.bookTitle, cellClass: () => 'emphasize' },
+      { columnDef: 'personName', header: 'نام عضو', cell: (el: BookLoanModel) => `${el.personFirstName} ${el.personLastName}` },
+      { columnDef: 'loanDate', header: 'تاریخ امانت', cell: (el: BookLoanModel) => el.loanDate },
+      { columnDef: 'dueDate', header: 'تاریخ سررسید', cell: (el: BookLoanModel) => el.dueDate },
+      { columnDef: 'returnDate', header: 'تاریخ بازگشت', cell: (el: BookLoanModel) => el.returnDate || '---' },
       {
-        columnDef: 'id',
-        header: 'ردیف',
-        cell: (element: any) => `${element.id}`,
-      },
-      {
-        columnDef: 'bookTitle',
-        header: 'عنوان کتاب',
-        cell: (element: any) => `${element.bookTitle}`,
-        cellClass: () => 'emphasize'
-      },
-      {
-        columnDef: 'memberName',
-        header: 'نام عضو',
-        cell: (element: any) => `${element.memberName}`,
-        cellClass: () => 'emphasize'
-      },
-      {
-        columnDef: 'memberCode',
-        header: 'کد عضو',
-        cell: (element: any) => `${element.memberCode}`
-      },
-      {
-        columnDef: 'loanDate',
-        header: 'تاریخ امانت',
-        cell: (element: any) => `${element.loanDate}`
-      },
-      {
-        columnDef: 'dueDate',
-        header: 'تاریخ سررسید',
-        cell: (element: any) => `${element.dueDate}`,
-        cellClass: (element: any) => `date-due ${element.dueDateStatus || ''}` // کلاس‌های due-soon یا overdue
-      },
-      {
-        columnDef: 'status',
-        header: 'وضعیت',
-        cell: (element: any) => this.getStatusBadge(element.status),
+        columnDef: 'status', header: 'وضعیت',
+        cell: (el: BookLoanModel) => `<span class="status-badge ${this.getStatusClass(el.status)}">${this.translateStatus(el.status)}</span>`
       },
     ];
   }
 
-  getStatusBadge(status: { text: string, type: string, icon: string }): string {
-    return `<span class="status-badge status-${status.type}">
-              <mat-icon role="img" class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font">${status.icon}</mat-icon>
-              ${status.text}
-            </span>`;
+  loadLoans(): void {
+    this.isLoadingTable = true;
+    const filters: BookLoanFilterModel = this.filtersForm.value;
+    this.loanService.getLoanList(filters, this.currentPage, this.pageSize).subscribe({
+      next: (response) => {
+        this.data = response.content;
+        this.totalElements = response.totalElements;
+        this.isLoadingTable = false;
+      },
+      error: () => this.isLoadingTable = false
+    });
   }
 
-  loadSampleData(): void {
-    this.bookService.getBookList().subscribe((data: any) => {
-      console.log(data);
-    })
-    this.data = [
-      {
-        id: 1,
-        bookTitle: 'جنگ و صلح',
-        memberName: 'آنا کارنینا',
-        memberCode: 'C00123',
-        loanDate: '۱۴۰۳/۰۲/۱۰',
-        dueDate: '۱۴۰۳/۰۲/۲۴',
-        dueDateRaw: '2024-05-13', // برای مرتب سازی و محاسبات احتمالی
-        dueDateStatus: 'overdue', // اضافه شده برای استایل خاص تاریخ سررسید
-        status: { text: 'سررسید شده', type: 'overdue', icon: 'error_outline' },
+  handlePageEvent(event: PageEvent): void {
+    this.currentPage = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.loadLoans();
+  }
+
+  applyFilters(): void {
+    this.currentPage = 0;
+    this.loadLoans();
+  }
+
+  resetFilters(): void {
+    this.filtersForm.reset({ status: null });
+    this.applyFilters();
+  }
+
+  openLoanModal(): void {
+    this.loanForm.reset();
+    this.isLoanModalVisible = true;
+    // Load data for dropdowns
+    this.personService.getPersonList({ active: true }, 0, 1000).subscribe(res => this.allActivePersons = res.content);
+    // Note: A better approach would be an endpoint to get only available books
+    this.bookService.getBookList({ active: true }, 0, 1000).subscribe(res => this.allAvailableBooks = res.content);
+  }
+
+  onLoanModalClose(): void {
+    this.isLoanModalVisible = false;
+  }
+
+  onLoanSubmit(): void {
+    if (this.loanForm.invalid) return;
+
+    this.isSubmitting = true;
+    const request: CreateLoanRequest = this.loanForm.value;
+
+    this.loanService.createLoan(request).subscribe({
+      next: () => {
+        this.snackBar.open('امانت با موفقیت ثبت شد.', 'بستن', { duration: 3000, direction: 'rtl' });
+        this.isSubmitting = false;
+        this.isLoanModalVisible = false;
+        this.loadLoans();
       },
-      {
-        id: 2,
-        bookTitle: 'غرور و تعصب',
-        memberName: 'الیزابت بنت',
-        memberCode: 'C00456',
-        loanDate: '۱۴۰۳/۰۳/۰۵',
-        dueDate: '۱۴۰۳/0۳/۱۹',
-        dueDateRaw: '2024-06-08',
-        dueDateStatus: 'due-soon',
-        status: { text: 'نزدیک به سررسید', type: 'due-soon', icon: 'warning_amber' },
-      },
-      {
-        id: 3,
-        bookTitle: 'کیمیاگر',
-        memberName: 'سانتیاگو چوپان',
-        memberCode: 'C00789',
-        loanDate: '۱۴۰۳/۰۳/۱۰',
-        dueDate: '۱۴۰۳/۰۳/۲۴',
-        dueDateRaw: '2024-06-13',
-        status: { text: 'در حال امانت', type: 'active', icon: 'hourglass_empty' },
-      },
-      {
-        id: 4,
-        bookTitle: 'صد سال تنهایی',
-        memberName: 'اورسولا ایگواران',
-        memberCode: 'C00101',
-        loanDate: '۱۴۰۳/۰۱/۱۵',
-        dueDate: '۱۴۰۳/۰۱/۲۹',
-        dueDateRaw: '2024-04-18',
-        status: { text: 'بازگشت داده شده', type: 'returned', icon: 'check_circle_outline' },
+      error: (err) => {
+        const errorMessage = err.error?.message || 'خطا در ثبت امانت. ممکن است کتاب در دسترس نباشد.';
+        this.snackBar.open(errorMessage, 'بستن', { duration: 5000, direction: 'rtl' });
+        this.isSubmitting = false;
       }
-    ];
+    });
   }
 
-  setupActionButtons(): void {
-    this.actionButtons = [
-      {
-        icon: 'check_circle_outline',
-        tooltip: 'ثبت بازگشت',
-        actionId: 'return',
-        color: 'primary',
-        condition: (element: any) => element.status.type === 'active' || element.status.type === 'due-soon' || element.status.type === 'overdue'
-      },
-      {
-        icon: 'autorenew',
-        tooltip: 'تمدید',
-        actionId: 'renew',
-        color: 'accent',
-        condition: (element: any) => element.status.type === 'active' || element.status.type === 'due-soon',
-        disabled: (element: any) => element.bookTitle === 'جنگ و صلح' // مثال: تمدید برای این کتاب غیرفعال است
-      },
-      {
-        icon: 'notifications_active',
-        tooltip: 'ارسال یادآوری',
-        actionId: 'remind',
-        condition: (element: any) => element.status.type === 'overdue'
-      },
-      {
-        icon: 'visibility',
-        tooltip: 'مشاهده جزئیات',
-        actionId: 'viewDetails',
-        condition: (element: any) => element.status.type === 'returned'
+  returnBook(loan: BookLoanModel): void {
+    if (isPlatformBrowser(this.platformId)) {
+      if (confirm(`آیا از ثبت بازگشت کتاب "${loan.bookTitle}" توسط "${loan.personFirstName} ${loan.personLastName}" مطمئن هستید؟`)) {
+        this.loanService.returnLoan(loan.id).subscribe({
+          next: () => {
+            this.snackBar.open('کتاب با موفقیت بازگردانده شد.', 'بستن', { duration: 3000, direction: 'rtl' });
+            this.loadLoans();
+          },
+          error: (err) => {
+            const errorMessage = err.error?.message || 'خطا در ثبت بازگشت کتاب.';
+            this.snackBar.open(errorMessage, 'بستن', { duration: 5000, direction: 'rtl' });
+          }
+        });
       }
-    ];
+    }
   }
 
-  addNewLoan(): void {
-    console.log('Open modal to add new loan');
-    alert('باز کردن مودال ثبت امانت جدید');
+  // --- Helper methods for display ---
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'ON_LOAN': return 'status-on-loan';
+      case 'RETURNED': return 'status-returned';
+      case 'OVERDUE': return 'status-overdue';
+      default: return '';
+    }
+  }
+
+  translateStatus(status: string): string {
+    switch (status) {
+      case 'ON_LOAN': return 'در امانت';
+      case 'RETURNED': return 'بازگشتی';
+      case 'OVERDUE': return 'دیرکرد';
+      default: return status;
+    }
   }
 }

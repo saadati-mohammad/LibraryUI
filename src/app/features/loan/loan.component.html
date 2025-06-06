@@ -1,84 +1,126 @@
-<!-- book-page.component.html -->
-<div class="page-container">
 
-  <div class="page-main-header">
-    <h1 class="page-main-title">مدیریت <span>امانت ها</span></h1>
-    <!-- Optional: User profile or theme toggle button can go here -->
-  </div>
-
-  <div class="content-card">
-    <div class="content-card-header">
-      <div class="filters-section">
+<div class="container mx-auto px-4 py-6 rtl">
+  <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="px-6 py-5 border-b border-gray-200 flex flex-col md:flex-row md:justify-between md:items-center">
+      <div class="flex items-center space-x-2">
+        <h1 class="text-3xl font-bold text-indigo-900">
+          مدیریت <span class="text-indigo-600">امانت‌ها</span>
+        </h1>
       </div>
-      <div class="actions-section">
-        <button mat-raised-button color="primary" class="btn btn-primary" (click)="openAddBookModal()">
-          <mat-icon>add_circle_outline</mat-icon>
-          افزودن امانت جدید
+      <div class="flex space-x-4 mt-4 md:mt-0">
+        <button (click)="openLoanModal()"
+          class="flex items-center bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          ثبت امانت جدید
         </button>
       </div>
     </div>
 
-    <div class="content-card-body">
-      <app-list
-        [tableTitle]="tableTitle"
-        [columns]="columns"
-        [data]="data"
-        [showPaginator]="false"
-        [pageSizeOptions]="[]">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <details class="group">
+        <summary
+          class="flex items-center justify-between cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-200">
+          <span class="text-lg font-medium">فیلترها</span>
+        </summary>
+        <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()"
+          class="mt-4 bg-gray-50 p-6 rounded-lg shadow-inner">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">کد ملی عضو</label>
+              <input type="text" formControlName="personNationalId" placeholder="جستجو کد ملی..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">شابک ۱۳ رقمی کتاب</label>
+              <input type="text" formControlName="bookIsbn" placeholder="جستجو شابک..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">وضعیت</label>
+              <select formControlName="status" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                <option [ngValue]="null">همه</option>
+                <option value="ON_LOAN">در امانت</option>
+                <option value="OVERDUE">دیرکرد</option>
+                <option value="RETURNED">بازگشتی</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end space-x-4">
+            <button type="button" (click)="resetFilters()"
+              class="bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2 px-5 rounded-lg">
+              پاک کردن
+            </button>
+            <button type="submit" [disabled]="isLoadingTable"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg disabled:opacity-50">
+              اعمال فیلترها
+            </button>
+          </div>
+        </form>
+      </details>
+    </div>
+
+    <div class="px-6 py-4">
+      <app-list [tableTitle]="tableTitle" [columns]="columns" [data]="data" [showPaginator]="true"
+        [pageSizeOptions]="pageSizeOptions" [actionsTemplate]="loanActionsTemplate" [isLoading]="isLoadingTable"
+        [totalItems]="totalElements" [currentPage]="currentPage" [pageSize]="pageSize"
+        (pageChanged)="handlePageEvent($event)">
       </app-list>
     </div>
   </div>
-
 </div>
 
-<!-- Modal for adding book (app-modal) -->
-<app-modal
-  [(isVisible)]="isAddBookModalVisible"
-  title="افزودن"
-  titleAccent="کتاب جدید"
-  submitButtonText="ذخیره کتاب"
-  submitButtonIcon="save"
-  (submit)="onAddBookSubmit()"
-  (cancel)="onAddBookModalClose()"
-  [disableSubmit]="addBookForm.invalid || isSubmitting"
-  [isLoading]="isSubmitting"
-  maxWidth="700px">
+<!-- قالب ستون عملیات -->
+<ng-template #loanActionsTemplate let-loanRow>
+  <button *ngIf="loanRow.status === 'ON_LOAN' || loanRow.status === 'OVERDUE'"
+    class="text-green-600 hover:text-green-800 transition-colors duration-200 mx-1"
+    [matTooltip]="'ثبت بازگشت کتاب ' + loanRow.bookTitle" (click)="returnBook(loanRow)" aria-label="بازگشت کتاب">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 8.812A9.025 9.025 0 0112 5c4.97 0 9 4.03 9 9s-4.03 9-9 9a9.003 9.003 0 01-4.793-1.425" />
+    </svg>
+  </button>
+</ng-template>
+
+<!-- مودال ثبت امانت -->
+<app-modal [(isVisible)]="isLoanModalVisible" title="ثبت" titleAccent="امانت جدید" submitButtonText="ثبت امانت"
+  submitButtonIcon="save" (submit)="onLoanSubmit()" (cancel)="onLoanModalClose()"
+  [disableSubmit]="loanForm.invalid || isSubmitting" [isLoading]="isSubmitting" maxWidth="600px">
   <div modal-body>
-    <p>لطفاً اطلاعات کتاب جدید را وارد کنید:</p>
-    <form [formGroup]="addBookForm" id="addBookInternalForm">
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="bookTitle">عنوان کتاب <span class="required-star">*</span></label>
-          <input type="text" id="bookTitle" formControlName="bookTitle" class="form-control" placeholder="مثال: شازده کوچولو">
+    <form [formGroup]="loanForm" id="loanFormInternal">
+      <div class="space-y-4">
+        <div>
+          <label for="personSelect" class="block text-sm font-medium text-gray-700 mb-1">
+            انتخاب عضو <span class="text-red-500">*</span>
+          </label>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-select formControlName="personId" placeholder="جستجو و انتخاب عضو...">
+              <mat-option *ngFor="let person of allActivePersons" [value]="person.id">
+                {{ person.firstName }} {{ person.lastName }} ({{ person.nationalId }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
-        <div class="form-group">
-          <label for="bookAuthor">نویسنده <span class="required-star">*</span></label>
-          <input type="text" id="bookAuthor" formControlName="bookAuthor" class="form-control" placeholder="مثال: آنتوان دوسنت اگزوپری">
+
+        <div>
+          <label for="bookSelect" class="block text-sm font-medium text-gray-700 mb-1">
+            انتخاب کتاب <span class="text-red-500">*</span>
+          </label>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-select formControlName="bookId" placeholder="جستجو و انتخاب کتاب...">
+              <mat-option *ngFor="let book of allAvailableBooks" [value]="book.id">
+                {{ book.title }} ({{ book.author }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
-      </div>
-      <div class="form-grid">
-         <div class="form-group">
-            <label for="bookCategory">دسته‌بندی <span class="required-star">*</span></label>
-            <select id="bookCategory" formControlName="bookCategory" class="form-control">
-                <option value="" disabled>یک دسته‌بندی انتخاب کنید...</option> <!-- Removed selected attribute, rely on formControl -->
-                <option value="roman">رمان</option>
-                <option value="tarikhi">تاریخی</option>
-                <option value="elmi">علمی</option>
-            </select>
+
+        <div>
+          <label for="loanNotes" class="block text-sm font-medium text-gray-700 mb-1">یادداشت</label>
+          <textarea id="loanNotes" formControlName="notes" rows="3" placeholder="یادداشت‌های مربوط به این امانت..."
+            class="w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
         </div>
-         <div class="form-group">
-            <label for="bookCopies">تعداد نسخه‌ها <span class="required-star">*</span></label>
-            <input type="number" id="bookCopies" formControlName="bookCopies" class="form-control" min="1"> <!-- Removed value="1", rely on formControl -->
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="bookCover">تصویر جلد</label>
-        <div class="form-control-file-wrapper">
-             <input type="file" id="bookCover" (change)="onFileChange($event)" class="form-control fileInput" accept="image/*"> <!-- fileInput class is for hiding if needed -->
-             <label for="bookCover" class="form-control-file-button" role="button" tabindex="0">انتخاب فایل</label>
-             <span class="form-control-file-text">{{ selectedFileName || 'هیچ فایلی انتخاب نشده' }}</span>
-        </div>
-         <small *ngIf="fileError" class="file-error-message">{{ fileError }}</small>
       </div>
     </form>
   </div>
