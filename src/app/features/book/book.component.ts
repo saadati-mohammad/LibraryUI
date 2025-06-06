@@ -88,6 +88,7 @@ export class BookComponent implements OnInit, OnDestroy {
   isImporting: boolean = false;
   importError: string | null = null;
   inputElement?: HTMLInputElement;
+  excelFilePath: string = 'book-import-template.xlsx'; // مسیر فایل اکسل
 
 
   constructor(
@@ -494,11 +495,15 @@ export class BookComponent implements OnInit, OnDestroy {
   }
 
   downloadExcelTemplate(): void {
-    // این متد یک فایل نمونه در پوشه assets را باز می‌کند.
-    // ابتدا یک فایل اکسل با نام 'book-import-template.xlsx' با ستون‌های مورد نیاز در پوشه `src/assets` پروژه خود ایجاد کنید.
-    // ترتیب ستون‌ها باید با آنچه در بک‌اند (ExcelImportService) انتظار می‌رود، یکسان باشد.
     if (isPlatformBrowser(this.platformId)) {
-      window.open('/assets/book-import-template.xlsx', '_blank');
+      const link = document.createElement('a');
+      link.setAttribute('type', 'hidden');
+      link.href = './assets/book-import-template.xlsx';
+      link.download = 'book-import-template.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      link.remove(); // Optional: remove the link after the download
     }
   }
+
 }
