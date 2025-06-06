@@ -1,12 +1,6 @@
 /* list.component.css */
 :host {
   display: block;
-  font-family: 'Vazirmatn', sans-serif;
-  /*
-    --table-bg, --table-header-bg, etc. are fine as they are,
-    they will inherit from the global :root variables you've set.
-    The key is to ensure these variables are defined globally.
-  */
 }
 
 .dynamic-table-wrapper {
@@ -23,7 +17,7 @@
   margin-bottom: 15px;
   /* Space before the table container */
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--app-light-border-color);
+  /* border-bottom: 1px solid var(--app-light-border-color); */
   /* Use global variable */
   /* Default padding from parent will position this title */
 }

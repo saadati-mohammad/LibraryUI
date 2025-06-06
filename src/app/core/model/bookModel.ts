@@ -20,7 +20,7 @@ export interface BookModel {
   copyCount?: number | null;
   librarySection?: string | null;
   shelfCode?: string | null;
-  rowNumber?: string | null;
+  rowNumbers?: string | null;
   columnNumber?: string | null;
   positionNote?: string | null;
 }
@@ -46,7 +46,7 @@ export interface BookFilterModel {
   copyCount?: number | null;
   librarySection?: string | null;
   shelfCode?: string | null;
-  rowNumber?: string | null;
+  rowNumbers?: string | null;
   columnNumber?: string | null;
   positionNote?: string | null;
 }

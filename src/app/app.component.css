@@ -95,7 +95,7 @@ body {
   text-align: right;
 
   .mat-mdc-text-field-wrapper {
-    direction: rtl;
+    direction: ltr;
   }
 
   .mat-mdc-form-field-hint-wrapper,
@@ -128,4 +128,3 @@ body {
   font-style: normal;
   font-display: swap;
 }
-

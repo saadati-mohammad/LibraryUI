@@ -107,7 +107,7 @@ export class BookComponent implements OnInit, OnDestroy {
       copyCount: [null, [Validators.min(0), Validators.pattern('^[0-9]*$')]],
       librarySection: [null],
       shelfCode: [null],
-      rowNumber: [null],
+      rowNumbers: [null],
       columnNumber: [null],
       positionNote: [''],
     });
@@ -133,7 +133,7 @@ export class BookComponent implements OnInit, OnDestroy {
       copyCount: [null, [Validators.min(0), Validators.pattern('^[0-9]*$')]],
       librarySection: [''],
       shelfCode: [''],
-      rowNumber: [''],
+      rowNumbers: [''],
       columnNumber: [''],
       positionNote: ['']
     });
@@ -221,7 +221,7 @@ export class BookComponent implements OnInit, OnDestroy {
         title: '', author: '', translator: '', publisher: '', isbn10: '', isbn13: '',
         description: '', deweyDecimal: '', congressClassification: '', subject: '', summary: '',
         pageCount: null, language: '', edition: '', active: null, copyCount: null,
-        librarySection: '', shelfCode: '', rowNumber: '', columnNumber: '', positionNote: ''
+        librarySection: '', shelfCode: '', rowNumbers: '', columnNumber: '', positionNote: ''
     });
     this.currentPage = 0;
     this.loadBooks();

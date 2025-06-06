@@ -97,7 +97,7 @@ body {
 }
 
 .mat-mdc-form-field .mat-mdc-text-field-wrapper {
-  direction: rtl;
+  direction: ltr;
 }
 
 .mat-mdc-form-field .mat-mdc-form-field-hint-wrapper,
@@ -115,6 +115,7 @@ body {
   /* Paginator background */
   color: var(--app-light-text-secondary);
   border-top: 1px solid var(--app-light-border-color);
+  direction: ltr;
   /* border-radius for paginator is handled by parent (.content-card-body app-list .mat-mdc-paginator) */
 }
 
@@ -298,4 +299,8 @@ input[type="file"].form-control-file-input {
 /* Utility to hide body scroll when modal is open */
 body.modal-open {
   overflow: hidden;
+}
+
+* {
+  font-family: 'Vazir', sans-serif !important;
 }

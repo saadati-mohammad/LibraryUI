@@ -43,13 +43,38 @@
     </table>
   </div>
 
- <mat-paginator *ngIf="showPaginator && !isLoading && totalItems > 0"
-                 [length]="totalItems"
-                 [pageIndex]="currentPage"
-                 [pageSize]="pageSize"
-                 [pageSizeOptions]="pageSizeOptions"
-                 (page)="onPageChange($event)"
-                 showFirstLastButtons
-                 aria-label="انتخاب صفحه">
+  <div
+  class="mt-4 flex items-center justify-between bg-white px-4 py-2 rounded-lg shadow-md"
+>
+  <!-- اطلاعات صفحه و تعداد کل آیتم‌ها -->
+  <div
+    class="text-sm text-gray-600"
+    *ngIf="totalItems > 0"
+  >
+    نمایش
+    <span class="font-semibold">{{ currentPage * pageSize + 1 }}</span>
+    تا
+    <span class="font-semibold">{{
+      (currentPage + 1) * pageSize > totalItems
+        ? totalItems
+        : (currentPage + 1) * pageSize
+    }}</span>
+    از
+    <span class="font-semibold">{{ totalItems }}</span>
+  </div>
+
+  <!-- خود کامپوننت mat-paginator با کلاس‌های سفارشی -->
+  <mat-paginator
+    *ngIf="showPaginator && !isLoading && totalItems > 0"
+    [length]="totalItems"
+    [pageIndex]="currentPage"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="pageSizeOptions"
+    (page)="onPageChange($event)"
+    showFirstLastButtons
+    aria-label="انتخاب صفحه"
+    class="custom-paginator flex items-center"
+  >
   </mat-paginator>
+</div>
 </div>
