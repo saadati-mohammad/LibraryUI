@@ -12,7 +12,4 @@ import { BaseLayoutComponent } from "./layout/base-layout/base-layout.component"
 export class AppComponent {
   title = 'LibraryUI';
   constructor(private bookService: BookService) {}
-  getBooks(){
-    this.bookService.getBookList().subscribe((res: any)=>{console.log(res)})
-  }
 }

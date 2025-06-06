@@ -4,7 +4,7 @@
     <span *ngIf="dataSource && dataSource.data.length > 0"> ({{ dataSource.data.length }} مورد)</span>
   </h3>
 
-  <div *ngIf="isLoading" class="loading-shade">
+  <div *ngIf="isLoading" class="loading-shade" style="z-index: 1000;">
     <mat-spinner diameter="50"></mat-spinner>
     <p>در حال بارگذاری اطلاعات...</p>
   </div>

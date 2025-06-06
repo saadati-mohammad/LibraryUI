@@ -255,6 +255,7 @@ export class BookComponent implements OnInit, OnDestroy {
       this.currentEditingBookId = book.id ?? null;
       const { bookCoverFile, ...bookDetailsToPatch } = book;
       this.bookForm.patchValue(bookDetailsToPatch);
+      this.selectedFile = book.bookCoverFile instanceof File? book.bookCoverFile : this.convertBinaryToFile( book.bookCoverFile , 'profile.jpg', 'image/jpeg');
 
       if (book.bookCoverFile) {
         try {
@@ -288,6 +289,16 @@ export class BookComponent implements OnInit, OnDestroy {
 
     }
     this.isBookModalVisible = true;
+  }
+
+  convertBinaryToFile(binaryString: string, fileName: string, mimeType: string): File {
+    const byteArray = new Uint8Array(atob(binaryString).split("").map(char => char.charCodeAt(0)));
+    const blob = new Blob([byteArray], { type: mimeType });
+
+    // ساخت فایل از blob
+    const file = new File([blob], fileName, { type: mimeType });
+
+    return file;
   }
 
   onBookModalClose(): void {

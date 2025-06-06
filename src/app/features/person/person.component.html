@@ -1,0 +1,343 @@
+<!-- صفحه مدیریت اعضا با استفاده از Tailwind CSS -->
+<div class="container mx-auto px-4 py-6 rtl">
+  <!-- کارت اصلی محتوا -->
+  <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <!-- هدر اصلی صفحه -->
+    <div class="px-6 py-5 border-b border-gray-200 flex flex-col md:flex-row md:justify-between md:items-center">
+      <!-- عنوان اصلی -->
+      <div class="flex items-center space-x-2">
+        <h1 class="text-3xl font-bold text-indigo-900">
+          مدیریت <span class="text-indigo-600">اعضا</span>
+        </h1>
+      </div>
+      <!-- دکمه افزودن عضو , بارگذاری با اکسل -->
+      <div class="flex space-x-4 mt-4 md:mt-0">
+        <button (click)="openPersonModal(FormOperationEnum.ADD)"
+          class="flex items-center bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          افزودن عضو جدید
+        </button>
+        <button (click)="openExcelImportModal()"
+          class="flex items-center bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          بارگذاری از اکسل
+        </button>
+      </div>
+    </div>
+
+    <!-- هدر کارت محتوا (فیلترها) -->
+    <div class="px-6 py-4 border-b border-gray-200">
+      <details class="group" (toggle)="filterPanelOpenState = !filterPanelOpenState">
+        <summary
+          class="flex items-center justify-between cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-200">
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5 ml-2 text-gray-500 group-open:text-gray-700 transition-colors duration-200" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-.553.894l-4 2A1 1 0 019 21v-8.586L3.293 6.707A1 1 0 013 6V4z" />
+            </svg>
+            <span class="text-lg font-medium">فیلترها</span>
+          </div>
+          <div type="button"
+            class=" text-md border border-gray-400 rounded-md px-3 py-1 transition-colors duration-200 focus:outline-none"
+            [ngClass]="{'text-yellow-700 hover:text-yellow-900 bg-white': !filterPanelOpenState,'text-yellow-700 bg-yellow-100': filterPanelOpenState}">
+            <span *ngIf="!filterPanelOpenState">نمایش فیلترها</span>
+            <span *ngIf="filterPanelOpenState">مخفی کردن فیلترها</span>
+            <span *ngIf="personFiltersForm.dirty && !filterPanelOpenState" class="text-yellow-500">
+              (فیلترها فعال هستند)
+            </span>
+          </div>
+        </summary>
+
+        <form [formGroup]="personFiltersForm" (ngSubmit)="applyFilters()"
+          class="mt-4 bg-gray-50 p-6 rounded-lg shadow-inner">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- ردیف ۱ فیلترها -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">نام</label>
+              <input type="text" formControlName="firstName" placeholder="جستجو نام..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">نام خانوادگی</label>
+              <input type="text" formControlName="lastName" placeholder="جستجو نام خانوادگی..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">کد ملی</label>
+              <input type="text" formControlName="nationalId" placeholder="جستجو کد ملی..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">ایمیل</label>
+              <input type="email" formControlName="email" placeholder="جستجو ایمیل..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+
+            <!-- ردیف ۲ فیلترها -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">شماره تلفن</label>
+              <input type="text" formControlName="phone" placeholder="جستجو تلفن..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">نوع عضویت</label>
+              <input type="text" formControlName="membershipType" placeholder="جستجو نوع عضویت..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">وضعیت</label>
+              <select formControlName="active"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <option [ngValue]="null">همه</option>
+                <option [ngValue]="true">فعال</option>
+                <option [ngValue]="false">غیرفعال</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end space-x-4">
+            <button type="button" (click)="resetFilters()"
+              class="flex items-center bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out">
+              پاک کردن فیلترها
+            </button>
+            <button type="submit" [disabled]="isLoadingTable"
+              class="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+              </svg>
+              اعمال فیلترها
+            </button>
+          </div>
+        </form>
+      </details>
+    </div>
+
+    <!-- بدنه کارت محتوا: لیست اعضا -->
+    <div class="px-6 py-4">
+      <app-list [tableTitle]="tableTitle" [columns]="columns" [data]="data" [showPaginator]="true"
+        [pageSizeOptions]="pageSizeOptions" [actionsTemplate]="personActionsTemplate" [isLoading]="isLoadingTable"
+        [totalItems]="totalElements" [currentPage]="currentPage" [pageSize]="pageSize"
+        (pageChanged)="handlePageEvent($event)">
+      </app-list>
+    </div>
+  </div>
+</div>
+
+<!-- قالب ستون عملیات -->
+<ng-template #personActionsTemplate let-personRow>
+  <button class="text-blue-600 hover:text-blue-800 transition-colors duration-200 mx-1"
+    [matTooltip]="'ویرایش ' + personRow.firstName + ' ' + personRow.lastName"
+    (click)="openPersonModal(FormOperationEnum.UPDATE, personRow)" aria-label="ویرایش عضو">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M15.232 5.232l3.536 3.536L9.528 18.008H6v-3.528L15.232 5.232z" />
+    </svg>
+  </button>
+  <button class="text-red-600 hover:text-red-800 transition-colors duration-200 mx-1"
+    [matTooltip]="'غیرفعال سازی ' + personRow.firstName + ' ' + personRow.lastName"
+    (click)="deactivatePerson(personRow)" aria-label="غیرفعال سازی عضو">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+</ng-template>
+
+<!-- مودال افزودن/ویرایش عضو -->
+<app-modal [(isVisible)]="isPersonModalVisible"
+  [title]="currentFormOperation === FormOperationEnum.ADD ? 'افزودن' : 'ویرایش'" [titleAccent]="
+    currentFormOperation === FormOperationEnum.ADD
+      ? 'عضو جدید'
+      : ('عضو ' + (personForm.get('firstName')?.value || '') + ' ' + (personForm.get('lastName')?.value || ''))
+  " [submitButtonText]="
+    currentFormOperation === FormOperationEnum.ADD ? 'ذخیره عضو' : 'بروزرسانی عضو'
+  " submitButtonIcon="save" (submit)="onPersonSubmit()" (cancel)="onPersonModalClose()"
+  [disableSubmit]="personForm.invalid || isSubmitting" [isLoading]="isSubmitting" maxWidth="700px">
+  <div modal-body>
+    <p *ngIf="currentFormOperation === FormOperationEnum.ADD" class="text-gray-700 mb-4">
+      لطفاً اطلاعات عضو جدید را وارد کنید:
+    </p>
+    <p *ngIf="currentFormOperation === FormOperationEnum.UPDATE" class="text-gray-700 mb-4">
+      اطلاعات عضو را ویرایش کنید:
+    </p>
+
+    <form [formGroup]="personForm" id="personFormInternal">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="personFirstName" class="block text-sm font-medium text-gray-700 mb-1">
+            نام <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="personFirstName" formControlName="firstName" placeholder="مثال: علی"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          <small *ngIf="personForm.get('firstName')?.invalid && personForm.get('firstName')?.touched"
+            class="text-red-600 text-sm mt-1 block">نام الزامی است.</small>
+        </div>
+        <div>
+          <label for="personLastName" class="block text-sm font-medium text-gray-700 mb-1">
+            نام خانوادگی <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="personLastName" formControlName="lastName" placeholder="مثال: محمدی"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          <small *ngIf="personForm.get('lastName')?.invalid && personForm.get('lastName')?.touched"
+            class="text-red-600 text-sm mt-1 block">نام خانوادگی الزامی است.</small>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label for="personNationalId" class="block text-sm font-medium text-gray-700 mb-1">
+            کد ملی <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="personNationalId" formControlName="nationalId" placeholder="کد ملی ۱۰ رقمی"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          <small *ngIf="personForm.get('nationalId')?.invalid && personForm.get('nationalId')?.touched"
+            class="text-red-600 text-sm mt-1 block">کد ملی الزامی است.</small>
+        </div>
+        <div>
+          <label for="personEmail" class="block text-sm font-medium text-gray-700 mb-1">
+            ایمیل <span class="text-red-500">*</span>
+          </label>
+          <input type="email" id="personEmail" formControlName="email" placeholder="example@domain.com"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          <small *ngIf="personForm.get('email')?.invalid && personForm.get('email')?.touched"
+            class="text-red-600 text-sm mt-1 block">ایمیل معتبر الزامی است.</small>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label for="personPhone" class="block text-sm font-medium text-gray-700 mb-1">شماره تلفن</label>
+          <input type="tel" id="personPhone" formControlName="phone" placeholder="مثال: 09123456789"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+        <div>
+          <label for="personBirthDate" class="block text-sm font-medium text-gray-700 mb-1">تاریخ تولد</label>
+          <input type="text" id="personBirthDate" formControlName="birthDate" placeholder="YYYY-MM-DD"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label for="personAddress" class="block text-sm font-medium text-gray-700 mb-1">آدرس</label>
+        <textarea id="personAddress" formControlName="address" rows="2" placeholder="آدرس محل سکونت..."
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+      </div>
+
+      <hr class="my-6 border-gray-200" />
+      <p class="text-gray-700 font-medium mb-4">اطلاعات عضویت:</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="personMembershipType" class="block text-sm font-medium text-gray-700 mb-1">نوع عضویت</label>
+          <input type="text" id="personMembershipType" formControlName="membershipType"
+            placeholder="مثال: استاندارد، ویژه"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+        <div class="flex items-center mt-6">
+          <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" type="checkbox"
+            id="personActiveFormModal" formControlName="active" />
+          <label for="personActiveFormModal" class="mr-2 text-gray-700">عضو فعال باشد</label>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label for="personNotes" class="block text-sm font-medium text-gray-700 mb-1">یادداشت</label>
+        <textarea id="personNotes" formControlName="notes" rows="2" placeholder="یادداشت‌های اضافی..."
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+      </div>
+
+      <div class="mt-4 space-y-3">
+        <label for="personProfilePicture" class="block text-sm font-medium text-gray-700">
+          عکس پروفایل
+        </label>
+
+        <!-- نمایش عکس فعلی یا پیش‌نمایش جدید -->
+        <div *ngIf="currentPictureUrl" class="flex items-center space-x-4 rtl:space-x-reverse">
+          <img [src]="currentPictureUrl" alt="پیش‌نمایش پروفایل" class="w-32 h-auto rounded-md shadow-md border" />
+
+          <!-- دکمه حذف -->
+          <div class="flex flex-col justify-between space-y-2">
+            <button type="button" (click)="removeSelectedPicture()"
+              class="inline-flex items-center bg-red-500 hover:bg-red-600 text-white text-sm font-medium py-1 px-3 rounded-md transition-all duration-200">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              حذف عکس
+            </button>
+            <span class="text-xs text-gray-500">
+              {{ selectedFile ? 'پیش‌نمایش عکس جدید' : 'عکس فعلی عضو' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- آپلود فایل -->
+        <input type="file" id="personProfilePicture" (change)="onFileChange($event)" accept="image/*"
+          class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200" />
+
+        <!-- اطلاعات تکمیلی -->
+        <div class="space-y-1 text-sm">
+          <small *ngIf="selectedFileName" class="block text-gray-700">
+            {{ selectedFileName }}
+          </small>
+          <small *ngIf="fileError" class="block text-red-600">
+            {{ fileError }}
+          </small>
+          <small *ngIf="shouldRemovePicture" class="block text-yellow-600">
+            عکس پروفایل در زمان ذخیره حذف خواهد شد.
+          </small>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</app-modal>
+
+<!-- مودال بارگذاری گروهی اعضا از اکسل -->
+<app-modal [(isVisible)]="isExcelImportModalVisible" title="بارگذاری گروهی" titleAccent="اعضا از فایل اکسل"
+  submitButtonText="شروع بارگذاری" submitButtonIcon="upload" (submit)="onExcelImportSubmit()"
+  (cancel)="onExcelImportModalClose()" [disableSubmit]="!excelFile || isImporting" [isLoading]="isImporting"
+  maxWidth="600px">
+  <div modal-body>
+    <div class="space-y-4">
+      <div>
+        <h3 class="text-lg font-medium text-gray-800">راهنمای بارگذاری</h3>
+        <p class="mt-1 text-sm text-gray-600">
+          برای بارگذاری گروهی اعضا، لطفاً فایل اکسل (`.xlsx`) خود را مطابق با الگوی استاندارد آماده و در بخش زیر
+          بارگذاری کنید.
+        </p>
+        <div class="mt-3">
+          <a (click)="downloadExcelTemplate()"
+            class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium text-sm">
+            دانلود فایل الگوی اکسل
+          </a>
+        </div>
+      </div>
+      <hr class="border-gray-200" />
+      <div>
+        <label for="excel-file-upload-person" class="block text-sm font-medium text-gray-700 mb-2">
+          انتخاب فایل اکسل
+        </label>
+        <input id="excel-file-upload-person" type="file" (change)="onExcelFileChange($event)"
+          accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          class="block w-full text-gray-600 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
+        <div *ngIf="excelFileName" class="mt-2 text-sm text-gray-700">
+          <span class="font-semibold">فایل انتخاب شده:</span> {{ excelFileName }}
+        </div>
+        <div *ngIf="importError" class="mt-2 text-sm text-red-600">
+          {{ importError }}
+        </div>
+      </div>
+    </div>
+  </div>
+</app-modal>

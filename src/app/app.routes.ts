@@ -12,7 +12,7 @@ export const routes: Routes = [
             { path: 'auth', loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent) },
             { path: 'book', loadComponent: () => import('./features/book/book.component').then(m => m.BookComponent) },
             { path: 'loan', loadComponent: () => import('./features/loan/loan.component').then(m => m.LoanComponent) },
-            { path: 'member', loadComponent: () => import('./features/member/member.component').then(m => m.MemberComponent) },
+            { path: 'person', loadComponent: () => import('./features/person/person.component').then(m => m.PersonComponent) },
             { path: 'profile', loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent) },
             { path: 'reservation', loadComponent: () => import('./features/reservation/reservation.component').then(m => m.ReservationComponent) },
             { path: 'report', loadComponent: () => import('./features/report/report.component').then(m => m.ReportComponent) },
