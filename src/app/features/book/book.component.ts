@@ -81,6 +81,15 @@ export class BookComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  // مربوط به بارگذاری اکسل
+  isExcelImportModalVisible = false;
+  excelFile: File | null = null;
+  excelFileName: string | null = null;
+  isImporting: boolean = false;
+  importError: string | null = null;
+  inputElement?: HTMLInputElement;
+
+
   constructor(
     private fb: FormBuilder,
     private bookService: BookService,
@@ -125,7 +134,7 @@ export class BookComponent implements OnInit, OnDestroy {
       congressClassification: [''],
       subject: [''],
       summary: [''],
-      // publicationDate: [''], // برای تاریخ بهتر است از date range picker یا دو فیلد جدا استفاده شود
+      publicationDate: [''], // برای تاریخ بهتر است از date range picker یا دو فیلد جدا استفاده شود
       pageCount: [null, [Validators.min(1), Validators.pattern('^[0-9]*$')]],
       language: [''],
       edition: [''],
@@ -220,10 +229,10 @@ export class BookComponent implements OnInit, OnDestroy {
 
   resetFilters(): void {
     this.bookFiltersForm.reset({
-        title: '', author: '', translator: '', publisher: '', isbn10: '', isbn13: '',
-        description: '', deweyDecimal: '', congressClassification: '', subject: '', summary: '',
-        pageCount: null, language: '', edition: '', active: null, copyCount: null,
-        librarySection: '', shelfCode: '', rowNumbers: '', columnNumber: '', positionNote: ''
+      title: '', author: '', translator: '', publisher: '', isbn10: '', isbn13: '',
+      description: '', deweyDecimal: '', congressClassification: '', subject: '', summary: '',
+      pageCount: null, language: '', edition: '', active: null, copyCount: null,
+      librarySection: '', shelfCode: '', rowNumbers: '', columnNumber: '', positionNote: ''
     });
     this.currentPage = 0;
     this.loadBooks();
@@ -247,16 +256,26 @@ export class BookComponent implements OnInit, OnDestroy {
       this.bookForm.patchValue(bookDetailsToPatch);
 
       if (book.bookCoverFile) {
-         if (typeof book.bookCoverFile === 'string' && book.bookCoverFile.startsWith('data:image')) {
+        // اگر رشته باشد
+        if (typeof book.bookCoverFile === 'string') {
+          // اگر از سرور خودت یک URL ساده برگشتی
+          if (!book.bookCoverFile.startsWith('data:image')) {
             this.currentCoverUrl = book.bookCoverFile;
-         } else if (Array.isArray(book.bookCoverFile) || book.bookCoverFile instanceof Uint8Array) {
-            try {
-                const byteArray = new Uint8Array(book.bookCoverFile as any);
-                const base64String = btoa(byteArray.reduce((data, byte) => data + String.fromCharCode(byte), ''));
-                this.currentCoverUrl = `data:image/jpeg;base64,${base64String}`; // فرض بر jpeg، در صورت نیاز نوع را تغییر دهید
-            } catch (e) { console.error("Error converting byte array to base64", e); }
-         }
+          } else {
+            // اگر واقعاً base64 است
+            this.currentCoverUrl = `data:image/jpeg;base64,${book.bookCoverFile}`;
+          }
+        }
+        // اگر آرایه بایت (Uint8Array) بیاد
+        else if (Array.isArray(book.bookCoverFile) || book.bookCoverFile instanceof Uint8Array) {
+          try {
+            const byteArray = new Uint8Array(book.bookCoverFile as any);
+            const base64String = btoa(byteArray.reduce((data, byte) => data + String.fromCharCode(byte), ''));
+            this.currentCoverUrl = `data:image/jpeg;base64,${base64String}`;
+          } catch (e) { console.error("Error converting byte array to base64", e); }
+        }
       }
+
     }
     this.isBookModalVisible = true;
   }
@@ -281,9 +300,9 @@ export class BookComponent implements OnInit, OnDestroy {
 
     let fileToSend: File | null | undefined = undefined;
     if (this.shouldRemoveCover) {
-        fileToSend = null;
+      fileToSend = null;
     } else if (this.selectedFile) {
-        fileToSend = this.selectedFile;
+      fileToSend = this.selectedFile;
     }
 
     if (this.currentFormOperation === FormOperation.UPDATE && this.currentEditingBookId) {
@@ -351,11 +370,11 @@ export class BookComponent implements OnInit, OnDestroy {
   }
 
   removeSelectedCover(): void {
-      this.selectedFile = null;
-      this.selectedFileName = null;
-      this.currentCoverUrl = null;
-      this.fileError = null;
-      this.shouldRemoveCover = true;
+    this.selectedFile = null;
+    this.selectedFileName = null;
+    this.currentCoverUrl = null;
+    this.fileError = null;
+    this.shouldRemoveCover = true;
   }
 
   deleteBook(book: BookModel): void {
@@ -377,7 +396,7 @@ export class BookComponent implements OnInit, OnDestroy {
   }
 
   private performDelete(book: BookModel): void {
-    if(!book.id) return;
+    if (!book.id) return;
     this.bookService.deleteBook(book.id).subscribe({
       next: () => {
         if (isPlatformBrowser(this.platformId)) {
@@ -399,5 +418,78 @@ export class BookComponent implements OnInit, OnDestroy {
 
   get FormOperationEnum() {
     return FormOperation;
+  }
+
+  openExcelImportModal(): void {
+    this.isExcelImportModalVisible = true;
+    // Reset state
+    this.excelFile = null;
+    this.excelFileName = null;
+    this.importError = null;
+    this.isImporting = false;
+  }
+
+  onExcelImportModalClose(): void {
+    this.isExcelImportModalVisible = false;
+  }
+
+  onExcelFileChange(event: Event): void {
+    const inputElement = event.target as HTMLInputElement;
+    this.inputElement = event.target as HTMLInputElement;
+    if (inputElement.files && inputElement.files.length > 0) {
+      const file = inputElement.files[0];
+      const validExtension = '.xlsx';
+      if (!file.name.toLowerCase().endsWith(validExtension)) {
+        this.importError = `فرمت فایل نامعتبر است. لطفاً یک فایل با فرمت ${validExtension} انتخاب کنید.`;
+        this.excelFile = null;
+        this.excelFileName = null;
+        inputElement.value = ''; // Reset input
+        return;
+      }
+
+      this.excelFile = file;
+      this.excelFileName = file.name;
+      this.importError = null;
+    }
+  }
+
+  onExcelImportSubmit(): void {
+    if (!this.excelFile) {
+      this.importError = 'لطفاً ابتدا یک فایل را انتخاب کنید.';
+      return;
+    }
+    this.isImporting = true;
+    this.importError = null;
+
+    this.bookService.importBooksFromExcel(this.excelFile).subscribe({
+      next: (response) => {
+        this.isImporting = false;
+        this.isExcelImportModalVisible = false;
+        this.excelFile = null;
+        this.inputElement!.value = ''; // Reset input element
+        if (isPlatformBrowser(this.platformId)) {
+          this.snackBar.open('فایل اکسل با موفقیت بارگذاری و پردازش شد.', 'بستن', { duration: 5000, direction: 'rtl' });
+        }
+        this.loadBooks(); // Refresh the book list
+      },
+      error: (err) => {
+        this.isImporting = false;
+        console.error('Error importing from Excel:', err);
+        const errorMessage = err.error?.message || err.error || 'خطا در بارگذاری فایل. لطفاً فایل را بررسی کرده و دوباره تلاش کنید.';
+        this.importError = errorMessage;
+        if (isPlatformBrowser(this.platformId)) {
+          this.snackBar.open(`خطا: ${errorMessage}`, 'بستن', { duration: 7000, direction: 'rtl' });
+        }
+      }
+    });
+  }
+
+  downloadExcelTemplate(): void {
+    // این متد یک فایل نمونه در پوشه assets را باز می‌کند.
+    // ابتدا یک فایل اکسل با نام 'book-import-template.xlsx' با ستون‌های مورد نیاز در پوشه `src/assets` پروژه خود ایجاد کنید.
+    // ترتیب ستون‌ها باید با آنچه در بک‌اند (ExcelImportService) انتظار می‌رود، یکسان باشد.
+    if (isPlatformBrowser(this.platformId)) {
+      window.open('/assets/book-import-template.xlsx', '_blank');
+    }
   }
 }

@@ -10,8 +10,8 @@
           مدیریت <span class="text-indigo-600">کتاب‌ها</span>
         </h1>
       </div>
-      <!-- دکمه افزودن کتاب -->
-      <div class="mt-4 md:mt-0">
+      <!-- دکمه افزودن کتاب , بارگذاری با اکسل -->
+      <div class="flex space-x-4 mt-4 md:mt-0">
         <button (click)="openBookModal(FormOperationEnum.ADD)"
           class="flex items-center bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-200">
           <!-- آیکون افزودن -->
@@ -21,7 +21,18 @@
           </svg>
           افزودن کتاب جدید
         </button>
+        <button (click)="openExcelImportModal()"
+          class="flex items-center bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-200">
+          <!-- آیکون آپلود -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          بارگذاری از اکسل
+        </button>
       </div>
+      <!-- END: دکمه بارگذاری از اکسل -->
     </div>
 
     <!-- هدر کارت محتوا (فیلترها) -->
@@ -40,8 +51,9 @@
             </svg>
             <span class="text-lg font-medium">فیلترها</span>
           </div>
-          <div type="button" class=" text-md border border-gray-400 rounded-md px-3 py-1 transition-colors duration-200 focus:outline-none" 
-          [ngClass]="
+          <div type="button"
+            class=" text-md border border-gray-400 rounded-md px-3 py-1 transition-colors duration-200 focus:outline-none"
+            [ngClass]="
           {
             'text-yellow-700 hover:text-yellow-900 bg-white': !filterPanelOpenState,'text-yellow-700 bg-yellow-100': filterPanelOpenState
           }">
@@ -122,6 +134,7 @@
               <input type="text" formControlName="shelfCode" placeholder="جستجو کد..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
+            <!-- ردیف ۴ -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">وضعیت</label>
               <select formControlName="active"
@@ -131,9 +144,11 @@
                 <option [ngValue]="false">غیرفعال</option>
               </select>
             </div>
-
-            <!-- دو جای خالی برای چیدمان -->
-            <div></div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">تاریخ انتشار</label>
+              <input type="text" formControlName="publicationDate" placeholder="جستجو تاریخ  25-12-2022..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
             <div></div>
             <div></div>
           </div>
@@ -431,7 +446,7 @@
         <label for="bookCoverFileForm" class="block text-sm font-medium text-gray-700 mb-1">
           جلد کتاب
         </label>
-        <div *ngIf="currentCoverUrl && !selectedFile && !shouldRemoveCover" class="mb-2">
+        <div *ngIf="currentCoverUrl" class="mb-2">
           <img [src]="currentCoverUrl" alt="جلد فعلی کتاب" class="w-32 h-auto rounded-md shadow-md" />
           <button type="button" (click)="removeSelectedCover()"
             class="mt-2 inline-flex items-center bg-red-500 hover:bg-red-600 text-white text-sm font-medium py-1 px-3 rounded-md transition-all duration-200">
@@ -444,7 +459,7 @@
           </button>
         </div>
         <div *ngIf="selectedFile && currentCoverUrl" class="mb-2">
-          <img [src]="currentCoverUrl" alt="پیش نمایش جلد جدید" class="w-32 h-auto rounded-md shadow-md" />
+          <!-- <img [src]="currentCoverUrl" alt="پیش نمایش جلد جدید" class="w-32 h-auto rounded-md shadow-md" /> -->
         </div>
         <input type="file" id="bookCoverFileForm" (change)="onFileChange($event)" accept="image/*"
           class="block w-full text-gray-600 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200" />
@@ -461,3 +476,55 @@
     </form>
   </div>
 </app-modal>
+<!-- START: مودال بارگذاری گروهی کتاب‌ها از اکسل (کد جدید) -->
+<app-modal [(isVisible)]="isExcelImportModalVisible" title="بارگذاری گروهی" titleAccent="کتاب‌ها از فایل اکسل"
+  submitButtonText="شروع بارگذاری" submitButtonIcon="upload" (submit)="onExcelImportSubmit()"
+  (cancel)="onExcelImportModalClose()" [disableSubmit]="!excelFile || isImporting" [isLoading]="isImporting"
+  maxWidth="600px">
+  <div modal-body>
+    <div class="space-y-4">
+      <!-- راهنمای کاربر -->
+      <div>
+        <h3 class="text-lg font-medium text-gray-800">راهنمای بارگذاری</h3>
+        <p class="mt-1 text-sm text-gray-600">
+          برای بارگذاری گروهی کتاب‌ها، لطفاً فایل اکسل (`.xlsx`) خود را مطابق با الگوی استاندارد آماده و در بخش زیر
+          بارگذاری کنید.
+        </p>
+        <ul class="list-disc list-inside mt-2 text-sm text-gray-600 space-y-1">
+          <li>ردیف اول فایل اکسل باید شامل عناوین ستون‌ها باشد و در پردازش نادیده گرفته می‌شود.</li>
+          <li>ترتیب ستون‌ها باید مطابق با فایل الگو باشد.</li>
+          <li>فایل‌های با فرمت غیر از `.xlsx` پذیرفته نمی‌شوند.</li>
+        </ul>
+        <div class="mt-3">
+          <a (click)="downloadExcelTemplate()"
+            class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium text-sm">
+            دانلود فایل الگوی اکسل
+          </a>
+        </div>
+      </div>
+
+      <hr class="border-gray-200" />
+
+      <!-- بخش آپلود فایل -->
+      <div>
+        <label for="excel-file-upload" class="block text-sm font-medium text-gray-700 mb-2">
+          انتخاب فایل اکسل
+        </label>
+        <input id="excel-file-upload" type="file" (change)="onExcelFileChange($event)"
+          accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          class="block w-full text-gray-600 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" />
+
+        <!-- نمایش نام فایل انتخاب شده -->
+        <div *ngIf="excelFileName" class="mt-2 text-sm text-gray-700">
+          <span class="font-semibold">فایل انتخاب شده:</span> {{ excelFileName }}
+        </div>
+
+        <!-- نمایش خطای فایل -->
+        <div *ngIf="importError" class="mt-2 text-sm text-red-600">
+          {{ importError }}
+        </div>
+      </div>
+    </div>
+  </div>
+</app-modal>
+<!-- END: مودال بارگذاری گروهی -->

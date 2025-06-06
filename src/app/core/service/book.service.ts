@@ -19,6 +19,7 @@ export interface PaginatedResponse<T> {
 })
 export class BookService {
   readonly baseUrl: string = `${environment.apiUrl}/book`
+  readonly baseUrlٍExcel: string = `${environment.apiUrl}`
 
   constructor(private http: HttpClient) { }
 
@@ -105,4 +106,17 @@ export class BookService {
   getBookById(id: number): Observable<BookModel> { // اگر نیاز به دریافت کتاب برای ویرایش دارید
     return this.http.get<BookModel>(`${this.baseUrl}/${id}`);
   }
+
+  importBooksFromExcel(file: File): Observable<any> {
+  const formData = new FormData();
+  formData.append('file', file, file.name);
+
+  // Endpoint بر اساس کنترلر جاوا که ارائه دادید
+  const url = `${this.baseUrlٍExcel}/excel-import/books`;
+
+  // بک‌اند شما یک رشته متنی برمی‌گرداند، بنابراین responseType را 'text' قرار می‌دهیم.
+  return this.http.post(url, formData, {
+    responseType: 'text'
+  });
+}
 }
