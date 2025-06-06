@@ -442,37 +442,52 @@
         </label>
       </div>
 
-      <div class="mt-4">
-        <label for="bookCoverFileForm" class="block text-sm font-medium text-gray-700 mb-1">
+      <div class="mt-4 space-y-3">
+        <label for="bookCoverFileForm" class="block text-sm font-medium text-gray-700">
           جلد کتاب
         </label>
-        <div *ngIf="currentCoverUrl" class="mb-2">
-          <img [src]="currentCoverUrl" alt="جلد فعلی کتاب" class="w-32 h-auto rounded-md shadow-md" />
-          <button type="button" (click)="removeSelectedCover()"
-            class="mt-2 inline-flex items-center bg-red-500 hover:bg-red-600 text-white text-sm font-medium py-1 px-3 rounded-md transition-all duration-200">
-            <!-- آیکون حذف -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            حذف جلد
-          </button>
+
+        <!-- نمایش عکس فعلی یا پیش‌نمایش جدید -->
+        <div *ngIf="currentCoverUrl" class="flex items-start space-x-4 rtl:space-x-reverse">
+          <img [src]="currentCoverUrl" alt="پیش‌نمایش جلد" class="w-32 h-auto rounded-md shadow-md border" />
+
+          <!-- دکمه حذف -->
+          <div class="flex flex-col justify-between space-y-2">
+            <button type="button" (click)="removeSelectedCover()"
+              class="inline-flex items-center bg-red-500 hover:bg-red-600 text-white text-sm font-medium py-1 px-3 rounded-md transition-all duration-200">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              حذف جلد
+            </button>
+            <span class="text-xs text-gray-500">
+              {{ selectedFile ? 'پیش‌نمایش جلد جدید' : 'جلد فعلی کتاب' }}
+            </span>
+          </div>
         </div>
-        <div *ngIf="selectedFile && currentCoverUrl" class="mb-2">
-          <!-- <img [src]="currentCoverUrl" alt="پیش نمایش جلد جدید" class="w-32 h-auto rounded-md shadow-md" /> -->
+
+        <!-- آپلود فایل -->
+        <input type="file" id="bookCoverFileForm" (change)="onFileChange($event)" accept="image/*" class="block w-full text-sm text-gray-600
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-md file:border-0
+                file:font-semibold file:bg-blue-100
+                file:text-blue-700 hover:file:bg-blue-200" />
+
+        <!-- اطلاعات تکمیلی -->
+        <div class="space-y-1 text-sm">
+          <small *ngIf="selectedFileName" class="block text-gray-700">
+            {{ selectedFileName }}
+          </small>
+          <small *ngIf="fileError" class="block text-red-600">
+            {{ fileError }}
+          </small>
+          <small *ngIf="shouldRemoveCover" class="block text-yellow-600">
+            جلد کتاب در زمان ذخیره حذف خواهد شد.
+          </small>
         </div>
-        <input type="file" id="bookCoverFileForm" (change)="onFileChange($event)" accept="image/*"
-          class="block w-full text-gray-600 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200" />
-        <small *ngIf="selectedFileName" class="block text-gray-700 text-sm mt-1">
-          {{ selectedFileName }}
-        </small>
-        <small *ngIf="fileError" class="block text-red-600 text-sm mt-1">
-          {{ fileError }}
-        </small>
-        <small *ngIf="shouldRemoveCover" class="block text-yellow-600 text-sm mt-1">
-          جلد کتاب در زمان ذخیره حذف خواهد شد.
-        </small>
       </div>
+
     </form>
   </div>
 </app-modal>

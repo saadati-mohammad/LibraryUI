@@ -256,23 +256,32 @@ export class BookComponent implements OnInit, OnDestroy {
       this.bookForm.patchValue(bookDetailsToPatch);
 
       if (book.bookCoverFile) {
-        // اگر رشته باشد
-        if (typeof book.bookCoverFile === 'string') {
-          // اگر از سرور خودت یک URL ساده برگشتی
-          if (!book.bookCoverFile.startsWith('data:image')) {
-            this.currentCoverUrl = book.bookCoverFile;
-          } else {
-            // اگر واقعاً base64 است
-            this.currentCoverUrl = `data:image/jpeg;base64,${book.bookCoverFile}`;
-          }
-        }
-        // اگر آرایه بایت (Uint8Array) بیاد
-        else if (Array.isArray(book.bookCoverFile) || book.bookCoverFile instanceof Uint8Array) {
-          try {
+        try {
+          // اگر رشته است
+          if (typeof book.bookCoverFile === 'string') {
+            const isBase64 = book.bookCoverFile.startsWith('data:image') || book.bookCoverFile.length > 100;
+            this.currentCoverUrl = isBase64
+              ? book.bookCoverFile.startsWith('data:image')
+                ? book.bookCoverFile
+                : `data:image/jpeg;base64,${book.bookCoverFile}`
+              : book.bookCoverFile; // URL ساده
+
+            // اگر آرایه بایت هست
+          } else if (Array.isArray(book.bookCoverFile) || book.bookCoverFile instanceof Uint8Array) {
             const byteArray = new Uint8Array(book.bookCoverFile as any);
-            const base64String = btoa(byteArray.reduce((data, byte) => data + String.fromCharCode(byte), ''));
-            this.currentCoverUrl = `data:image/jpeg;base64,${base64String}`;
-          } catch (e) { console.error("Error converting byte array to base64", e); }
+            const blob = new Blob([byteArray], { type: 'image/jpeg' });
+            const reader = new FileReader();
+
+            reader.onload = () => {
+              this.currentCoverUrl = reader.result as string;
+            };
+
+            reader.readAsDataURL(blob);
+          }
+
+        } catch (error) {
+          console.error('❌ خطا در تبدیل عکس:', error);
+          this.currentCoverUrl = null;
         }
       }
 
