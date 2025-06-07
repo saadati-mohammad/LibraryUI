@@ -301,6 +301,6 @@ body.modal-open {
   overflow: hidden;
 }
 
-* {
+td,th,span {
   font-family: 'Vazir', sans-serif !important;
 }
