@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterModule, RouterOutlet } from '@angular/router';
-import { BookService } from './core/service/book.service';
+import { environment } from '../environments/environment';
 import { BaseLayoutComponent } from "./layout/base-layout/base-layout.component";
 
 @Component({
@@ -10,6 +10,7 @@ import { BaseLayoutComponent } from "./layout/base-layout/base-layout.component"
   styleUrl: './app.component.css'
 })
 export class AppComponent {
-  title = 'LibraryUI';
-  constructor(private bookService: BookService) {}
+  constructor() {
+    console.log('ENV:', environment);
+  }
 }
