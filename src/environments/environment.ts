@@ -1,4 +1,5 @@
+// environment.ts
 export const environment = {
-    producion: false,
+    production: false,
     apiUrl: 'https://localhost:8080/api'
 }
