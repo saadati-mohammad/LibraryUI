@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
-import { PageNotFoundComponent } from './shared/component/page-not-found/page-not-found.component';
-import { BaseLayoutComponent } from './layout/base-layout/base-layout.component';
+import { DashboardComponent } from './features/dashboard/dashboard.component';
 
 export const routes: Routes = [
             { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)},
@@ -12,6 +11,6 @@ export const routes: Routes = [
             { path: 'report', loadComponent: () => import('./features/report/report.component').then(m => m.ReportComponent)},
             { path: 'systemSetting', loadComponent: () => import('./features/system-setting/system-setting.component').then(m => m.SystemSettingComponent)},
             { path: 'auth', loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent)},
-    { path: '**', component: PageNotFoundComponent },
+    { path: '**', component: DashboardComponent},
     {path: '',redirectTo: '/dashboard', pathMatch: 'full'},
 ];
