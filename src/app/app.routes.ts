@@ -11,6 +11,5 @@ export const routes: Routes = [
             { path: 'report', loadComponent: () => import('./features/report/report.component').then(m => m.ReportComponent)},
             { path: 'systemSetting', loadComponent: () => import('./features/system-setting/system-setting.component').then(m => m.SystemSettingComponent)},
             { path: 'auth', loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent)},
-    { path: '**', component: DashboardComponent},
-    {path: '',redirectTo: '/dashboard', pathMatch: 'full'},
+    { path: '**', component: DashboardComponent, pathMatch: 'full'}
 ];
