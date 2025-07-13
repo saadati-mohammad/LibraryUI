@@ -1,1 +1,149 @@
-<p>dashboard works!</p>
+<!-- src/app/features/dashboard/dashboard.component.html -->
+
+<!-- Loading Spinner -->
+<div *ngIf="isLoading" class="flex items-center justify-center h-[calc(100vh-150px)]">
+    <mat-progress-spinner mode="indeterminate" diameter="60"></mat-progress-spinner>
+</div>
+
+<!-- Dashboard Content -->
+<div *ngIf="!isLoading" class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 rtl">
+    <!-- Header -->
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">داشبورد مدیریتی</h1>
+        <p class="mt-1 text-lg text-gray-500">خلاصه وضعیت و فعالیت‌های اخیر کتابخانه</p>
+    </header>
+
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Total Books -->
+        <div
+            class="bg-white overflow-hidden shadow-lg rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse transform hover:-translate-y-1 transition-transform duration-300">
+            <div class="bg-indigo-100 p-4 rounded-full">
+                <mat-icon class="text-indigo-600 scale-125">menu_book</mat-icon>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 truncate">تعداد کل کتاب‌ها</p>
+                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ stats.totalBooks }}</p>
+            </div>
+        </div>
+        <!-- Active Members -->
+        <div
+            class="bg-white overflow-hidden shadow-lg rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse transform hover:-translate-y-1 transition-transform duration-300">
+            <div class="bg-blue-100 p-4 rounded-full">
+                <mat-icon class="text-blue-600 scale-125">groups</mat-icon>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 truncate">اعضای فعال</p>
+                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ stats.activeMembers }}</p>
+            </div>
+        </div>
+        <!-- On Loan Books -->
+        <div
+            class="bg-white overflow-hidden shadow-lg rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse transform hover:-translate-y-1 transition-transform duration-300">
+            <div class="bg-green-100 p-4 rounded-full">
+                <mat-icon class="text-green-600 scale-125">assignment_return</mat-icon>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 truncate">کتاب‌های در امانت</p>
+                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ stats.onLoanBooks }}</p>
+            </div>
+        </div>
+        <!-- Overdue Books -->
+        <div
+            class="bg-white overflow-hidden shadow-lg rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse transform hover:-translate-y-1 transition-transform duration-300">
+            <div class="bg-red-100 p-4 rounded-full">
+                <mat-icon class="text-red-600 scale-125">warning_amber</mat-icon>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 truncate">امانت‌های دارای دیرکرد</p>
+                <p class="mt-1 text-3xl font-semibold text-red-600">{{ stats.overdueBooks }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts & Actionable Lists -->
+    <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <!-- Loan Activity Chart (Main Chart) -->
+        <div class="lg:col-span-2 bg-white p-6 shadow-lg rounded-2xl">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">فعالیت امانت‌ها (۷ روز گذشته)</h2>
+            <div class="h-80">
+                <canvas baseChart [data]="loanActivityChartData" [options]="loanActivityChartOptions"
+                    [type]="loanActivityChartType"></canvas>
+            </div>
+        </div>
+
+        <!-- Overdue Loans List -->
+        <div class="bg-white p-6 shadow-lg rounded-2xl flex flex-col">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">لیست دیرکردها</h2>
+            <div class="flex-grow overflow-y-auto -mr-6 pr-6">
+                <ul *ngIf="overdueLoans.length > 0; else noOverdue" class="space-y-4">
+                    <li *ngFor="let loan of overdueLoans"
+                        class="flex items-center justify-between space-x-3 rtl:space-x-reverse">
+                        <div class="flex-shrink-0">
+                            <mat-icon class="text-red-500">error_outline</mat-icon>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate" [title]="loan.bookTitle">{{
+                                loan.bookTitle }}</p>
+                            <p class="text-sm text-gray-500 truncate"
+                                [title]="loan.personFirstName + ' ' + loan.personLastName">{{ loan.personFirstName }} {{
+                                loan.personLastName }}</p>
+                        </div>
+                        <div class="text-xs text-red-600 font-semibold whitespace-nowrap">
+                            {{ loan.dueDate | date:'yy/MM/dd' }}
+                        </div>
+                    </li>
+                </ul>
+                <ng-template #noOverdue>
+                    <div class="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                        <mat-icon class="text-green-500 scale-150 mb-2">check_circle_outline</mat-icon>
+                        <p class="font-medium">هیچ امانت دارای دیرکردی وجود ندارد.</p>
+                        <p class="text-sm">وضعیت عالی است!</p>
+                    </div>
+                </ng-template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
+        <!-- Recently Added Books -->
+        <div class="bg-white p-6 shadow-lg rounded-2xl">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">کتاب‌های جدید</h2>
+            <ul *ngIf="recentBooks.length > 0; else noRecentBooks" class="space-y-3">
+                <li *ngFor="let book of recentBooks" class="flex items-center justify-between">
+                    <div>
+                        <p class="font-medium text-gray-800">{{ book.title }}</p>
+                        <p class="text-sm text-gray-500">{{ book.author }}</p>
+                    </div>
+                    <button mat-button type="button" color="primary" (click)="viewBook(book)">مشاهده</button>
+                </li>
+            </ul>
+            <ng-template #noRecentBooks>
+                <p class="text-center text-gray-500 py-4">کتاب جدیدی اضافه نشده است.</p>
+            </ng-template>
+        </div>
+
+        <!-- Newest Members -->
+        <div class="bg-white p-6 shadow-lg rounded-2xl">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">اعضای جدید</h2>
+            <ul *ngIf="recentMembers.length > 0; else noRecentMembers" class="space-y-3">
+                <li *ngFor="let person of recentMembers" class="flex items-center justify-between">
+                    <div>
+                        <p class="font-medium text-gray-800">{{ person.firstName }} {{ person.lastName }}</p>
+                        <p class="text-sm text-gray-500">{{ person.email }}</p>
+                    </div>
+                    <button mat-button type="button" color="primary" (click)="viewPerson(person)">مشاهده</button>
+                </li>
+            </ul>
+            <ng-template #noRecentMembers>
+                <p class="text-center text-gray-500 py-4">عضو جدیدی ثبت‌نام نکرده است.</p>
+            </ng-template>
+        </div>
+    </div>
+</div>
+
+<div>
+    <app-book [isSlaveMode]="true" #bookManager></app-book>
+    <app-person [isSlaveMode]="true" #personManager></app-person>
+</div>

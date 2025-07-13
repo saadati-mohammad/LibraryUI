@@ -1,5 +1,5 @@
 import { CommonModule, isPlatformBrowser } from "@angular/common";
-import { Component, Inject, OnDestroy, OnInit, PLATFORM_ID } from "@angular/core";
+import { Component, Inject, Input, OnDestroy, OnInit, PLATFORM_ID } from "@angular/core";
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
 import { MatButtonModule } from "@angular/material/button";
 import { MatFormFieldModule } from "@angular/material/form-field";
@@ -23,6 +23,7 @@ import { MatCardModule } from "@angular/material/card";
 export enum FormOperation {
   ADD = 'ADD',
   UPDATE = 'UPDATE',
+  VIEW = 'VIEW' // اضافه کردن حالت مشاهده
 }
 
 @Component({
@@ -50,6 +51,8 @@ export enum FormOperation {
   styleUrls: ['./book.component.css']
 })
 export class BookComponent implements OnInit, OnDestroy {
+  @Input() isSlaveMode = false;
+
   tableTitle = 'لیست کتاب‌ها';
   columns: TableColumn[] = [];
   data: BookModel[] = [];
@@ -242,6 +245,7 @@ export class BookComponent implements OnInit, OnDestroy {
 
 
   openBookModal(operation: FormOperation, book?: BookModel): void {
+    this.bookForm.enable();
     this.currentFormOperation = operation;
     this.bookForm.reset({ active: true });
     this.selectedFile = null;
@@ -251,11 +255,11 @@ export class BookComponent implements OnInit, OnDestroy {
     this.currentCoverUrl = null;
     this.shouldRemoveCover = false;
 
-    if (operation === FormOperation.UPDATE && book) {
+    if ((operation === FormOperation.UPDATE || operation === FormOperation.VIEW) && book) {
       this.currentEditingBookId = book.id ?? null;
       const { bookCoverFile, ...bookDetailsToPatch } = book;
       this.bookForm.patchValue(bookDetailsToPatch);
-      this.selectedFile = book.bookCoverFile instanceof File? book.bookCoverFile : this.convertBinaryToFile( book.bookCoverFile , 'profile.jpg', 'image/jpeg');
+      this.selectedFile = book.bookCoverFile instanceof File ? book.bookCoverFile : this.convertBinaryToFile(book.bookCoverFile, 'profile.jpg', 'image/jpeg');
 
       if (book.bookCoverFile) {
         try {
@@ -286,7 +290,9 @@ export class BookComponent implements OnInit, OnDestroy {
           this.currentCoverUrl = null;
         }
       }
-
+      if (operation === FormOperation.VIEW) {
+        this.bookForm.disable();
+      }
     }
     this.isBookModalVisible = true;
   }

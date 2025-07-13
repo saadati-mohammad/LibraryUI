@@ -1,0 +1,25 @@
+/* src/app/features/dashboard/dashboard.component.css */
+
+/*
+  با توجه به اینکه طراحی کاملا با Tailwind CSS انجام شده،
+  این فایل در حال حاضر خالی است. در صورت نیاز به استایل‌های
+  سفارشی که با Tailwind امکان‌پذیر نیستند، می‌توان آن‌ها را در اینجا اضافه کرد.
+  مثلا استایل سفارشی برای اسکرول بار:
+*/
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background-color: #f1f5f9; /* bg-slate-100 */
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: #a8a29e; /* bg-stone-400 */
+  border-radius: 10px;
+  border: 2px solid #f1f5f9; /* bg-slate-100 */
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: #78716c; /* bg-stone-500 */
+}

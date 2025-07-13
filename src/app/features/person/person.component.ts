@@ -1,4 +1,4 @@
-import { Component, Inject, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
+import { Component, Inject, Input, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
 import { TableColumn, ActionButtonConfig, ListComponent } from '../../shared/component/list/list.component';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
@@ -23,6 +23,7 @@ import { PaginatedResponse, PersonService } from '../../core/service/person.serv
 export enum FormOperation {
   ADD = 'ADD',
   UPDATE = 'UPDATE',
+  VIEW = 'VIEW' // اضافه کردن حالت مشاهده
 }
 
 @Component({
@@ -38,6 +39,8 @@ export enum FormOperation {
   styleUrls: ['./person.component.css'],
 })
 export class PersonComponent implements OnInit, OnDestroy {
+  @Input() isSlaveMode = false;
+
   tableTitle = 'لیست اعضا';
   columns: TableColumn[] = [];
   data: PersonModel[] = [];
@@ -169,15 +172,16 @@ export class PersonComponent implements OnInit, OnDestroy {
   }
 
   openPersonModal(operation: FormOperation, person?: PersonModel): void {
+    this.personForm.enable();
     this.currentFormOperation = operation;
     this.personForm.reset({ active: true });
     this.resetFileState();
 
-    if (operation === FormOperation.UPDATE && person) {
+    if ((operation === FormOperation.UPDATE || operation === FormOperation.VIEW) && person) {
       this.currentEditingPersonId = person.id ?? null;
       const { profilePicture, ...personDetails } = person;
       this.personForm.patchValue(personDetails);
-      this.selectedFile = profilePicture instanceof File? profilePicture : this.convertBinaryToFile( profilePicture , 'profile.jpg', 'image/jpeg');
+      this.selectedFile = profilePicture instanceof File ? profilePicture : this.convertBinaryToFile(profilePicture, 'profile.jpg', 'image/jpeg');
       if (profilePicture) {
         try {
           // اگر رشته است
@@ -207,8 +211,10 @@ export class PersonComponent implements OnInit, OnDestroy {
           this.currentPictureUrl = null;
         }
       }
+      if (operation === FormOperation.VIEW) {
+        this.personForm.disable();
+      }
     }
-
     this.isPersonModalVisible = true;
   }
 
