@@ -283,3 +283,17 @@
   position: relative; /* برای اینکه loading-shade درست قرار بگیرد */
   /* padding: 0;  این قبلا بوده */
 }
+
+.lux-table td.image-cell {
+  padding: 8px 16px; /* پدینگ کمتر برای سلول تصویر */
+  width: 100px; /* عرض ثابت برای ستون تصویر */
+}
+
+.table-image {
+  width: 70px;
+  height: 80px;
+  border-radius: 3px; /* نمایش دایره‌ای شکل */
+  object-fit: cover; /* برای جلوگیری از دفرمه شدن تصویر */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background-color: #f8f9fa; /* یک پس‌زمینه روشن برای تصاویر شفاف */
+}

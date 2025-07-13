@@ -5,7 +5,7 @@ import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/p
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml, SafeUrl } from '@angular/platform-browser';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 export interface TableColumn {
@@ -15,6 +15,9 @@ export interface TableColumn {
   cellClass?: (element: any) => string; // برای کلاس‌دهی خاص به سلول‌ها (مثلا برای badge)
   isSticky?: boolean; // برای ستون‌های چسبان (sticky)
   isStickyEnd?: boolean; // برای ستون‌های چسبان در انتها (مانند عملیات)
+  isImageColumn?: boolean; // برای شناسایی ستون تصویر
+  imageSrc?: (element: any) => string | null; // برای دریافت منبع تصویر
+  defaultImage?: string; // مسیر تصویر پیش‌فرض
 }
 
 export interface ActionButtonConfig {
@@ -122,6 +125,13 @@ export class ListComponent implements OnInit, AfterViewInit, OnChanges {
     }
     return true; // Default to visible
   }
+  
+  handleImageError(event: Event, defaultImage: string | undefined): void {
+    const element = event.target as HTMLImageElement;
+    if (element) {
+      element.src = defaultImage || 'assets/images/placeholder.png';
+    }
+  }
 
   isButtonDisabled(button: ActionButtonConfig, element: any): boolean {
     if (button.disabled) {
@@ -132,5 +142,34 @@ export class ListComponent implements OnInit, AfterViewInit, OnChanges {
 
   onPageChange(event: PageEvent): void {
     this.pageChanged.emit(event);
+  }
+
+  getImageUrl(element: any, column: TableColumn): SafeUrl {
+    const rawSrc = column.imageSrc ? column.imageSrc(element) : null;
+
+    // اگر منبع تصویر وجود ندارد یا خالی است، از تصویر پیش‌فرض استفاده کن
+    if (!rawSrc) {
+      return column.defaultImage || 'assets/images/placeholder.png'; // مسیر تصویر پیش‌فرض خود را اینجا قرار دهید
+    }
+
+    // اگر منبع یک URL کامل است (با http شروع می‌شود)
+    if (rawSrc.startsWith('http')) {
+      return this.sanitizer.bypassSecurityTrustUrl(rawSrc);
+    }
+
+    // اگر منبع داده Base64 است
+    if (rawSrc.startsWith('data:image')) {
+      return this.sanitizer.bypassSecurityTrustUrl(rawSrc);
+    }
+
+    // اگر داده باینری (رشته‌ای) است، آن را به Base64 تبدیل کن
+    // این حالت برای داده‌ای است که از API به صورت رشته باینری می‌آید
+    try {
+      const base64Image = `data:image/jpeg;base64,${rawSrc}`;
+      return this.sanitizer.bypassSecurityTrustUrl(base64Image);
+    } catch (e) {
+      console.error("Error converting binary string to Base64", e);
+      return column.defaultImage || 'assets/images/placeholder.png';
+    }
   }
 }

@@ -15,6 +15,25 @@
       <!-- ستون‌های داینامیک -->
       <ng-container *ngFor="let column of columns" [matColumnDef]="column.columnDef" [sticky]="column.isSticky"
         [stickyEnd]="column.isStickyEnd">
+        <!-- تمپلیت برای ستون‌های معمولی -->
+        <ng-container *ngIf="!column.isImageColumn">
+          <th mat-header-cell *matHeaderCellDef>
+            {{ column.header }}
+          </th>
+          <td mat-cell *matCellDef="let element" [ngClass]="getCellClass(column, element)">
+            <span [innerHTML]="getCellHtml(column, element)"></span>
+          </td>
+        </ng-container>
+        <!-- تمپلیت جدید برای ستون تصویر -->
+        <ng-container *ngIf="column.isImageColumn">
+          <th mat-header-cell *matHeaderCellDef>
+            {{ column.header }}
+          </th>
+          <td mat-cell *matCellDef="let element" class="image-cell">
+            <img [src]="getImageUrl(element, column)" [alt]="column.cell(element)" class="table-image"
+              (error)="handleImageError($event, column.defaultImage)">
+          </td>
+        </ng-container>
         <th mat-header-cell *matHeaderCellDef>
           {{ column.header }}
         </th>
@@ -43,38 +62,25 @@
     </table>
   </div>
 
-  <div
-  class="mt-4 flex items-center justify-between bg-white px-4 py-2 rounded-lg shadow-md"
->
-  <!-- اطلاعات صفحه و تعداد کل آیتم‌ها -->
-  <div
-    class="text-sm text-gray-600"
-    *ngIf="totalItems > 0"
-  >
-    نمایش
-    <span class="font-semibold">{{ currentPage * pageSize + 1 }}</span>
-    تا
-    <span class="font-semibold">{{
-      (currentPage + 1) * pageSize > totalItems
+  <div class="mt-4 flex items-center justify-between bg-white px-4 py-2 rounded-lg shadow-md">
+    <!-- اطلاعات صفحه و تعداد کل آیتم‌ها -->
+    <div class="text-sm text-gray-600" *ngIf="totalItems > 0">
+      نمایش
+      <span class="font-semibold">{{ currentPage * pageSize + 1 }}</span>
+      تا
+      <span class="font-semibold">{{
+        (currentPage + 1) * pageSize > totalItems
         ? totalItems
         : (currentPage + 1) * pageSize
-    }}</span>
-    از
-    <span class="font-semibold">{{ totalItems }}</span>
-  </div>
+        }}</span>
+      از
+      <span class="font-semibold">{{ totalItems }}</span>
+    </div>
 
-  <!-- خود کامپوننت mat-paginator با کلاس‌های سفارشی -->
-  <mat-paginator
-    *ngIf="showPaginator && !isLoading && totalItems > 0"
-    [length]="totalItems"
-    [pageIndex]="currentPage"
-    [pageSize]="pageSize"
-    [pageSizeOptions]="pageSizeOptions"
-    (page)="onPageChange($event)"
-    showFirstLastButtons
-    aria-label="انتخاب صفحه"
-    class="custom-paginator flex items-center"
-  >
-  </mat-paginator>
-</div>
+    <!-- خود کامپوننت mat-paginator با کلاس‌های سفارشی -->
+    <mat-paginator *ngIf="showPaginator && !isLoading && totalItems > 0" [length]="totalItems" [pageIndex]="currentPage"
+      [pageSize]="pageSize" [pageSizeOptions]="pageSizeOptions" (page)="onPageChange($event)" showFirstLastButtons
+      aria-label="انتخاب صفحه" class="custom-paginator flex items-center">
+    </mat-paginator>
+  </div>
 </div>

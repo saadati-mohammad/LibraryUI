@@ -178,7 +178,14 @@ export class BookComponent implements OnInit, OnDestroy {
 
   setupTableColumns(): void {
     this.columns = [
-      // { columnDef: 'id', header: 'ردیف', cell: (element: BookModel) => `${element.id}` },
+      {
+        columnDef: 'bookCover',
+        header: 'جلد',
+        isImageColumn: true,
+        imageSrc: (element: BookModel) => element.bookCoverFile,
+        defaultImage: './assets/pics/default-pic.png', // تصویر پیش‌فرض مخصوص کتاب
+        cell: (element: BookModel) => `جلد کتاب ${element.title}` // برای متن alt
+      },
       { columnDef: 'title', header: 'عنوان کتاب', cell: (element: BookModel) => `${element.title}`, cellClass: () => 'emphasize' },
       { columnDef: 'author', header: 'نویسنده', cell: (element: BookModel) => `${element.author}`, cellClass: () => 'emphasize' },
       { columnDef: 'translator', header: 'مترجم', cell: (element: BookModel) => `${element.translator}`, cellClass: () => 'emphasize' },
@@ -515,7 +522,7 @@ export class BookComponent implements OnInit, OnDestroy {
     if (isPlatformBrowser(this.platformId)) {
       const link = document.createElement('a');
       link.setAttribute('type', 'hidden');
-      link.href = './assets/book-import-template.xlsx';
+      link.href = './assets/excel/book-import-template.xlsx';
       link.download = 'book-import-template.xlsx';
       document.body.appendChild(link);
       link.click();

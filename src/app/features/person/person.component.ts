@@ -124,6 +124,14 @@ export class PersonComponent implements OnInit, OnDestroy {
 
   setupTableColumns(): void {
     this.columns = [
+      {
+        columnDef: 'profilePicture',
+        header: 'عکس',
+        isImageColumn: true,
+        imageSrc: (element: PersonModel) => element.profilePicture,
+        defaultImage: './assets/pics/default-pic.png', // تصویر پیش‌فرض مخصوص پروفایل
+        cell: (element: PersonModel) => `پروفایل ${element.firstName} ${element.lastName}` // برای متن alt
+      },
       { columnDef: 'fullName', header: 'نام و نام خانوادگی', cell: (el: PersonModel) => `${el.firstName} ${el.lastName}`, cellClass: () => 'emphasize' },
       { columnDef: 'nationalId', header: 'کد ملی', cell: (el: PersonModel) => el.nationalId || '---' },
       { columnDef: 'email', header: 'ایمیل', cell: (el: PersonModel) => el.email || '---' },
@@ -357,7 +365,7 @@ export class PersonComponent implements OnInit, OnDestroy {
   downloadExcelTemplate(): void {
     if (isPlatformBrowser(this.platformId)) {
       const link = document.createElement('a');
-      link.href = './assets/person-import-template.xlsx';
+      link.href = './assets/pics/default-pic.png';
       link.download = 'person-import-template.xlsx';
       document.body.appendChild(link);
       link.click();
