@@ -8,6 +8,7 @@ export const routes: Routes = [
             { path: 'loan', loadComponent: () => import('./features/loan/loan.component').then(m => m.LoanComponent)},
             { path: 'profile', loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)},
             { path: 'reservation', loadComponent: () => import('./features/reservation/reservation.component').then(m => m.ReservationComponent)},
+            { path: 'chat', loadComponent: () => import('./features/chat/chat.component').then(m => m.ChatComponent)},
             { path: 'report', loadComponent: () => import('./features/report/report.component').then(m => m.ReportComponent)},
             { path: 'systemSetting', loadComponent: () => import('./features/system-setting/system-setting.component').then(m => m.SystemSettingComponent)},
             { path: 'auth', loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent)},

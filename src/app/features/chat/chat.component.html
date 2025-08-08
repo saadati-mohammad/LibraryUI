@@ -1,0 +1,35 @@
+<div class="container">
+  <h2>چت — SockJS + STOMP با وضعیت پیام‌ها</h2>
+
+  <div class="controls">
+    <input [(ngModel)]="username" placeholder="نام خود را وارد کنید" />
+    <button (click)="connectAs(username)">اتصال</button>
+
+    <select [(ngModel)]="currentRoom" (change)="subscribeToRoom(currentRoom)">
+      <option *ngFor="let r of availableRooms" [value]="r">{{r}}</option>
+    </select>
+    <button (click)="createRoom()">ایجاد روم جدید</button>
+  </div>
+
+  <div class="chat-window">
+    <div *ngFor="let m of messages" 
+         [ngClass]="{'own': m.from === username, 'other': m.from !== username}" 
+         class="message">
+      <div class="meta">
+        <b>{{m.from}}</b> 
+        <span class="ts">{{m.timestamp | date:'shortTime'}}</span>
+
+        <span *ngIf="m.status === 'pending'" class="status">⌛</span>
+        <span *ngIf="m.status === 'sent'" class="status">✓</span>
+        <span *ngIf="m.status === 'received'" class="status double-tick">✓✓</span>
+        <span *ngIf="m.status === 'failed'" class="status failed">⚠</span>
+      </div>
+      <div class="body">{{m.content}}</div>
+    </div>
+  </div>
+
+  <div class="send">
+    <input [(ngModel)]="messageText" placeholder="پیام..." (keyup.enter)="sendMessage()" />
+    <button (click)="sendMessage()">ارسال</button>
+  </div>
+</div>
