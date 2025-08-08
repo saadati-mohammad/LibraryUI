@@ -1,6 +1,4 @@
 import { Routes } from '@angular/router';
-import { DashboardComponent } from './features/dashboard/dashboard.component';
-
 export const routes: Routes = [
             { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)},
             { path: 'book', loadComponent: () => import('./features/book/book.component').then(m => m.BookComponent)},
@@ -12,6 +10,5 @@ export const routes: Routes = [
             { path: 'report', loadComponent: () => import('./features/report/report.component').then(m => m.ReportComponent)},
             { path: 'systemSetting', loadComponent: () => import('./features/system-setting/system-setting.component').then(m => m.SystemSettingComponent)},
             { path: 'auth', loadComponent: () => import('./features/auth/auth.component').then(m => m.AuthComponent)},
-    { path: '**', component: DashboardComponent},
-    {path: '',redirectTo: '/dashboard', pathMatch: 'full'},
+    { path: '**',redirectTo: '/dashboard', pathMatch: 'full'},
 ];
