@@ -1,35 +1,539 @@
-<div class="container">
-  <h2>چت — SockJS + STOMP با وضعیت پیام‌ها</h2>
+<div class="chat-wrapper">
+    <!-- Header -->
+    <div class="chat-header">
+        <div class="d-flex" style="align-items: center">
+            <button
+                class="header-menu-btn"
+                (click)="toggleHeaderMenu()"
+                [attr.aria-expanded]="showHeaderMenu">
+                ⁝
+            </button>
+            <div class="profile-Info-Container">
+                <div class="profile-pic-container">
+                    {{targetUserFarsiTitle.charAt(0)}}{{targetUserFarsiTitle.charAt(1) || ''}}
+                </div>
+                <div style="color: black">{{targetUserFarsiTitle}}</div>
+            </div>
+        </div>
+        
+        <!-- Connection Status Indicator -->
+        <div class="connection-status" [class]="'status-' + (connected ? 'connected' : 'disconnected')">
+            <span class="status-dot"></span>
+            <span class="status-text">{{connectionStatus}}</span>
+        </div>
+        
+        <button
+            class="header-menu-btn closeBtn"
+            (click)="closeModal()"
+        >⨉
+        </button>
 
-  <div class="controls">
-    <input [(ngModel)]="username" placeholder="نام خود را وارد کنید" />
-    <button (click)="connectAs(username)">اتصال</button>
-
-    <select [(ngModel)]="currentRoom" (change)="subscribeToRoom(currentRoom)">
-      <option *ngFor="let r of availableRooms" [value]="r">{{r}}</option>
-    </select>
-    <button (click)="createRoom()">ایجاد روم جدید</button>
-  </div>
-
-  <div class="chat-window">
-    <div *ngFor="let m of messages" 
-         [ngClass]="{'own': m.from === username, 'other': m.from !== username}" 
-         class="message">
-      <div class="meta">
-        <b>{{m.from}}</b> 
-        <span class="ts">{{m.timestamp | date:'shortTime'}}</span>
-
-        <span *ngIf="m.status === 'pending'" class="status">⌛</span>
-        <span *ngIf="m.status === 'sent'" class="status">✓</span>
-        <span *ngIf="m.status === 'received'" class="status double-tick">✓✓</span>
-        <span *ngIf="m.status === 'failed'" class="status failed">⚠</span>
-      </div>
-      <div class="body">{{m.content}}</div>
+        <!-- Header Menu -->
+        <div
+            class="header-menu"
+            [class.show]="showHeaderMenu">
+            <div
+                class="header-menu-item"
+                (click)="toggleSearch()">
+                <span class="context-menu-icon">🔍</span>
+                <span>جستجو</span>
+            </div>
+            <div class="header-menu-item">
+                <span class="context-menu-icon">📋</span>
+                <span>تنظیمات</span>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div class="send">
-    <input [(ngModel)]="messageText" placeholder="پیام..." (keyup.enter)="sendMessage()" />
-    <button (click)="sendMessage()">ارسال</button>
-  </div>
+    <!-- Search Section -->
+    <div
+        class="search-section"
+        [class.active]="showSearchSection">
+        <div class="search-basic">
+            <button
+                class="search-close-btn"
+                (click)="toggleSearch()"
+                title="بستن جستجو">
+                ×
+            </button>
+
+            <input
+                type="text"
+                class="search-input"
+                [(ngModel)]="searchQuery"
+                (input)="onSearchInput()"
+                placeholder="جستجو در پیام‌ها...">
+
+            <button
+                class="search-btn"
+                (click)="performSearch()">
+                🔍
+            </button>
+
+            <button
+                class="expand-btn"
+                [class.expanded]="showAdvancedSearch"
+                (click)="toggleAdvancedSearch()">
+                <span>{{showAdvancedSearch ? 'ساده' : 'پیشرفته'}}</span>
+                <span>{{showAdvancedSearch ? '▲' : '▼'}}</span>
+            </button>
+        </div>
+
+        <!-- Advanced Search -->
+        <div
+            class="search-advanced"
+            [class.active]="showAdvancedSearch">
+
+            <div class="search-field">
+                <label>فرستنده</label>
+                <input
+                    type="text"
+                    [(ngModel)]="searchSender"
+                    (input)="performSearch()"
+                    placeholder="نام فرستنده را وارد کنید">
+            </div>
+
+            <div class="search-field">
+                <label>موضوع</label>
+                <select
+                    [(ngModel)]="searchSubjects"
+                    (change)="performSearch()">
+                    <option value="">همه موضوعات</option>
+                    <option value="اختصاصی">اختصاصی</option>
+                    <option value="عمومی">عمومی</option>
+                    <option value="درخواست">درخواست</option>
+                    <option value="اطلاع‌رسانی">اطلاع‌رسانی</option>
+                    <option value="پیگیری">پیگیری</option>
+                    <option value="شکایت">شکایت</option>
+                    <option value="پیشنهاد">پیشنهاد</option>
+                    <option value="سایر">سایر</option>
+                </select>
+            </div>
+
+            <div class="search-field">
+                <label>اولویت</label>
+                <select
+                    [(ngModel)]="searchPriority"
+                    (change)="performSearch()">
+                    <option value="">همه اولویت‌ها</option>
+                    <option value="normal">عادی</option>
+                    <option value="high">مهم</option>
+                    <option value="urgent">فوری</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Search Results Info -->
+        <div
+            class="search-results-info"
+            [class.show]="hasSearchResults">
+            <div>
+                نتایج جستجو: <span>{{searchResultsCount}}</span> پیام
+                <span *ngIf="hasSearchResults">
+          ({{currentSearchPosition}}/{{searchResultsCount}})
+        </span>
+            </div>
+            <div class="search-navigation">
+                <button
+                    class="search-nav-btn"
+                    (click)="goToPreviousSearchResult()"
+                    [disabled]="chatState.currentSearchIndex <= 0">
+                    ↑
+                </button>
+                <button
+                    class="search-nav-btn"
+                    (click)="goToNextSearchResult()"
+                    [disabled]="chatState.currentSearchIndex >= searchResultsCount - 1">
+                    ↓
+                </button>
+                <button
+                    class="search-results-list-btn"
+                    (click)="showSearchResultsList()">
+                    لیست
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div
+        class="chat-container"
+        #chatContainer
+        (scroll)="onScroll()">
+
+        <!-- Loading Indicator -->
+        <div
+            class="loading-indicator"
+            [style.display]="chatState.loading ? 'block' : 'none'">
+            در حال بارگذاری پیام‌های بیشتر...
+        </div>
+
+        <!-- No More Messages -->
+        <div
+            class="no-more-messages"
+            *ngIf="!chatState?.hasMore && (chatState?.messages?.length || 0) > 0">
+            همه پیام‌ها بارگذاری شدند ✅
+        </div>
+
+        <!-- Messages -->
+        <div
+            *ngFor="let message of chatState.messages; trackBy: messageTrackBy"
+            class="message"
+            [class]="getMessageClasses(message)"
+            [attr.data-message-id]="message.id"
+            (contextmenu)="onMessageRightClick($event, message)">
+
+            <!-- Reply Info -->
+            <div
+                *ngIf="message.replyTo && !message.deleted"
+                class="reply-info"
+                [attr.data-reply-to]="message.replyTo"
+                (click)="scrollToMessage(message.replyTo)">
+                <div class="reply-author">{{getReplyAuthor(message.replyTo)}}</div>
+                <div class="reply-text">{{getReplyText(message.replyTo)}}</div>
+            </div>
+
+            <!-- Message Content -->
+            <div class="message-content">
+                <span [innerHTML]="getMessageText(message) | safeHtml"></span>
+            </div>
+
+            <!-- File Attachment -->
+            <div
+                *ngIf="message.file && !message.deleted"
+                class="file-attachment"
+                [attr.data-status]="message.file.uploadStatus"
+                [attr.data-file-id]="message.file.id">
+
+                <span class="file-icon">{{message.file.icon}}</span>
+
+                <div class="file-info">
+                    <div class="file-name">{{message.file.name}}</div>
+                    <div
+                        *ngIf="message.file.uploadStatus === 'completed'"
+                        class="file-size">
+                        {{message.file.size | fileSize}}
+                    </div>
+                    <div
+                        *ngIf="message.file.uploadStatus === 'uploading'"
+                        class="upload-status-text">
+                        در حال آپلود...
+                    </div>
+                </div>
+
+                <!-- File Actions -->
+                <button
+                    *ngIf="message.file.uploadStatus === 'completed'"
+                    class="file-action-button file-download-btn"
+                    (click)="downloadFile(message.file!)"
+                    title="دانلود">
+                    ↓
+                </button>
+
+                <button
+                    *ngIf="message.file.uploadStatus === 'uploading'"
+                    class="file-action-button file-cancel-upload-btn"
+                    title="لغو آپلود">
+                    ×
+                </button>
+
+                <!-- Upload Progress -->
+                <div
+                    *ngIf="message.file.uploadStatus === 'uploading'"
+                    class="file-progress-container">
+                    <div class="progress-bar">
+                        <div
+                            class="progress-bar-inner"
+                            [style.width.%]="message.file.uploadProgress || 0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Tags -->
+            <div
+                *ngIf="message?.tags && (message?.tags?.length || 0) > 0 && !message.deleted"
+                class="message-tags">
+                <span
+                    *ngFor="let tag of message.tags"
+                    class="tag">
+                  #{{tag}}
+                </span>
+            </div>
+
+            <div class="message-info-container">
+                <!-- Message Info -->
+                <div class="message-info">
+                    <!-- Message Subject -->
+                    <div
+                        *ngIf="message.subject && !message.deleted"
+                        class="message-subject">
+                        موضوع: {{message.subject}}
+                    </div>
+                    <!-- Priority Badge -->
+                    <span
+                        *ngIf="message.priority && message.priority !== 'normal' && !message.deleted"
+                        class="priority-badge"
+                        [class]="'priority-' + message.priority">
+                        {{getPriorityLabel(message.priority)}}
+                    </span>
+
+                    <!-- Message NationalCode -->
+                    <div
+                        *ngIf="message.nationalCode && !message.deleted"
+                        class="message-nationalCode">
+                        کد ملی: {{message.nationalCode}}
+                    </div>
+
+                    <!-- Enable SMS Badge -->
+                    <span
+                        *ngIf="message.enableSendSms && !message.deleted"
+                        class="sms-badge">
+                        📱 ارسال پیامک
+                    </span>
+                </div>
+
+                <!-- Message Time and Status -->
+                <div class="message-time-status">
+                    <div class="message-time">
+                        {{message.time}}
+                        <span *ngIf="message.edited"> (ویرایش شده)</span>
+                    </div>
+                    <!-- Message Status Icon -->
+                    <div class="message-status" *ngIf="message.type === 'user' && message.status">
+                        <span 
+                            class="status-icon"
+                            [class]="getMessageStatusClass(message.status)"
+                            [title]="message.status">
+                            {{getMessageStatusIcon(message.status)}}
+                        </span>
+                        <!-- Retry button for failed messages -->
+                        <button 
+                            *ngIf="message.status === 'failed'"
+                            class="retry-btn"
+                            (click)="retryFailedMessage(message.id)"
+                            title="تلاش مجدد">
+                            🔄
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Section -->
+    <div class="chat-input-container">
+
+        <!-- File Preview -->
+        <div
+            class="file-preview"
+            [class.show]="showFilePreview">
+            <div class="file-preview-info">
+                <span>📎</span>
+                <span>{{selectedFileName}}</span>
+            </div>
+            <button
+                class="file-preview-remove"
+                (click)="removeSelectedFile()">
+                ×
+            </button>
+        </div>
+
+        <!-- Advanced Inputs -->
+        <div
+            class="advanced-inputs"
+            [class.active]="showAdvancedInput">
+            <div class="input-grid">
+                <div class="input-field">
+                    <label>موضوع</label>
+                    <select [(ngModel)]="messageSubject">
+                        <option value="">انتخاب موضوع</option>
+                        <option value="اختصاصی">اختصاصی</option>
+                        <option value="عمومی">عمومی</option>
+                        <option value="درخواست">درخواست</option>
+                        <option value="اطلاع‌رسانی">اطلاع‌رسانی</option>
+                        <option value="پیگیری">پیگیری</option>
+                        <option value="شکایت">شکایت</option>
+                        <option value="پیشنهاد">پیشنهاد</option>
+                        <option value="سایر">سایر</option>
+                    </select>
+                </div>
+
+                <div class="input-field">
+                    <label>اولویت</label>
+                    <select [(ngModel)]="messagePriority">
+                        <option value="normal">عادی</option>
+                        <option value="high">مهم</option>
+                        <option value="urgent">فوری</option>
+                    </select>
+                </div>
+
+                <div class="input-field" *ngIf="messageSubject === 'اختصاصی'">
+                    <label>کد ملی</label>
+                    <input
+                        type="number"
+                        [(ngModel)]="nationalCode"
+                        placeholder="کد ملی را وارد کنید"
+                        maxlength="10"
+                        pattern="[0-9]{10}">
+                </div>
+
+                <div class="input-field">
+                    <label>ارسال پیامک</label>
+                    <input
+                        type="checkbox"
+                        [(ngModel)]="enableSendSms"
+                        id="enableSms">
+                    <label for="enableSms" class="checkbox-label">فعال</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Preview -->
+        <div
+            class="edit-preview"
+            [class.show]="showEditPreview">
+            <button
+                class="preview-close"
+                (click)="cancelEdit()">
+                ×
+            </button>
+            <div class="preview-author edit-preview-author">در حال ویرایش پیام</div>
+            <div class="preview-text">{{getEditingMessageText()}}</div>
+        </div>
+
+        <!-- Reply Preview -->
+        <div
+            class="reply-preview"
+            [class.show]="showReplyPreview">
+            <button
+                class="preview-close"
+                (click)="hideReplyPreview()">
+                ×
+            </button>
+            <div class="preview-author reply-preview-author">
+                {{chatState.replyingToMessage?.author}}
+            </div>
+            <div class="preview-text">
+                {{chatState.replyingToMessage?.message}}
+            </div>
+        </div>
+
+        <!-- Input Controls -->
+        <div class="input-controls">
+            <button
+                class="expand-input-btn"
+                [class.expanded]="showAdvancedInput"
+                (click)="toggleAdvancedInput()">
+                {{showAdvancedInput ? '▼' : '▲'}}
+            </button>
+
+            <div class="file-input-btn">
+                📎
+                <input
+                    type="file"
+                    #fileInput
+                    (change)="onFileSelected($event)"
+                    accept="*/*">
+            </div>
+
+            <textarea
+                class="chat-input"
+                #chatInput
+                [(ngModel)]="messageText"
+                (keydown)="onInputKeyDown($event)"
+                (input)="autoResizeTextarea()"
+                placeholder="پیام خود را بنویسید..."
+                [disabled]="!connected"
+                rows="1">
+            </textarea>
+
+            <button
+                class="send-button"
+                [class.editing-mode]="isEditing"
+                [disabled]="!isFormValid() || (!connected && !isEditing)"
+                (click)="sendMessage()">
+                {{isEditing ? '✓' : '➤'}}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Context Menu -->
+<div
+    class="context-menu"
+    [style.display]="showContextMenu ? 'block' : 'none'"
+    [style.left.px]="contextMenuPosition.x"
+    [style.top.px]="contextMenuPosition.y">
+
+    <div
+        class="context-menu-item"
+        (click)="onReplyToMessage()">
+        <span class="context-menu-icon"><i class="fa fa-reply"></i></span>
+        <span>پاسخ به پیام</span>
+    </div>
+
+    <div
+        *ngIf="canEditMessage"
+        class="context-menu-item"
+        (click)="onEditMessage()">
+        <span class="context-menu-icon"><i class="fa fa-pencil"></i></span>
+        <span>ویرایش</span>
+    </div>
+
+    <div
+        *ngIf="canDeleteMessage"
+        class="context-menu-item danger"
+        (click)="onDeleteMessage()">
+        <span class="context-menu-icon"><i class="fa fa-trash"></i></span>
+        <span>حذف</span>
+    </div>
+    
+    <!-- Forward option -->
+    <div
+        class="context-menu-item"
+        (click)="onForwardMessage()">
+        <span class="context-menu-icon"><i class="fa fa-forward"></i></span>
+        <span>هدایت</span>
+    </div>
+    
+    <!-- Copy option -->
+    <div
+        class="context-menu-item"
+        (click)="onCopyMessage()">
+        <span class="context-menu-icon"><i class="fa fa-copy"></i></span>
+        <span>کپی</span>
+    </div>
+</div>
+
+<!-- Search Results Modal -->
+<div
+    class="search-results-modal"
+    [class.show]="showSearchResultsModal">
+    <div class="search-results-content">
+        <div class="search-results-header">
+            <span>نتایج جستجو</span>
+            <button
+                class="search-results-close"
+                (click)="hideSearchResultsList()">
+                ×
+            </button>
+        </div>
+        <div class="search-results-list">
+            <div
+                *ngFor="let result of searchResults; let i = index"
+                class="search-result-item"
+                (click)="goToSearchResult(i)">
+                <div class="search-result-author">{{result.author}}</div>
+                <div class="search-result-text">{{result.message}}</div>
+                <div class="search-result-time">{{result.time}}</div>
+            </div>
+
+            <div
+                *ngIf="searchResults?.length === 0"
+                class="no-results">
+                هیچ نتیجه‌ای یافت نشد
+            </div>
+        </div>
+    </div>
 </div>
