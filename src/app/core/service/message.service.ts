@@ -28,7 +28,7 @@ export class MessageService {
   private messagesSubject = new BehaviorSubject<Message[]>([]);
   public messages$ = this.messagesSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // دریافت پیام‌های مکالمه بین دو کاربر
   getConversationMessages(criteria: ConversationCriteria): Observable<MessageResponse> {
@@ -73,34 +73,26 @@ export class MessageService {
 
   // جستجو در پیام‌ها
   searchMessages(criteria: SearchCriteria): Observable<MessageResponse> {
-    let params = new HttpParams()
-      .set('page', criteria.page.toString())
-      .set('size', criteria.size.toString());
+    const queryParams = new URLSearchParams();
 
-    if (criteria.query) {
-      params = params.set('query', criteria.query);
-    }
-    if (criteria.sender) {
-      params = params.set('sender', criteria.sender);
-    }
-    if (criteria.subject) {
-      params = params.set('subject', criteria.subject);
-    }
-    if (criteria.priority) {
-      params = params.set('priority', criteria.priority);
-    }
-    if (criteria.isActive !== undefined) {
-      params = params.set('isActive', criteria.isActive.toString());
-    }
-    if (criteria.startDate) {
-      params = params.set('startDate', criteria.startDate.toISOString());
-    }
-    if (criteria.endDate) {
-      params = params.set('endDate', criteria.endDate.toISOString());
-    }
+    if (criteria.query) queryParams.append('query', criteria.query);
+    if (criteria.sender) queryParams.append('sender', criteria.sender);
+    if (criteria.subject) queryParams.append('subject', criteria.subject);
+    if (criteria.priority) queryParams.append('priority', criteria.priority);
+    queryParams.append('page', criteria.page?.toString() || '0');
+    queryParams.append('size', criteria.size?.toString() || '20');
 
-    return this.http.get<MessageResponse>(`${this.apiUrl}/search`, { params });
+    return this.http.get<MessageResponse>(
+      `/api/messages/search?${queryParams.toString()}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${this.getToken()}`
+        }
+      }
+    );
   }
+
 
   // دریافت پیام‌های ارسال شده توسط کاربر
   getSentMessages(page: number = 0, size: number = 15): Observable<MessageResponse> {

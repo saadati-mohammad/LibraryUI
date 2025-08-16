@@ -13,7 +13,7 @@ export class SearchService {
   public currentIndex$ = this.currentIndexSubject.asObservable();
   public searchActive$ = this.searchActiveSubject.asObservable();
 
-  constructor() {}
+  constructor() { }
 
   // شروع جستجو
   startSearch(): void {
@@ -44,7 +44,7 @@ export class SearchService {
   goToPrevious(): void {
     const currentIndex = this.currentIndexSubject.value;
     const results = this.searchResultsSubject.value;
-    
+
     if (results.length > 0 && currentIndex > 0) {
       this.currentIndexSubject.next(currentIndex - 1);
     }
@@ -54,7 +54,7 @@ export class SearchService {
   goToNext(): void {
     const currentIndex = this.currentIndexSubject.value;
     const results = this.searchResultsSubject.value;
-    
+
     if (results.length > 0 && currentIndex < results.length - 1) {
       this.currentIndexSubject.next(currentIndex + 1);
     }
@@ -63,7 +63,7 @@ export class SearchService {
   // رفتن به نتیجه مشخص
   goToResult(index: number): void {
     const results = this.searchResultsSubject.value;
-    
+
     if (index >= 0 && index < results.length) {
       this.currentIndexSubject.next(index);
     }
@@ -71,12 +71,10 @@ export class SearchService {
 
   // هایلایت کردن کلمات جستجو
   highlightSearchTerm(text: string, searchTerm: string): string {
-    if (!searchTerm || !text) {
-      return text;
-    }
+    if (!searchTerm) return text;
 
     const regex = new RegExp(`(${this.escapeRegExp(searchTerm)})`, 'gi');
-    return text.replace(regex, '<mark class="search-match">$1</mark>');
+    return text.replace(regex, '<mark class="search-term-highlight">$1</mark>');
   }
 
   // فرار از کاراکترهای خاص regex

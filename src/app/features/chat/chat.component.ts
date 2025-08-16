@@ -1,14 +1,14 @@
-import {Component, ElementRef, EventEmitter, HostListener, OnDestroy, OnInit, Output, ViewChild} from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 
-import {Subject} from 'rxjs';
+import { Subject } from 'rxjs';
 
 // WebSocket imports
-import {Client, IMessage, StompSubscription} from '@stomp/stompjs';
+import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import {v4 as uuidv4} from 'uuid';
-import {debounceTime, distinctUntilChanged, takeUntil} from 'rxjs/operators';
+import { v4 as uuidv4 } from 'uuid';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
-import {environment} from '../../../environments/environment';
+import { environment } from '../../../environments/environment';
 import { SearchService } from '../../core/service/search.service';
 import { ChatService } from '../../core/service/chat.service';
 import { MessageService } from '../../core/service/message.service';
@@ -32,7 +32,7 @@ interface WebSocketMessage {
     message: string;
     parentMessageId?: string;
     timestamp: number;
-    messageType?: 'edit' | 'delete' | 'reply' | 'new';
+    messageType?: 'edit' | 'delete' | 'reply' | 'new' | 'error' | 'sent_confirmation';
     originalMessageId?: string;
     priority?: string;
     nationalCode?: string;
@@ -89,7 +89,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     showFilePreview = false;
 
     // Context menu position
-    contextMenuPosition = {x: 0, y: 0};
+    contextMenuPosition = { x: 0, y: 0 };
     selectedMessageForAction?: Message;
 
     // Search
@@ -116,6 +116,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     private destroy$ = new Subject<void>();
     private searchSubject = new Subject<string>();
     @Output() onCloseDialog: EventEmitter<any> = new EventEmitter<any>();
+    isTyping: boolean = false;
 
     constructor(
         private chatService: ChatService,
@@ -148,7 +149,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     // WebSocket Methods
     private initializeWebSocket(): void {
         this.getCurrentUserInfo();
-        
+
         this.client = new Client({
             webSocketFactory: () => new SockJS(environment.wsUrl),
             reconnectDelay: 5000,
@@ -170,12 +171,27 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.targetUserFarsiTitle = this.messageService.getTargetUserFarsiTitle() || 'مخاطب';
     }
 
+    private handleWebSocketError(wsMessage: WebSocketMessage): void {
+        console.error('WebSocket error:', wsMessage.message);
+
+        // پیدا کردن پیام مربوطه و تغییر وضعیت آن به failed
+        const messageIndex = this.chatState.messages.findIndex(m =>
+            m.status === 'pending' && m.sender === this.currentUsername
+        );
+
+        if (messageIndex !== -1) {
+            this.chatState.messages[messageIndex].status = 'failed';
+        }
+
+        // نمایش خطا به کاربر (می‌توانید toast یا alert استفاده کنید)
+        console.warn('خطا در ارسال پیام:', wsMessage.message);
+    }
     private handleWebSocketConnect(): void {
         console.log('WebSocket connected');
         this.connected = true;
         this.isReconnecting = false;
         this.reconnectAttempts = 0;
-        
+
         if (this.currentUsername) {
             this.subscribeToUserMessages(this.currentUsername);
         }
@@ -192,20 +208,17 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.connected = false;
     }
 
-    private handleWebSocketError(error: any): void {
-        console.error('WebSocket error:', error);
-        this.handleConnectionError();
-    }
+
 
     private handleConnectionError(): void {
         if (this.reconnectAttempts < this.maxReconnectAttempts && !this.isReconnecting) {
             this.isReconnecting = true;
             this.reconnectAttempts++;
-            
+
             this.markPendingMessagesAsFailed();
-            
+
             console.log(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-            
+
             setTimeout(() => {
                 if (!this.client.connected) {
                     this.client.activate();
@@ -223,7 +236,7 @@ export class ChatComponent implements OnInit, OnDestroy {
                 msg.status = 'failed';
             }
         });
-        
+
         this.pendingMessageTimeouts.forEach(timeout => clearTimeout(timeout));
         this.pendingMessageTimeouts.clear();
     }
@@ -242,12 +255,12 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.processedMessageIds.clear();
 
         const destination = `/topic/user/${username}`;
-        
+
         try {
             this.subscription = this.client.subscribe(destination, (msg: IMessage) => {
                 this.handleIncomingWebSocketMessage(msg);
             });
-            
+
             console.log(`Subscribed to user messages: ${username}`);
         } catch (error) {
             console.error('Error subscribing to user messages:', error);
@@ -257,16 +270,21 @@ export class ChatComponent implements OnInit, OnDestroy {
     private handleIncomingWebSocketMessage(msg: IMessage): void {
         try {
             const wsMessage = JSON.parse(msg.body) as WebSocketMessage;
-            
+
+            // جلوگیری از پردازش مجدد
             if (this.processedMessageIds.has(wsMessage.id)) {
                 return;
             }
-            
+
             this.processedMessageIds.add(wsMessage.id);
+            console.log('Processing WebSocket message:', wsMessage.messageType, wsMessage.id);
 
             const message = this.convertWebSocketMessageToMessage(wsMessage);
-            
+
             switch (wsMessage.messageType) {
+                case 'sent_confirmation':
+                    this.handleSentConfirmation(message, wsMessage);
+                    break;
                 case 'edit':
                     this.handleEditMessageFromWebSocket(message, wsMessage.originalMessageId);
                     break;
@@ -274,22 +292,43 @@ export class ChatComponent implements OnInit, OnDestroy {
                     this.handleDeleteMessageFromWebSocket(wsMessage.originalMessageId);
                     break;
                 case 'reply':
-                    this.handleReplyMessageFromWebSocket(message);
+                case 'new':
+                    this.handleNewMessageFromWebSocket(message, wsMessage);
+                    break;
+                case 'error':
+                    this.handleWebSocketError(wsMessage);
                     break;
                 default:
                     this.handleNewMessageFromWebSocket(message, wsMessage);
             }
 
             this.scrollToBottom();
-            
+
         } catch (error) {
             console.error('Error processing WebSocket message:', error);
+        }
+    }
+    private handleSentConfirmation(message: Message, wsMessage: WebSocketMessage): void {
+        console.log('Handling sent confirmation for:', wsMessage.id);
+
+        const existingIndex = this.chatState.messages.findIndex(m =>
+            m.status === 'pending' && m.sender === wsMessage.sender
+        );
+
+        if (existingIndex !== -1) {
+            this.chatState.messages[existingIndex].status = 'sent';
+
+            const timeoutId = this.pendingMessageTimeouts.get(wsMessage.id);
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                this.pendingMessageTimeouts.delete(wsMessage.id);
+            }
         }
     }
 
     private convertWebSocketMessageToMessage(wsMessage: WebSocketMessage): Message {
         const isCurrentUser = wsMessage.sender === this.currentUsername;
-        
+
         return {
             id: parseInt(wsMessage.id.split('_')[1]) || Date.now(),
             sender: wsMessage.sender,
@@ -300,11 +339,11 @@ export class ChatComponent implements OnInit, OnDestroy {
             parentMessageId: wsMessage.parentMessageId ? parseInt(wsMessage.parentMessageId) : undefined,
             createDate: new Date(wsMessage.timestamp),
             enableSendSms: wsMessage.enableSendSms || false,
-            
+
             // فیلدهای محاسبه شده برای UI
             type: isCurrentUser ? 'user' : 'bot',
             author: isCurrentUser ? this.currentUserFarsiTitle : wsMessage.senderFarsiTitle,
-            time: new Date(wsMessage.timestamp).toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'}),
+            time: new Date(wsMessage.timestamp).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
             date: new Date(wsMessage.timestamp),
             deleted: false,
             edited: false,
@@ -319,29 +358,33 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     private handleNewMessageFromWebSocket(message: Message, wsMessage: WebSocketMessage): void {
         const existingIndex = this.chatState.messages.findIndex(m => m.id === message.id);
-        
+
         if (existingIndex !== -1) {
-            const existingMessage = this.chatState.messages[existingIndex];
-            
+            // اگر پیام از فرستنده فعلی است، فقط وضعیت را به‌روزرسانی کن
             if (wsMessage.sender === this.currentUsername) {
-                this.chatState.messages[existingIndex] = { ...existingMessage, ...message, status: 'sent' };
-                
+                this.chatState.messages[existingIndex].status = 'sent';
+
                 const timeoutId = this.pendingMessageTimeouts.get(wsMessage.id);
                 if (timeoutId) {
                     clearTimeout(timeoutId);
                     this.pendingMessageTimeouts.delete(wsMessage.id);
                 }
-            } else {
-                this.chatState.messages[existingIndex] = { ...existingMessage, ...message, status: 'received' };
+            }
+            // اگر از مخاطب است، پیام را اضافه کن
+            else {
+                this.chatState.messages[existingIndex] = { ...this.chatState.messages[existingIndex], ...message, status: 'received' };
             }
         } else {
-            this.addMessageToChat(message);
+            // فقط پیام‌های مخاطب را اضافه کن (نه پیام‌های خودمان)
+            if (wsMessage.sender !== this.currentUsername) {
+                this.addMessageToChat(message);
+            }
         }
     }
 
     private handleEditMessageFromWebSocket(message: Message, originalMessageId?: string): void {
         if (!originalMessageId) return;
-        
+
         const messageIndex = this.chatState.messages.findIndex(m => m.id.toString() === originalMessageId);
         if (messageIndex > -1) {
             this.chatState.messages[messageIndex] = {
@@ -356,7 +399,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     private handleDeleteMessageFromWebSocket(originalMessageId?: string): void {
         if (!originalMessageId) return;
-        
+
         const messageIndex = this.chatState.messages.findIndex(m => m.id.toString() === originalMessageId);
         if (messageIndex > -1) {
             this.chatState.messages[messageIndex].deleted = true;
@@ -372,15 +415,15 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     private cleanupWebSocket(): void {
         this.processedMessageIds.clear();
-        
+
         this.pendingMessageTimeouts.forEach(timeout => clearTimeout(timeout));
         this.pendingMessageTimeouts.clear();
-        
+
         if (this.subscription) {
             this.subscription.unsubscribe();
             this.subscription = undefined;
         }
-        
+
         if (this.client) {
             this.client.deactivate();
         }
@@ -432,7 +475,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     private mapBackendMessageToFrontend(backendMessage: any): Message {
         const isCurrentUser = backendMessage.sender === this.currentUsername;
-        
+
         return {
             id: backendMessage.id,
             sender: backendMessage.sender,
@@ -450,11 +493,11 @@ export class ChatComponent implements OnInit, OnDestroy {
             deleteUser: backendMessage.deleteUser,
             deleteDate: backendMessage.deleteDate ? new Date(backendMessage.deleteDate) : undefined,
             enableSendSms: backendMessage.enableSendSms,
-            
+
             // فیلدهای محاسبه شده برای UI
             type: isCurrentUser ? 'user' : 'bot',
             author: isCurrentUser ? this.currentUserFarsiTitle : backendMessage.senderFarsiTitle,
-            time: new Date(backendMessage.createDate).toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'}),
+            time: new Date(backendMessage.createDate).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
             date: new Date(backendMessage.createDate),
             deleted: !!backendMessage.deleteDate,
             edited: !!backendMessage.modifyDate,
@@ -506,6 +549,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     // Enhanced sendMessage with WebSocket
     sendMessage(): void {
+        // اگر در حالت ویرایش هستیم، پیام را به‌روزرسانی کن
         if (this.chatState.editingMessageId) {
             this.updateMessage();
             return;
@@ -516,6 +560,11 @@ export class ChatComponent implements OnInit, OnDestroy {
             return;
         }
 
+        // بررسی اینکه آیا در حال پاسخ دادن هستیم
+        const isReplyMessage = !!this.chatState.replyingToMessage;
+
+        console.log('Sending message:', { text, isReply: isReplyMessage });
+
         if (this.selectedFile) {
             this.uploadFileAndSendMessage(text);
         } else {
@@ -523,10 +572,14 @@ export class ChatComponent implements OnInit, OnDestroy {
         }
     }
 
+
     private sendTextMessage(text: string): void {
         const messageId = uuidv4();
         const timestamp = Date.now();
-        
+        const replyToMessage = this.chatState.replyingToMessage;
+
+        console.log('Sending text message with reply to:', replyToMessage?.id);
+
         // ایجاد پیام محلی
         const localMessage: Message = {
             id: parseInt(messageId.split('-')[0], 16) || timestamp,
@@ -535,21 +588,21 @@ export class ChatComponent implements OnInit, OnDestroy {
             subject: this.messageSubject || undefined,
             message: text,
             isActive: true,
-            parentMessageId: this.chatState.replyingToMessage?.id,
+            parentMessageId: replyToMessage?.id,
             createDate: new Date(timestamp),
             enableSendSms: this.enableSendSms,
-            
+
             // فیلدهای UI
             type: 'user',
             author: this.currentUserFarsiTitle,
-            time: new Date(timestamp).toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'}),
+            time: new Date(timestamp).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
             date: new Date(timestamp),
             deleted: false,
             edited: false,
             priority: this.messagePriority as any,
             nationalCode: this.nationalCode || undefined,
             recipients: this.recipients || undefined,
-            replyTo: this.chatState.replyingToMessage?.id,
+            replyTo: replyToMessage?.id,
             status: 'pending'
         };
 
@@ -564,43 +617,51 @@ export class ChatComponent implements OnInit, OnDestroy {
             recipientFarsiTitle: this.targetUserFarsiTitle,
             subject: this.messageSubject || undefined,
             message: text,
-            parentMessageId: this.chatState.replyingToMessage?.id.toString(),
+            parentMessageId: replyToMessage?.id?.toString(),
             timestamp,
-            messageType: this.chatState.replyingToMessage ? 'reply' : 'new',
+            messageType: replyToMessage ? 'reply' : 'new',
             priority: this.messagePriority !== 'normal' ? this.messagePriority : undefined,
             nationalCode: this.nationalCode || undefined,
             recipients: this.recipients || undefined,
             enableSendSms: this.enableSendSms
         };
 
+        // ارسال WebSocket
+        this.sendWebSocketMessage(wsMessage, localMessage);
+
+        // پاک کردن فرم و حالت‌ها
+        this.clearInputForm();
+        this.scrollToBottom();
+    }
+
+    private sendWebSocketMessage(wsMessage: WebSocketMessage, localMessage: Message): void {
         // تنظیم timeout
         const timeoutId = setTimeout(() => {
             const msgIndex = this.chatState.messages.findIndex(m => m.id === localMessage.id);
             if (msgIndex !== -1 && this.chatState.messages[msgIndex].status === 'pending') {
                 this.chatState.messages[msgIndex].status = 'failed';
             }
-            this.pendingMessageTimeouts.delete(messageId);
+            this.pendingMessageTimeouts.delete(wsMessage.id);
         }, 10000);
-        
-        this.pendingMessageTimeouts.set(messageId, timeoutId);
+
+        this.pendingMessageTimeouts.set(wsMessage.id, timeoutId);
 
         // ارسال از طریق WebSocket
         if (this.connected && this.client) {
             try {
+                console.log('Sending via WebSocket:', wsMessage);
                 this.client.publish({
                     destination: '/app/chat.send',
                     body: JSON.stringify(wsMessage)
                 });
             } catch (error) {
                 console.error('Error sending WebSocket message:', error);
-                this.fallbackToHttpSend(localMessage, text);
+                this.fallbackToHttpSend(localMessage, wsMessage.message);
             }
         } else {
-            this.fallbackToHttpSend(localMessage, text);
+            console.warn('WebSocket not connected, using HTTP fallback');
+            this.fallbackToHttpSend(localMessage, wsMessage.message);
         }
-
-        this.clearInputForm();
-        this.scrollToBottom();
     }
 
     private fallbackToHttpSend(localMessage: Message, text: string): void {
@@ -669,6 +730,7 @@ export class ChatComponent implements OnInit, OnDestroy {
             id: messageId,
             sender: this.currentUsername,
             senderFarsiTitle: this.currentUserFarsiTitle,
+            recipient: this.targetUsername,
             message: newText,
             timestamp: Date.now(),
             messageType: 'edit',
@@ -681,7 +743,8 @@ export class ChatComponent implements OnInit, OnDestroy {
                     destination: '/app/chat.edit',
                     body: JSON.stringify(wsMessage)
                 });
-                
+
+                // به‌روزرسانی محلی پیام
                 const messageIndex = this.chatState.messages.findIndex(m => m.id === this.chatState.editingMessageId);
                 if (messageIndex > -1) {
                     this.chatState.messages[messageIndex].message = newText;
@@ -689,7 +752,7 @@ export class ChatComponent implements OnInit, OnDestroy {
                     this.chatState.messages[messageIndex].modifyDate = new Date();
                     this.messageService.updateMessages(this.chatState.messages);
                 }
-                
+
                 this.cancelEdit();
             } catch (error) {
                 console.error('Error sending edit via WebSocket:', error);
@@ -701,20 +764,27 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     private fallbackUpdateMessage(newText: string): void {
-        this.messageService.updateMessage(this.chatState.editingMessageId!, newText)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    if (response.success && response.data) {
-                        const updatedMessage = this.mapBackendMessageToFrontend(response.data);
-                        this.updateMessageInChat(updatedMessage);
-                        this.cancelEdit();
-                    }
-                },
-                error: (error) => {
-                    console.error('Error updating message:', error);
-                    this.updateMockMessage(this.chatState.editingMessageId!, newText);
+        if (!this.chatState.editingMessageId) return;
+
+        fetch(`/api/messages/${this.chatState.editingMessageId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newText)
+        })
+            .then(response => response.json())
+            .then(response => {
+                if (response.success && response.data) {
+                    const updatedMessage = this.mapBackendMessageToFrontend(response.data);
+                    this.updateMessageInChat(updatedMessage);
+                    this.cancelEdit();
                 }
+            })
+            .catch(error => {
+                console.error('Error updating message:', error);
+                // fallback به به‌روزرسانی محلی
+                this.updateMockMessage(this.chatState.editingMessageId!, newText);
             });
     }
 
@@ -741,7 +811,7 @@ export class ChatComponent implements OnInit, OnDestroy {
                     destination: '/app/chat.delete',
                     body: JSON.stringify(wsMessage)
                 });
-                
+
                 this.removeMessageFromChat(messageId);
             } catch (error) {
                 console.error('Error sending delete via WebSocket:', error);
@@ -773,9 +843,9 @@ export class ChatComponent implements OnInit, OnDestroy {
         const msgIndex = this.chatState.messages.findIndex(m => m.id === messageId);
         if (msgIndex !== -1 && this.chatState.messages[msgIndex].status === 'failed') {
             const message = this.chatState.messages[msgIndex];
-            
+
             this.chatState.messages[msgIndex].status = 'pending';
-            
+
             const wsMessageId = uuidv4();
             const wsMessage: WebSocketMessage = {
                 id: wsMessageId,
@@ -793,7 +863,7 @@ export class ChatComponent implements OnInit, OnDestroy {
                 recipients: message.recipients,
                 enableSendSms: message.enableSendSms
             };
-            
+
             const timeoutId = setTimeout(() => {
                 const currentMsgIndex = this.chatState.messages.findIndex(m => m.id === messageId);
                 if (currentMsgIndex !== -1 && this.chatState.messages[currentMsgIndex].status === 'pending') {
@@ -801,9 +871,9 @@ export class ChatComponent implements OnInit, OnDestroy {
                 }
                 this.pendingMessageTimeouts.delete(wsMessageId);
             }, 10000);
-            
+
             this.pendingMessageTimeouts.set(wsMessageId, timeoutId);
-            
+
             try {
                 if (this.connected && this.client) {
                     this.client.publish({
@@ -823,7 +893,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     performSearch(): void {
-        const criteria: SearchCriteria = {
+        const criteria = {
             query: this.searchQuery.trim() || undefined,
             sender: this.searchSender || undefined,
             subject: this.searchSubjects || undefined,
@@ -832,22 +902,44 @@ export class ChatComponent implements OnInit, OnDestroy {
             size: 100
         };
 
+        // بررسی اینکه حداقل یک معیار جستجو وجود داشته باشد
         if (!criteria.query && !criteria.sender && !criteria.subject && !criteria.priority) {
             this.clearSearch();
             return;
         }
 
-        this.messageService.searchMessages(criteria)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
+        console.log('Performing search with criteria:', criteria);
+
+        // ساخت URL با query parameters
+        const queryParams = new URLSearchParams();
+        if (criteria.query) queryParams.append('query', criteria.query);
+        if (criteria.sender) queryParams.append('sender', criteria.sender);
+        if (criteria.subject) queryParams.append('subject', criteria.subject);
+        if (criteria.priority) queryParams.append('priority', criteria.priority);
+        queryParams.append('page', criteria.page.toString());
+        queryParams.append('size', criteria.size.toString());
+
+        // فراخوانی HTTP به جای سرویس Angular
+        fetch(`/api/messages/search?${queryParams.toString()}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(response => {
+                if (response.success) {
                     this.searchResults = response.data.content.map((msg: any) => this.mapBackendMessageToFrontend(msg));
                     this.updateSearchResults();
-                },
-                error: (error) => {
-                    console.error('Error searching messages:', error);
-                    this.performLocalSearch();
+                    console.log(`Found ${this.searchResults.length} messages`);
+                } else {
+                    throw new Error(response.message || 'Search failed');
                 }
+            })
+            .catch(error => {
+                console.error('Error searching messages:', error);
+                // fallback به جستجوی محلی
+                this.performLocalSearch();
             });
     }
 
@@ -863,9 +955,13 @@ export class ChatComponent implements OnInit, OnDestroy {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             this.sendMessage();
-        } else if (event.key === 'Escape' && this.chatState.editingMessageId) {
+        } else if (event.key === 'Escape') {
             event.preventDefault();
-            this.cancelEdit();
+            if (this.chatState.editingMessageId) {
+                this.cancelEdit();
+            } else if (this.chatState.replyingToMessage) {
+                this.hideReplyPreview();
+            }
         }
     }
 
@@ -892,7 +988,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         event.preventDefault();
         this.selectedMessageForAction = message;
         const dialogElement = (event.target as HTMLElement).closest('.p-dialog');
-        const dialogRect = dialogElement ? dialogElement.getBoundingClientRect() : {left: 0, top: 0};
+        const dialogRect = dialogElement ? dialogElement.getBoundingClientRect() : { left: 0, top: 0 };
 
         const relativeX = event.clientX - dialogRect.left;
         const relativeY = event.clientY - dialogRect.top;
@@ -909,50 +1005,133 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     onReplyToMessage(): void {
-        this.hideContextMenu();
+        if (this.selectedMessageForAction === undefined) return;
+
         this.chatService.setReplyingToMessage(this.selectedMessageForAction);
         this.showReplyPreview = true;
         this.focusInput();
+        this.hideContextMenu();
     }
 
     onEditMessage(): void {
+        if (this.selectedMessageForAction === undefined) return;
+
+        this.startEdit(this.selectedMessageForAction);
         this.hideContextMenu();
-        if (this.selectedMessageForAction) {
-            this.startEdit(this.selectedMessageForAction);
-        }
     }
 
     onDeleteMessage(): void {
+        if (this.selectedMessageForAction === undefined) return;
+
+        this.deleteMessage(this.selectedMessageForAction.id);
+
         this.hideContextMenu();
-        if (this.selectedMessageForAction) {
-            this.deleteMessage(this.selectedMessageForAction.id);
-        }
     }
 
     onCopyMessage(): void {
+        if (this.selectedMessageForAction === undefined) return;
+
+        // کپی کردن کامل اطلاعات پیام
+        const messageInfo = `فرستنده: ${this.selectedMessageForAction.author}زمان: ${this.selectedMessageForAction.time}
+        ${this.selectedMessageForAction.subject ? `موضوع: ${this.selectedMessageForAction.subject}` : ''}متن: ${this.selectedMessageForAction.message}`.trim();
+
+        navigator.clipboard.writeText(messageInfo)
+            .then(() => {
+                console.log('Message copied to clipboard');
+                // می‌توانید یک toast notification نمایش دهید
+            })
+            .catch(err => {
+                console.error('Failed to copy message:', err);
+                // fallback برای مرورگرهای قدیمی
+                const textArea = document.createElement('textarea');
+                textArea.value = messageInfo;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            });
         this.hideContextMenu();
-        if (this.selectedMessageForAction && this.selectedMessageForAction.message) {
-            navigator.clipboard.writeText(this.selectedMessageForAction.message)
-                .then(() => {
-                    console.log('Message copied to clipboard');
-                })
-                .catch(err => {
-                    console.error('Failed to copy message:', err);
-                });
+    }
+
+    // 4. پیاده‌سازی Forward Modal
+    showForwardModal: boolean = false;
+    availableContacts: any[] = []; // لیست مخاطبین
+    selectedContacts: Set<string> = new Set();
+
+    onForwardMessage(): void {
+        if (this.selectedMessageForAction === undefined) return;
+        
+        // بارگذاری لیست مخاطبین
+        this.loadContacts();
+        this.showForwardModal = true;
+        this.hideContextMenu();
+    }
+    loadContacts(): void {
+        // این متد باید لیست مخاطبین را از سرور بگیرد
+        // فعلاً داده‌های نمونه
+        this.availableContacts = [
+            { id: 'user1', name: 'احمد احمدی', username: 'ahmad' },
+            { id: 'user2', name: 'فاطمه محمدی', username: 'fatemeh' },
+            { id: 'user3', name: 'علی رضایی', username: 'ali' }
+        ];
+    }
+
+    toggleContactSelection(contact: any): void {
+        if (this.selectedContacts.has(contact.username)) {
+            this.selectedContacts.delete(contact.username);
+        } else {
+            this.selectedContacts.add(contact.username);
         }
     }
 
-    onForwardMessage(): void {
-        this.hideContextMenu();
-        if (this.selectedMessageForAction) {
-            this.messageText = `[هدایت شده] ${this.selectedMessageForAction.message}`;
-            this.focusInput();
+    forwardMessage(): void {
+        if (this.selectedContacts.size === 0 || !this.selectedMessageForAction) {
+            return;
         }
+
+        const forwardText = `[هدایت شده از ${this.selectedMessageForAction.author}]\n${this.selectedMessageForAction.message}`;
+
+        // ارسال به هر مخاطب انتخاب شده
+        this.selectedContacts.forEach(username => {
+            const messageId = uuidv4();
+            const wsMessage: WebSocketMessage = {
+                id: messageId,
+                sender: this.currentUsername,
+                senderFarsiTitle: this.currentUserFarsiTitle,
+                recipient: username,
+                message: forwardText,
+                timestamp: Date.now(),
+                messageType: 'new'
+            };
+
+            if (this.connected && this.client) {
+                this.client.publish({
+                    destination: '/app/chat.send',
+                    body: JSON.stringify(wsMessage)
+                });
+            }
+        });
+
+        this.closeForwardModal();
+        console.log(`Message forwarded to ${this.selectedContacts.size} contacts`);
+    }
+
+    closeForwardModal(): void {
+        this.showForwardModal = false;
+        this.selectedContacts.clear();
     }
 
     // Edit functionality
     startEdit(message: Message): void {
-        this.hideReplyPreview();
+        console.log('Starting edit for message:', message.id);
+
+        // بررسی اینکه آیا این پیام قابل ویرایش است
+        if (message.type !== 'user' || message.deleted || message.file) {
+            console.warn('Message cannot be edited');
+            return;
+        }
+
+        this.hideReplyPreview(); // پنهان کردن reply preview
         this.chatService.setEditingMessage(message.id);
         this.messageText = message.message;
         this.showEditPreview = true;
@@ -961,6 +1140,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     cancelEdit(): void {
+        console.log('Cancelling edit');
         this.chatService.setEditingMessage(undefined);
         this.messageText = '';
         this.showEditPreview = false;
@@ -969,14 +1149,14 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     // Reply functionality
     hideReplyPreview(): void {
+        console.log('Hiding reply preview');
         this.chatService.setReplyingToMessage(undefined);
         this.showReplyPreview = false;
     }
-
     scrollToMessage(messageId: number): void {
         const element = document.querySelector(`[data-message-id="${messageId}"]`);
         if (element) {
-            element.scrollIntoView({behavior: 'smooth', block: 'center'});
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
             element.classList.add('highlighted');
             setTimeout(() => {
                 element.classList.remove('highlighted');
@@ -997,13 +1177,19 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     clearSearch(): void {
-        this.searchService.endSearch();
+        this.chatState.searchActive = false;
+        this.chatState.searchResults = [];
+        this.chatState.currentSearchIndex = -1;
+
         this.searchResults = [];
         this.searchQuery = '';
         this.searchSender = '';
         this.searchSubjects = '';
         this.searchPriority = '';
+
         this.clearSearchHighlights();
+
+        console.log('Search cleared');
     }
 
     goToPreviousSearchResult(): void {
@@ -1108,7 +1294,11 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.recipients = '';
         this.enableSendSms = false;
         this.removeSelectedFile();
+
+        // پاک کردن حالت‌های reply و edit
         this.hideReplyPreview();
+        this.cancelEdit();
+
         this.autoResizeTextarea();
     }
 
@@ -1169,10 +1359,10 @@ export class ChatComponent implements OnInit, OnDestroy {
                 isActive: true,
                 createDate: messageDate,
                 enableSendSms: false,
-                
+
                 type: isCurrentUser ? 'user' : 'bot',
                 author: isCurrentUser ? this.currentUserFarsiTitle : this.targetUserFarsiTitle,
-                time: messageDate.toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'}),
+                time: messageDate.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
                 date: messageDate,
                 deleted: false,
                 edited: false,
@@ -1197,10 +1387,10 @@ export class ChatComponent implements OnInit, OnDestroy {
             parentMessageId: this.chatState.replyingToMessage?.id,
             createDate: new Date(),
             enableSendSms: this.enableSendSms,
-            
+
             type: 'user',
             author: this.currentUserFarsiTitle,
-            time: new Date().toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'}),
+            time: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
             date: new Date(),
             deleted: false,
             edited: false,
@@ -1225,10 +1415,10 @@ export class ChatComponent implements OnInit, OnDestroy {
                 isActive: true,
                 createDate: new Date(),
                 enableSendSms: false,
-                
+
                 type: 'bot',
                 author: this.targetUserFarsiTitle,
-                time: new Date().toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'}),
+                time: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
                 date: new Date(),
                 deleted: false,
                 edited: false,
@@ -1257,6 +1447,11 @@ export class ChatComponent implements OnInit, OnDestroy {
         const hasFile = !!this.selectedFile;
         const validNationalCode = this.validateNationalCode();
 
+        // در حالت ویرایش، فقط متن کافی است
+        if (this.isEditing) {
+            return hasText && validNationalCode;
+        }
+
         return (hasText || hasFile) && validNationalCode;
     }
 
@@ -1284,10 +1479,10 @@ export class ChatComponent implements OnInit, OnDestroy {
             isActive: true,
             createDate: new Date(),
             enableSendSms: false,
-            
+
             type: 'user',
             author: this.currentUserFarsiTitle,
-            time: new Date().toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'}),
+            time: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
             date: new Date(),
             deleted: false,
             edited: false,
@@ -1356,13 +1551,25 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     private updateSearchResults(): void {
         const messageIds = this.searchResults.map(msg => msg.id);
-        this.searchService.updateSearchResults(messageIds);
-        this.searchService.startSearch();
-        this.highlightSearchResults();
-    }
+        this.chatState.searchResults = messageIds;
+        this.chatState.searchActive = messageIds.length > 0;
+        this.chatState.currentSearchIndex = messageIds.length > 0 ? 0 : -1;
 
+        this.highlightSearchResults();
+
+        // اسکرول به اولین نتیجه
+        if (messageIds.length > 0) {
+            setTimeout(() => {
+                this.scrollToCurrentSearchResult();
+            }, 100);
+        }
+    }
     private performLocalSearch(): void {
-        const query = this.searchQuery.toLowerCase();
+        const query = this.searchQuery.toLowerCase().trim();
+        const sender = this.searchSender.toLowerCase().trim();
+        const subject = this.searchSubjects;
+        const priority = this.searchPriority;
+
         const results = this.chatState.messages.filter(msg => {
             if (msg.deleted) {
                 return false;
@@ -1370,19 +1577,25 @@ export class ChatComponent implements OnInit, OnDestroy {
 
             let matches = true;
 
+            // جستجو در محتوای پیام
             if (query && !msg.message.toLowerCase().includes(query)) {
                 matches = false;
             }
 
-            if (this.searchSender && msg.sender !== this.searchSender) {
+            // فیلتر بر اساس فرستنده
+            if (sender &&
+                !msg.sender.toLowerCase().includes(sender) &&
+                !msg.senderFarsiTitle.toLowerCase().includes(sender)) {
                 matches = false;
             }
 
-            if (this.searchSubjects && msg.subject !== this.searchSubjects) {
+            // فیلتر بر اساس موضوع
+            if (subject && msg.subject !== subject) {
                 matches = false;
             }
 
-            if (this.searchPriority && msg.priority !== this.searchPriority) {
+            // فیلتر بر اساس اولویت
+            if (priority && msg.priority !== priority) {
                 matches = false;
             }
 
@@ -1391,6 +1604,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
         this.searchResults = results;
         this.updateSearchResults();
+        console.log(`Local search found ${this.searchResults.length} messages`);
     }
 
     validateSearchSender(): boolean {
@@ -1411,14 +1625,15 @@ export class ChatComponent implements OnInit, OnDestroy {
                     element.classList.add('search-current');
                 }
 
-                if (this.searchQuery) {
+                // هایلایت کردن کلمات جستجو در محتوای پیام
+                if (this.searchQuery.trim()) {
                     const contentElement = element.querySelector('.message-content');
                     if (contentElement) {
                         const message = this.findMessageById(messageId);
-                        if (message) {
+                        if (message && !message.deleted) {
                             const highlightedText = this.searchService.highlightSearchTerm(
                                 message.message,
-                                this.searchQuery
+                                this.searchQuery.trim()
                             );
                             contentElement.innerHTML = highlightedText;
                         }
@@ -1431,6 +1646,8 @@ export class ChatComponent implements OnInit, OnDestroy {
     private clearSearchHighlights(): void {
         document.querySelectorAll('.message').forEach(element => {
             element.classList.remove('search-highlight', 'search-current');
+
+            // بازگرداندن متن اصلی بدون هایلایت
             const contentElement = element.querySelector('.message-content');
             if (contentElement) {
                 const messageId = parseInt(element.getAttribute('data-message-id') || '0');
@@ -1445,8 +1662,22 @@ export class ChatComponent implements OnInit, OnDestroy {
     private scrollToCurrentSearchResult(): void {
         if (this.chatState.currentSearchIndex >= 0 &&
             this.chatState.currentSearchIndex < this.chatState.searchResults.length) {
+
             const messageId = this.chatState.searchResults[this.chatState.currentSearchIndex];
-            this.scrollToMessage(messageId);
+            const element = document.querySelector(`[data-message-id="${messageId}"]`);
+
+            if (element) {
+                element.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+
+                // اضافه کردن انیمیشن فلش
+                element.classList.add('search-flash');
+                setTimeout(() => {
+                    element.classList.remove('search-flash');
+                }, 1000);
+            }
         }
     }
 
@@ -1506,10 +1737,164 @@ export class ChatComponent implements OnInit, OnDestroy {
     get isConnected(): boolean {
         return this.connected;
     }
+    getMessageGroups(): { date: string, messages: Message[] }[] {
+        const groups: { [key: string]: Message[] } = {};
 
+        this.chatState.messages.forEach(message => {
+            const dateKey = message.date.toDateString();
+            if (!groups[dateKey]) {
+                groups[dateKey] = [];
+            }
+            groups[dateKey].push(message);
+        });
+
+        return Object.keys(groups).map(dateKey => ({
+            date: new Date(dateKey).toLocaleDateString('fa-IR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            messages: groups[dateKey]
+        }));
+    }
+    formatMessageTime(date: Date): string {
+        const now = new Date();
+        const messageDate = new Date(date);
+
+        // اگر همان روز باشد، فقط ساعت نمایش داده شود
+        if (messageDate.toDateString() === now.toDateString()) {
+            return messageDate.toLocaleTimeString('fa-IR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // اگر دیروز باشد
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (messageDate.toDateString() === yesterday.toDateString()) {
+            return 'دیروز ' + messageDate.toLocaleTimeString('fa-IR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // برای تاریخ‌های قدیمی‌تر
+        return messageDate.toLocaleDateString('fa-IR') + ' ' +
+            messageDate.toLocaleTimeString('fa-IR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+    }
+    private showNotification(title: string, message: string, type: 'success' | 'error' | 'info' = 'info'): void {
+        // اینجا می‌توانید از کتابخانه toast استفاده کنید
+        console.log(`${type.toUpperCase()}: ${title} - ${message}`);
+
+        // یا یک نمایش ساده
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+    <strong>${title}</strong><br>
+    ${message}
+  `;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 3000);
+    }
+    private handleNetworkError(error: any, operation: string): void {
+        console.error(`Network error in ${operation}:`, error);
+
+        let errorMessage = 'خطای شبکه رخ داده است';
+
+        if (!navigator.onLine) {
+            errorMessage = 'اتصال اینترنت قطع است';
+        } else if (error.status === 404) {
+            errorMessage = 'سرویس مورد نظر یافت نشد';
+        } else if (error.status === 500) {
+            errorMessage = 'خطای داخلی سرور';
+        } else if (error.status === 403) {
+            errorMessage = 'شما مجوز دسترسی ندارید';
+        }
+
+        this.showNotification('خطا', errorMessage, 'error');
+    }
+    private validateMessage(): { isValid: boolean, errors: string[] } {
+        const errors: string[] = [];
+
+        // بررسی طول پیام
+        if (this.messageText.length > 1000) {
+            errors.push('پیام نمی‌تواند بیشتر از 1000 کاراکتر باشد');
+        }
+
+        // بررسی کد ملی
+        if (this.messageSubject === 'اختصاصی' && this.nationalCode) {
+            if (!this.validateNationalCode()) {
+                errors.push('کد ملی وارد شده معتبر نیست');
+            }
+        }
+
+        // بررسی فایل
+        if (this.selectedFile) {
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (this.selectedFile.size > maxSize) {
+                errors.push('حجم فایل نمی‌تواند بیشتر از 10 مگابایت باشد');
+            }
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
+    }
     // Template helper methods
     messageTrackBy(index: number, message: Message): number {
         return message.id;
+    }
+    private clearCache(): void {
+        this.processedMessageIds.clear();
+        this.pendingMessageTimeouts.forEach(timeout => clearTimeout(timeout));
+        this.pendingMessageTimeouts.clear();
+        this.searchResults = [];
+    }
+    exportConversation(): void {
+        const conversation = this.chatState.messages
+            .filter(msg => !msg.deleted)
+            .map(msg => ({
+                time: this.formatMessageTime(msg.date),
+                sender: msg.author,
+                message: msg.message,
+                subject: msg.subject,
+                priority: msg.priority
+            }));
+
+        const dataStr = JSON.stringify(conversation, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `conversation-${this.targetUserFarsiTitle}-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+
+        URL.revokeObjectURL(link.href);
+    }
+
+    getConversationStats(): any {
+        const messages = this.chatState.messages.filter(msg => !msg.deleted);
+        const userMessages = messages.filter(msg => msg.type === 'user');
+        const botMessages = messages.filter(msg => msg.type === 'bot');
+
+        return {
+            total: messages.length,
+            sent: userMessages.length,
+            received: botMessages.length,
+            withAttachments: messages.filter(msg => msg.file).length,
+            highPriority: messages.filter(msg => msg.priority === 'high').length,
+            urgent: messages.filter(msg => msg.priority === 'urgent').length
+        };
     }
 
     getMessageClasses(message: Message): string {
@@ -1601,4 +1986,55 @@ export class ChatComponent implements OnInit, OnDestroy {
             default: return '';
         }
     }
+
+    getInputPlaceholder(): string {
+        if (this.isEditing) {
+            return 'پیام خود را ویرایش کنید...';
+        } else if (this.isReplying) {
+            return `در حال پاسخ به ${this.chatState.replyingToMessage?.author}...`;
+        } else {
+            return 'پیام خود را بنویسید...';
+        }
+    }
+
+    getSendButtonTitle(): string {
+        if (this.isEditing) {
+            return 'ذخیره تغییرات';
+        } else if (this.isReplying) {
+            return 'ارسال پاسخ';
+        } else {
+            return 'ارسال پیام';
+        }
+    }
+
+    getSendButtonIcon(): string {
+        if (this.isEditing) {
+            return '✓'; // تیک برای ویرایش
+        } else if (this.isReplying) {
+            return '↪'; // پیکان پاسخ
+        } else {
+            return '➤'; // فلش ارسال
+        }
+    }
+
+    getMessageStatusDisplay(message: Message): string {
+        if (message.type !== 'user') return '';
+
+        switch (message.status) {
+            case 'pending':
+                return 'در حال ارسال...';
+            case 'sent':
+                return 'ارسال شده';
+            case 'received':
+                return 'تحویل داده شده';
+            case 'read':
+                return 'خوانده شده';
+            case 'failed':
+                return 'ارسال نشد';
+            default:
+                return '';
+        }
+    }
+
+
 }

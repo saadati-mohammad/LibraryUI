@@ -78,12 +78,20 @@ export class ChatService {
 
   // تنظیم پیام برای پاسخ
   setReplyingToMessage(message?: Message): void {
-    this.updateState({ replyingToMessage: message });
+    console.log('Setting reply to message:', message?.id);
+    this.updateState({ 
+      replyingToMessage: message,
+      editingMessageId: undefined // پاک کردن حالت ویرایش
+    });
   }
 
   // تنظیم پیام برای ویرایش
   setEditingMessage(messageId?: number): void {
-    this.updateState({ editingMessageId: messageId });
+    console.log('Setting editing message:', messageId);
+    this.updateState({ 
+      editingMessageId: messageId,
+      replyingToMessage: undefined // پاک کردن حالت پاسخ
+    });
   }
 
   // تنظیم نتایج جستجو
