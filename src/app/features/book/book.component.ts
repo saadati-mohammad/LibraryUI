@@ -304,14 +304,25 @@ export class BookComponent implements OnInit, OnDestroy {
     this.isBookModalVisible = true;
   }
 
-  convertBinaryToFile(binaryString: string, fileName: string, mimeType: string): File {
-    const byteArray = new Uint8Array(atob(binaryString).split("").map(char => char.charCodeAt(0)));
-    const blob = new Blob([byteArray], { type: mimeType });
+convertBinaryToFile(binaryData: any, fileName: string, mimeType: string): File | null {
+    // اگر ورودی از نوع رشته نباشد یا یک رشته خالی باشد، عملیات را متوقف کن
+    if (typeof binaryData !== 'string' || binaryData.length === 0) {
+      return null;
+    }
 
-    // ساخت فایل از blob
-    const file = new File([blob], fileName, { type: mimeType });
+    // اگر ورودی یک data URL بود (مثلا: data:image/jpeg;base64,...)، فقط بخش Base64 آن را جدا کن
+    const base64String = binaryData.split(',')[1] || binaryData;
 
-    return file;
+    try {
+      const byteArray = new Uint8Array(atob(base64String).split("").map(char => char.charCodeAt(0)));
+      const blob = new Blob([byteArray], { type: mimeType });
+      const file = new File([blob], fileName, { type: mimeType });
+      return file;
+    } catch (e) {
+      // این خطا زمانی که رشته ورودی Base64 نباشد (مثلا یک URL معمولی باشد) طبیعی است
+      // در این حالت null برمی‌گردانیم چون فایلی ساخته نمی‌شود
+      return null;
+    }
   }
 
   onBookModalClose(): void {
