@@ -24,7 +24,7 @@
 
         <!-- Header Menu -->
         <div class="header-menu" [class.show]="showHeaderMenu">
-            <div class="header-menu-item" (click)="toggleSearch()">
+             <div class="header-menu-item" (click)="toggleSearch()" (keydown.enter)="toggleSearch()" (keydown.space)="toggleSearch()" role="button" tabindex="0">
                 <span class="context-menu-icon">🔍</span>
                 <span>جستجو</span>
             </div>
@@ -59,14 +59,14 @@
         <div class="search-advanced" [class.active]="showAdvancedSearch">
 
             <div class="search-field">
-                <label>فرستنده</label>
-                <input type="text" [(ngModel)]="searchSender" (input)="performSearch()"
+                <label for="searchSender">فرستنده</label>
+                <input id="searchSender" type="text" [(ngModel)]="searchSender" (input)="performSearch()"
                     placeholder="نام فرستنده را وارد کنید">
             </div>
 
             <div class="search-field">
-                <label>موضوع</label>
-                <select [(ngModel)]="searchSubjects" (change)="performSearch()">
+                <label for="searchSubjects">موضوع</label>
+                <select id="searchSubjects" [(ngModel)]="searchSubjects" (change)="performSearch()">
                     <option value="">همه موضوعات</option>
                     <option value="اختصاصی">اختصاصی</option>
                     <option value="عمومی">عمومی</option>
@@ -80,8 +80,8 @@
             </div>
 
             <div class="search-field">
-                <label>اولویت</label>
-                <select [(ngModel)]="searchPriority" (change)="performSearch()">
+                <label for="searchPriority">اولویت</label>
+                <select id="searchPriority" [(ngModel)]="searchPriority" (change)="performSearch()">
                     <option value="">همه اولویت‌ها</option>
                     <option value="normal">عادی</option>
                     <option value="high">مهم</option>
@@ -134,7 +134,8 @@
 
             <!-- Reply Info -->
             <div *ngIf="message.replyTo && !message.deleted" class="reply-info" [attr.data-reply-to]="message.replyTo"
-                (click)="scrollToMessage(message.replyTo)">
+                (click)="scrollToMessage(message.replyTo)" (keydown.enter)="scrollToMessage(message.replyTo)" (keydown.space)="scrollToMessage(message.replyTo)"
+                role="button" tabindex="0">
                 <div class="reply-indicator">↪</div>
                 <div class="reply-content">
                     <div class="reply-author">{{getReplyAuthor(message.replyTo)}}</div>
@@ -255,8 +256,8 @@
         <div class="advanced-inputs" [class.active]="showAdvancedInput">
             <div class="input-grid">
                 <div class="input-field">
-                    <label>موضوع</label>
-                    <select [(ngModel)]="messageSubject">
+                    <label for="messageSubject">موضوع</label>
+                    <select id="messageSubject" [(ngModel)]="messageSubject">
                         <option value="">انتخاب موضوع</option>
                         <option value="اختصاصی">اختصاصی</option>
                         <option value="عمومی">عمومی</option>
@@ -270,8 +271,8 @@
                 </div>
 
                 <div class="input-field">
-                    <label>اولویت</label>
-                    <select [(ngModel)]="messagePriority">
+                    <label for="messagePriority">اولویت</label>
+                    <select id="messagePriority" [(ngModel)]="messagePriority">
                         <option value="normal">عادی</option>
                         <option value="high">مهم</option>
                         <option value="urgent">فوری</option>
@@ -279,13 +280,13 @@
                 </div>
 
                 <div class="input-field" *ngIf="messageSubject === 'اختصاصی'">
-                    <label>کد ملی</label>
-                    <input type="number" [(ngModel)]="nationalCode" placeholder="کد ملی را وارد کنید" maxlength="10"
+                    <label for="nationalCode">کد ملی</label>
+                    <input id="nationalCode" type="number" [(ngModel)]="nationalCode" placeholder="کد ملی را وارد کنید" maxlength="10"
                         pattern="[0-9]{10}">
                 </div>
 
                 <div class="input-field">
-                    <label>ارسال پیامک</label>
+                    <label for="enableSms">ارسال پیامک</label>
                     <input type="checkbox" [(ngModel)]="enableSendSms" id="enableSms">
                     <label for="enableSms" class="checkbox-label">فعال</label>
                 </div>
@@ -362,29 +363,29 @@
 <div class="context-menu" [style.display]="showContextMenu ? 'block' : 'none'" [style.left.px]="contextMenuPosition.x"
     [style.top.px]="contextMenuPosition.y">
 
-    <div class="context-menu-item" (click)="onReplyToMessage()">
+    <div class="context-menu-item" (click)="onReplyToMessage()" (keydown.enter)="onReplyToMessage()" (keydown.space)="onReplyToMessage()" role="button" tabindex="0">
         <span class="context-menu-icon"><i class="fa fa-reply"></i></span>
         <span>پاسخ به پیام</span>
     </div>
 
-    <div *ngIf="canEditMessage" class="context-menu-item" (click)="onEditMessage()">
+    <div *ngIf="canEditMessage" class="context-menu-item" (click)="onEditMessage()" (keydown.enter)="onEditMessage()" (keydown.space)="onEditMessage()" role="button" tabindex="0">
         <span class="context-menu-icon"><i class="fa fa-pencil"></i></span>
         <span>ویرایش</span>
     </div>
 
-    <div *ngIf="canDeleteMessage" class="context-menu-item danger" (click)="onDeleteMessage()">
+    <div *ngIf="canDeleteMessage" class="context-menu-item danger" (click)="onDeleteMessage()" (keydown.enter)="onDeleteMessage()" (keydown.space)="onDeleteMessage()" role="button" tabindex="0">
         <span class="context-menu-icon"><i class="fa fa-trash"></i></span>
         <span>حذف</span>
     </div>
 
     <!-- Forward option -->
-    <div class="context-menu-item" (click)="onForwardMessage()">
+    <div class="context-menu-item" (click)="onForwardMessage()" (keydown.enter)="onForwardMessage()" (keydown.space)="onForwardMessage()" role="button" tabindex="0">
         <span class="context-menu-icon"><i class="fa fa-forward"></i></span>
         <span>هدایت</span>
     </div>
 
     <!-- Copy option -->
-    <div class="context-menu-item" (click)="onCopyMessage()">
+    <div class="context-menu-item" (click)="onCopyMessage()" (keydown.enter)="onCopyMessage()" (keydown.space)="onCopyMessage()" role="button" tabindex="0">
         <span class="context-menu-icon"><i class="fa fa-copy"></i></span>
         <span>کپی</span>
     </div>
@@ -401,7 +402,8 @@
         </div>
         <div class="search-results-list">
             <div *ngFor="let result of searchResults; let i = index" class="search-result-item"
-                (click)="goToSearchResult(i)">
+                (click)="goToSearchResult(i)" (keydown.enter)="goToSearchResult(i)" (keydown.space)="goToSearchResult(i)"
+                role="button" tabindex="0">
                 <div class="search-result-author">{{result.author}}</div>
                 <div class="search-result-text">{{result.message}}</div>
                 <div class="search-result-time">{{result.time}}</div>
@@ -429,7 +431,8 @@
             <div class="forward-section-title">انتخاب مخاطبین:</div>
             <div class="forward-contacts-list">
                 <div *ngFor="let contact of availableContacts" class="forward-contact-item"
-                    (click)="toggleContactSelection(contact)">
+                    (click)="toggleContactSelection(contact)" (keydown.enter)="toggleContactSelection(contact)" (keydown.space)="toggleContactSelection(contact)"
+                    role="button" tabindex="0">
                     <div class="contact-checkbox">
                         <input type="checkbox" [checked]="selectedContacts.has(contact.username)"
                             (change)="toggleContactSelection(contact)">

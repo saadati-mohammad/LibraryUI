@@ -48,13 +48,13 @@ export class ListComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() data: any[] = [];
   // @Input() actionButtons: ActionButtonConfig[] = [];
   @Input() pageSizeOptions: number[] = [5, 10, 25, 100];
-  @Input() showPaginator: boolean = false;
+  @Input() showPaginator = false;
   @Input() actionsTemplate: TemplateRef<any> | null = null;
 
-  @Input() isLoading: boolean = false; // برای نمایش اسپینر لودینگ
-  @Input() totalItems: number = 0;
-  @Input() currentPage: number = 0; // صفحه فعلی (0-indexed)
-  @Input() pageSize: number = 10; // آیتم در هر صفحه
+  @Input() isLoading = false; // برای نمایش اسپینر لودینگ
+  @Input() totalItems = 0;
+  @Input() currentPage = 0; // صفحه فعلی (0-indexed)
+  @Input() pageSize = 10; // آیتم در هر صفحه
   @Output() pageChanged = new EventEmitter<PageEvent>();
 
   @Output() actionClicked = new EventEmitter<any>();

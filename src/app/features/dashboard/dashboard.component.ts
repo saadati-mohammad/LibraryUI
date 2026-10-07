@@ -157,7 +157,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
 
   constructor(
-    @Inject(PLATFORM_ID) platformId: Object,
+    @Inject(PLATFORM_ID) platformId: object,
     private bookService: BookService,
     private personService: PersonService,
     private loanService: BookLoanService,

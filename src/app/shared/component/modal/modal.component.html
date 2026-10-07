@@ -2,7 +2,9 @@
   *ngIf="isVisible"
   class="modal-overlay"
   (click)="onOverlayClick($event)"
+  (keydown.escape)="closeModal()"
   role="dialog"
+  tabindex="0"
   aria-modal="true"
   [attr.aria-labelledby]="'modalTitle-' + title"
 >

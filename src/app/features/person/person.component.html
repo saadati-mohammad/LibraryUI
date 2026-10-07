@@ -62,40 +62,40 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- ردیف ۱ فیلترها -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">نام</label>
-              <input type="text" formControlName="firstName" placeholder="جستجو نام..."
+              <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">نام</label>
+              <input id="firstName" type="text" formControlName="firstName" placeholder="جستجو نام..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">نام خانوادگی</label>
-              <input type="text" formControlName="lastName" placeholder="جستجو نام خانوادگی..."
+              <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">نام خانوادگی</label>
+              <input id="lastName" type="text" formControlName="lastName" placeholder="جستجو نام خانوادگی..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">کد ملی</label>
-              <input type="text" formControlName="nationalId" placeholder="جستجو کد ملی..."
+              <label for="nationalId" class="block text-sm font-medium text-gray-700 mb-1">کد ملی</label>
+              <input id="nationalId" type="text" formControlName="nationalId" placeholder="جستجو کد ملی..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">ایمیل</label>
-              <input type="email" formControlName="email" placeholder="جستجو ایمیل..."
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-1">ایمیل</label>
+              <input id="email" type="email" formControlName="email" placeholder="جستجو ایمیل..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
 
             <!-- ردیف ۲ فیلترها -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">شماره تلفن</label>
-              <input type="text" formControlName="phone" placeholder="جستجو تلفن..."
+              <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">شماره تلفن</label>
+              <input id="phone" type="text" formControlName="phone" placeholder="جستجو تلفن..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">نوع عضویت</label>
-              <input type="text" formControlName="membershipType" placeholder="جستجو نوع عضویت..."
+              <label for="membershipType" class="block text-sm font-medium text-gray-700 mb-1">نوع عضویت</label>
+              <input id="membershipType" type="text" formControlName="membershipType" placeholder="جستجو نوع عضویت..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">وضعیت</label>
-              <select formControlName="active"
+              <label for="active" class="block text-sm font-medium text-gray-700 mb-1">وضعیت</label>
+              <select id="active" formControlName="active"
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
                 <option [ngValue]="null">همه</option>
                 <option [ngValue]="true">فعال</option>
@@ -319,7 +319,8 @@
           بارگذاری کنید.
         </p>
         <div class="mt-3">
-          <a (click)="downloadExcelTemplate()"
+          <a (click)="downloadExcelTemplate()" (keydown.enter)="downloadExcelTemplate()" (keydown.space)="downloadExcelTemplate()"
+            role="button" tabindex="0"
             class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium text-sm">
             دانلود فایل الگوی اکسل
           </a>

@@ -67,7 +67,7 @@ export class LoanComponent implements OnInit {
     private personService: PersonService, // To get persons for dropdown
     private bookService: BookService,   // To get books for dropdown
     private snackBar: MatSnackBar,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: object
   ) {
     this.loanForm = this.fb.group({
       personId: [null, Validators.required],

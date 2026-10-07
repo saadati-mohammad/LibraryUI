@@ -29,18 +29,18 @@
           class="mt-4 bg-gray-50 p-6 rounded-lg shadow-inner">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">کد ملی عضو</label>
-              <input type="text" formControlName="personNationalId" placeholder="جستجو کد ملی..."
+              <label for="personNationalId" class="block text-sm font-medium text-gray-700 mb-1">کد ملی عضو</label>
+              <input id="personNationalId" type="text" formControlName="personNationalId" placeholder="جستجو کد ملی..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">شابک ۱۳ رقمی کتاب</label>
-              <input type="text" formControlName="bookIsbn" placeholder="جستجو شابک..."
+              <label for="bookIsbn" class="block text-sm font-medium text-gray-700 mb-1">شابک ۱۳ رقمی کتاب</label>
+              <input id="bookIsbn" type="text" formControlName="bookIsbn" placeholder="جستجو شابک..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">وضعیت</label>
-              <select formControlName="status" class="w-full border border-gray-300 rounded-md px-3 py-2">
+              <label for="status" class="block text-sm font-medium text-gray-700 mb-1">وضعیت</label>
+              <select id="status" formControlName="status" class="w-full border border-gray-300 rounded-md px-3 py-2">
                 <option [ngValue]="null">همه</option>
                 <option value="ON_LOAN">در امانت</option>
                 <option value="OVERDUE">دیرکرد</option>

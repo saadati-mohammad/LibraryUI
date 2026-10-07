@@ -32,7 +32,7 @@ export class MessageService {
 
   // دریافت پیام‌های مکالمه بین دو کاربر
   getConversationMessages(criteria: ConversationCriteria): Observable<MessageResponse> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('senderUsername', criteria.senderUsername)
       .set('recipientUsername', criteria.recipientUsername)
       .set('page', criteria.page.toString())
@@ -95,7 +95,7 @@ export class MessageService {
 
 
   // دریافت پیام‌های ارسال شده توسط کاربر
-  getSentMessages(page: number = 0, size: number = 15): Observable<MessageResponse> {
+  getSentMessages(page = 0, size = 15): Observable<MessageResponse> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
@@ -104,7 +104,7 @@ export class MessageService {
   }
 
   // دریافت پیام‌های دریافت شده توسط کاربر
-  getReceivedMessages(page: number = 0, size: number = 15): Observable<MessageResponse> {
+  getReceivedMessages(page = 0, size = 15): Observable<MessageResponse> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());

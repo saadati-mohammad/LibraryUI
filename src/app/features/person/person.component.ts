@@ -50,18 +50,18 @@ export class PersonComponent implements OnInit, OnDestroy {
   personForm: FormGroup;
   selectedFile: File | null = null;
   selectedFileName: string | null = null;
-  isSubmitting: boolean = false;
+  isSubmitting = false;
   fileError: string | null = null;
   currentPictureUrl: string | null = null;
-  shouldRemovePicture: boolean = false;
+  shouldRemovePicture = false;
 
   currentFormOperation: FormOperation = FormOperation.ADD;
   private currentEditingPersonId: number | null = null;
 
-  isLoadingTable: boolean = false;
-  totalElements: number = 0;
-  currentPage: number = 0;
-  pageSize: number = 10;
+  isLoadingTable = false;
+  totalElements = 0;
+  currentPage = 0;
+  pageSize = 10;
   pageSizeOptions: number[] = [5, 10, 25, 50, 100];
 
   personFiltersForm: FormGroup;
@@ -71,14 +71,14 @@ export class PersonComponent implements OnInit, OnDestroy {
   isExcelImportModalVisible = false;
   excelFile: File | null = null;
   excelFileName: string | null = null;
-  isImporting: boolean = false;
+  isImporting = false;
   importError: string | null = null;
 
   constructor(
     private fb: FormBuilder,
     private personService: PersonService,
     private snackBar: MatSnackBar,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: object
   ) {
     this.personForm = this.fb.group({
       firstName: ['', Validators.required],

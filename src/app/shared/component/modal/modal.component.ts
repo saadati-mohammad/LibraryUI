@@ -27,18 +27,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   styleUrl: './modal.component.css'
 })
 export class ModalComponent implements OnChanges, AfterViewInit {
-  @Input() isVisible: boolean = false;
-  @Input() title: string = 'عنوان مودال';
+  @Input() isVisible = false;
+  @Input() title = 'عنوان مودال';
   @Input() titleAccent?: string;
-  @Input() submitButtonText: string = 'ذخیره';
+  @Input() submitButtonText = 'ذخیره';
   @Input() submitButtonIcon?: string; // مثلا 'save' یا SVG path
-  @Input() cancelButtonText: string = 'انصراف';
-  @Input() hideFooter: boolean = false;
-  @Input() hideCancelButton: boolean = false;
-  @Input() hideSubmitButton: boolean = false;
-  @Input() disableSubmit: boolean = false;
-  @Input() isLoading: boolean = false; // برای نمایش اسپینر روی دکمه تایید
-  @Input() maxWidth: string = '700px'; // امکان تنظیم حداکثر عرض مودال
+  @Input() cancelButtonText = 'انصراف';
+  @Input() hideFooter = false;
+  @Input() hideCancelButton = false;
+  @Input() hideSubmitButton = false;
+  @Input() disableSubmit = false;
+  @Input() isLoading = false; // برای نمایش اسپینر روی دکمه تایید
+  @Input() maxWidth = '700px'; // امکان تنظیم حداکثر عرض مودال
 
   @Output() isVisibleChange = new EventEmitter<boolean>();
   @Output() submit = new EventEmitter<void>();
@@ -54,7 +54,7 @@ export class ModalComponent implements OnChanges, AfterViewInit {
   constructor(
     private renderer: Renderer2,
     private el: ElementRef,
-    @Inject(PLATFORM_ID) platformId: Object
+    @Inject(PLATFORM_ID) platformId: object
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
   }

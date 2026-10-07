@@ -62,25 +62,25 @@ export class BookComponent implements OnInit, OnDestroy {
   bookForm: FormGroup;
   selectedFile: File | null = null;
   selectedFileName: string | null = null;
-  isSubmitting: boolean = false;
+  isSubmitting = false;
   fileError: string | null = null;
   currentCoverUrl: string | null = null;
-  shouldRemoveCover: boolean = false;
+  shouldRemoveCover = false;
 
   currentFormOperation: FormOperation = FormOperation.ADD;
   private currentEditingBookId: number | null = null;
 
-  isLoadingTable: boolean = false;
-  totalElements: number = 0;
-  currentPage: number = 0;
-  pageSize: number = 10;
+  isLoadingTable = false;
+  totalElements = 0;
+  currentPage = 0;
+  pageSize = 10;
   pageSizeOptions: number[] = [5, 10, 25, 50, 100];
 
   bookFiltersForm: FormGroup;
   private filterSubscription!: Subscription;
   filterPanelOpenState = false;
   // Filtering
-  showFilters: boolean = false;
+  showFilters = false;
   private filterSubject = new Subject<BookFilterModel>();
 
   private destroy$ = new Subject<void>();
@@ -89,17 +89,17 @@ export class BookComponent implements OnInit, OnDestroy {
   isExcelImportModalVisible = false;
   excelFile: File | null = null;
   excelFileName: string | null = null;
-  isImporting: boolean = false;
+  isImporting = false;
   importError: string | null = null;
   inputElement?: HTMLInputElement;
-  excelFilePath: string = 'book-import-template.xlsx'; // مسیر فایل اکسل
+  excelFilePath = 'book-import-template.xlsx'; // مسیر فایل اکسل
 
 
   constructor(
     private fb: FormBuilder,
     private bookService: BookService,
     private snackBar: MatSnackBar, // اضافه شد
-    @Inject(PLATFORM_ID) private platformId: Object // اضافه شد
+    @Inject(PLATFORM_ID) private platformId: object // اضافه شد
   ) {
     this.bookForm = this.fb.group({
       isbn10: [null, Validators.required],

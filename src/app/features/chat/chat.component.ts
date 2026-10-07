@@ -98,7 +98,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     // Search
     searchQuery = '';
     searchSender = '';
-    searchSubjects: string = '';
+    searchSubjects = '';
     searchPriority = '';
     searchResults: Message[] = [];
 
@@ -119,7 +119,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     private destroy$ = new Subject<void>();
     private searchSubject = new Subject<string>();
     @Output() onCloseDialog: EventEmitter<any> = new EventEmitter<any>();
-    isTyping: boolean = false;
+    isTyping = false;
 
     constructor(
         private chatService: ChatService,
@@ -1057,9 +1057,9 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     // 4. پیاده‌سازی Forward Modal
-    showForwardModal: boolean = false;
+    showForwardModal = false;
     availableContacts: any[] = []; // لیست مخاطبین
-    selectedContacts: Set<string> = new Set();
+    selectedContacts = new Set<string>();
 
     onForwardMessage(): void {
         if (this.selectedMessageForAction === undefined) return;
@@ -1741,7 +1741,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         return this.connected;
     }
     getMessageGroups(): { date: string, messages: Message[] }[] {
-        const groups: { [key: string]: Message[] } = {};
+        const groups: Record<string, Message[]> = {};
 
         this.chatState.messages.forEach(message => {
             const dateKey = message.date.toDateString();
@@ -1965,7 +1965,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     getPriorityLabel(priority: string): string {
-        const labels: { [key: string]: string } = {
+        const labels: Record<string, string> = {
             high: 'مهم',
             urgent: 'فوری'
         };

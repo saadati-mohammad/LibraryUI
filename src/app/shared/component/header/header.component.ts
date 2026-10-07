@@ -37,9 +37,9 @@ export class HeaderComponent {
   ];
 
   // در صورت نیاز به اطلاعات کاربر یا لوگو در آینده
-  userName: string = 'نام کاربر'; // مثال
-  userRole: string = 'نقش کاربر'; // مثال
-  logoUrl: string = 'assets/logo.png'; // مسیر لوگوی خود را قرار دهید
+  userName = 'نام کاربر'; // مثال
+  userRole = 'نقش کاربر'; // مثال
+  logoUrl = 'assets/logo.png'; // مسیر لوگوی خود را قرار دهید
 
   constructor() { }
 

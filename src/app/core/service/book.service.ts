@@ -16,9 +16,9 @@ export class BookService {
 
   getBookList(
     filters?: Partial<BookFilterModel>,
-    page: number = 0,
-    size: number = 10,
-    sort: string = 'id,desc'
+    page = 0,
+    size = 10,
+    sort = 'id,desc'
   ): Observable<PaginatedResponse<BookModel>> {
     let params = new HttpParams()
       .set('page', page.toString())

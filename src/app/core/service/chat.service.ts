@@ -93,7 +93,7 @@ export class ChatService {
   }
 
   // تنظیم نتایج جستجو
-  setSearchResults(results: number[], active: boolean = true): void {
+  setSearchResults(results: number[], active = true): void {
     this.updateState({ 
       searchResults: results, 
       searchActive: active,
