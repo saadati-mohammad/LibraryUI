@@ -20,6 +20,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { FileSizePipe } from "../../shared/pipe/file-size.pipe";
 import { LoggerService } from '../../core/service/logger.service';
+import { AuthService } from '../../core/service/auth.service';
 
 // WebSocket Message interface
 interface WebSocketMessage {
@@ -124,7 +125,8 @@ export class ChatComponent implements OnInit, OnDestroy {
     constructor(
         private chatService: ChatService,
         private messageService: MessageService,
-        private searchService: SearchService
+        private searchService: SearchService,
+        private authService: AuthService
     ) {
         // تنظیم debounce برای جستجو
         this.searchSubject.pipe(
@@ -157,6 +159,10 @@ export class ChatComponent implements OnInit, OnDestroy {
             webSocketFactory: () => new SockJS(environment.wsUrl),
             reconnectDelay: 5000,
             debug: () => { /* debug off */ },
+            // The backend authenticates the STOMP CONNECT frame with the same JWT as the
+            // REST API. Without this the connection is rejected; the server derives the
+            // acting identity from this token, never from client-supplied fields.
+            connectHeaders: { Authorization: `Bearer ${this.authService.getToken() ?? ''}` },
             onConnect: () => this.handleWebSocketConnect(),
             onStompError: (frame) => this.handleStompError(frame),
             onDisconnect: () => this.handleWebSocketDisconnect(),
