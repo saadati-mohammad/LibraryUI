@@ -1,5 +1,5 @@
 import { Component, Inject, Input, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
-import { TableColumn, ActionButtonConfig, ListComponent } from '../../shared/component/list/list.component';
+import { TableColumn, ListComponent } from '../../shared/component/list/list.component';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -16,7 +16,7 @@ import { PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subscription, Subject, debounceTime, distinctUntilChanged, tap, Observable } from 'rxjs';
+import { Subscription, debounceTime, distinctUntilChanged, tap } from 'rxjs';
 import { PersonModel, PersonFilterModel } from '../../core/model/personModel';
 import { PersonService } from '../../core/service/person.service';
 import { PaginatedResponse } from '../../core/model/paginated-response.model';
@@ -207,7 +207,7 @@ export class PersonComponent implements OnInit, OnDestroy {
 
             // اگر آرایه بایت است
           } else if (Array.isArray(profilePicture) || profilePicture instanceof Uint8Array) {
-            const byteArray = new Uint8Array(profilePicture as any);
+            const byteArray = new Uint8Array(profilePicture as ArrayLike<number>);
             const blob = new Blob([byteArray], { type: 'image/jpeg' });
             const reader = new FileReader();
 
@@ -281,7 +281,7 @@ export class PersonComponent implements OnInit, OnDestroy {
       this.fileError = null;
       this.shouldRemovePicture = false;
       const reader = new FileReader();
-      reader.onload = (e: any) => { this.currentPictureUrl = e.target.result; };
+      reader.onload = (e: ProgressEvent<FileReader>) => { this.currentPictureUrl = e.target?.result as string; };
       reader.readAsDataURL(file);
     }
   }

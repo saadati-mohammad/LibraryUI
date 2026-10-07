@@ -206,7 +206,7 @@ export class BookComponent implements OnInit, OnDestroy {
     const cleanFilters: Partial<BookFilterModel> = {};
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '' && !(typeof value === 'number' && isNaN(value))) {
-        (cleanFilters as any)[key] = value;
+        (cleanFilters as Record<string, unknown>)[key] = value;
       }
     });
 
@@ -268,7 +268,8 @@ export class BookComponent implements OnInit, OnDestroy {
 
     if ((operation === FormOperation.UPDATE || operation === FormOperation.VIEW) && book) {
       this.currentEditingBookId = book.id ?? null;
-      const { bookCoverFile, ...bookDetailsToPatch } = book;
+      // Omit the binary/file field from the form patch; it is handled separately below.
+      const { bookCoverFile: _bookCoverFile, ...bookDetailsToPatch } = book;
       this.bookForm.patchValue(bookDetailsToPatch);
       this.selectedFile = book.bookCoverFile instanceof File ? book.bookCoverFile : this.convertBinaryToFile(book.bookCoverFile ?? null, 'profile.jpg', 'image/jpeg');
 
@@ -285,7 +286,7 @@ export class BookComponent implements OnInit, OnDestroy {
 
             // اگر آرایه بایت هست
           } else if (Array.isArray(book.bookCoverFile) || book.bookCoverFile instanceof Uint8Array) {
-            const byteArray = new Uint8Array(book.bookCoverFile as any);
+            const byteArray = new Uint8Array(book.bookCoverFile as ArrayLike<number>);
             const blob = new Blob([byteArray], { type: 'image/jpeg' });
             const reader = new FileReader();
 
@@ -390,7 +391,7 @@ convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mim
       this.shouldRemoveCover = false;
 
       const reader = new FileReader();
-      reader.onload = (e: any) => { this.currentCoverUrl = e.target.result; };
+      reader.onload = (e: ProgressEvent<FileReader>) => { this.currentCoverUrl = e.target?.result as string; };
       reader.readAsDataURL(file);
 
     } else {
@@ -493,7 +494,7 @@ convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mim
     this.importError = null;
 
     this.bookService.importBooksFromExcel(this.excelFile).subscribe({
-      next: (response) => {
+      next: () => {
         this.isImporting = false;
         this.isExcelImportModalVisible = false;
         this.excelFile = null;
