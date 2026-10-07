@@ -20,6 +20,8 @@ import { Subscription, Subject, debounceTime, distinctUntilChanged, tap, Observa
 import { PersonModel, PersonFilterModel } from '../../core/model/personModel';
 import { PersonService } from '../../core/service/person.service';
 import { PaginatedResponse } from '../../core/model/paginated-response.model';
+import { base64ToFile, downloadUrl } from '../../shared/util/file.util';
+import { ConfirmationService } from '../../shared/service/confirmation.service';
 
 export enum FormOperation {
   ADD = 'ADD',
@@ -78,6 +80,7 @@ export class PersonComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private personService: PersonService,
     private snackBar: MatSnackBar,
+    private confirmation: ConfirmationService,
     @Inject(PLATFORM_ID) private platformId: object
   ) {
     this.personForm = this.fb.group({
@@ -227,25 +230,8 @@ export class PersonComponent implements OnInit, OnDestroy {
     this.isPersonModalVisible = true;
   }
 
-  convertBinaryToFile(binaryData: any, fileName: string, mimeType: string): File | null {
-    // اگر ورودی از نوع رشته نباشد یا یک رشته خالی باشد، عملیات را متوقف کن
-    if (typeof binaryData !== 'string' || binaryData.length === 0) {
-      return null;
-    }
-
-    // اگر ورودی یک data URL بود (مثلا: data:image/jpeg;base64,...)، فقط بخش Base64 آن را جدا کن
-    const base64String = binaryData.split(',')[1] || binaryData;
-
-    try {
-      const byteArray = new Uint8Array(atob(base64String).split("").map(char => char.charCodeAt(0)));
-      const blob = new Blob([byteArray], { type: mimeType });
-      const file = new File([blob], fileName, { type: mimeType });
-      return file;
-    } catch (e) {
-      // این خطا زمانی که رشته ورودی Base64 نباشد (مثلا یک URL معمولی باشد) طبیعی است
-      // در این حالت null برمی‌گردانیم چون فایلی ساخته نمی‌شود
-      return null;
-    }
+  convertBinaryToFile(binaryData: string, fileName: string, mimeType: string): File | null {
+    return base64ToFile(binaryData, fileName, mimeType);
   }
 
   onPersonModalClose(): void {
@@ -313,22 +299,26 @@ export class PersonComponent implements OnInit, OnDestroy {
     this.shouldRemovePicture = true;
   }
 
-  deactivatePerson(person: PersonModel): void {
+  async deactivatePerson(person: PersonModel): Promise<void> {
     if (!person.id) return;
-    if (isPlatformBrowser(this.platformId)) {
-      if (confirm(`آیا از غیرفعال سازی عضو "${person.firstName} ${person.lastName}" مطمئن هستید؟`)) {
-        this.personService.deactivatePerson(person.id).subscribe({
-          next: () => {
-            this.snackBar.open('عضو با موفقیت غیرفعال شد.', 'بستن', { duration: 3000, direction: 'rtl' });
-            this.loadPersons();
-          },
-          error: (err) => {
-            this.snackBar.open('خطا در غیرفعال سازی عضو.', 'بستن', { duration: 5000, direction: 'rtl' });
-            console.error(err);
-          }
-        });
-      }
+    const confirmed = await this.confirmation.confirm({
+      title: 'غیرفعال‌سازی عضو',
+      message: `آیا از غیرفعال سازی عضو "${person.firstName} ${person.lastName}" مطمئن هستید؟`,
+      confirmLabel: 'غیرفعال‌سازی',
+    });
+    if (!confirmed) {
+      return;
     }
+    this.personService.deactivatePerson(person.id).subscribe({
+      next: () => {
+        this.snackBar.open('عضو با موفقیت غیرفعال شد.', 'بستن', { duration: 3000, direction: 'rtl' });
+        this.loadPersons();
+      },
+      error: (err) => {
+        this.snackBar.open('خطا در غیرفعال سازی عضو.', 'بستن', { duration: 5000, direction: 'rtl' });
+        console.error(err);
+      }
+    });
   }
 
   // --- Excel Import Methods ---
@@ -377,14 +367,7 @@ export class PersonComponent implements OnInit, OnDestroy {
   }
 
   downloadExcelTemplate(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      const link = document.createElement('a');
-      link.href = './assets/excel/person-import-template.xlsx';
-      link.download = 'person-import-template.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    }
+    downloadUrl('./assets/excel/person-import-template.xlsx', 'person-import-template.xlsx', this.platformId);
   }
 
   get FormOperationEnum() {

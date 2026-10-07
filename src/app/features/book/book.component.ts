@@ -20,6 +20,8 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from "@angular/material/snack-bar";
 import { MatCardModule } from "@angular/material/card";
+import { base64ToFile, downloadUrl } from "../../shared/util/file.util";
+import { ConfirmationService } from "../../shared/service/confirmation.service";
 
 export enum FormOperation {
   ADD = 'ADD',
@@ -99,6 +101,7 @@ export class BookComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private bookService: BookService,
     private snackBar: MatSnackBar, // اضافه شد
+    private confirmation: ConfirmationService,
     @Inject(PLATFORM_ID) private platformId: object // اضافه شد
   ) {
     this.bookForm = this.fb.group({
@@ -305,25 +308,8 @@ export class BookComponent implements OnInit, OnDestroy {
     this.isBookModalVisible = true;
   }
 
-convertBinaryToFile(binaryData: any, fileName: string, mimeType: string): File | null {
-    // اگر ورودی از نوع رشته نباشد یا یک رشته خالی باشد، عملیات را متوقف کن
-    if (typeof binaryData !== 'string' || binaryData.length === 0) {
-      return null;
-    }
-
-    // اگر ورودی یک data URL بود (مثلا: data:image/jpeg;base64,...)، فقط بخش Base64 آن را جدا کن
-    const base64String = binaryData.split(',')[1] || binaryData;
-
-    try {
-      const byteArray = new Uint8Array(atob(base64String).split("").map(char => char.charCodeAt(0)));
-      const blob = new Blob([byteArray], { type: mimeType });
-      const file = new File([blob], fileName, { type: mimeType });
-      return file;
-    } catch (e) {
-      // این خطا زمانی که رشته ورودی Base64 نباشد (مثلا یک URL معمولی باشد) طبیعی است
-      // در این حالت null برمی‌گردانیم چون فایلی ساخته نمی‌شود
-      return null;
-    }
+convertBinaryToFile(binaryData: string, fileName: string, mimeType: string): File | null {
+    return base64ToFile(binaryData, fileName, mimeType);
   }
 
   onBookModalClose(): void {
@@ -423,21 +409,20 @@ convertBinaryToFile(binaryData: any, fileName: string, mimeType: string): File |
     this.shouldRemoveCover = true;
   }
 
-  deleteBook(book: BookModel): void {
+  async deleteBook(book: BookModel): Promise<void> {
     if (!book.id) {
       if (isPlatformBrowser(this.platformId)) {
         this.snackBar.open('امکان حذف کتاب بدون شناسه وجود ندارد.', 'بستن', { duration: 3000, direction: 'rtl' });
       }
       return;
     }
-    if (isPlatformBrowser(this.platformId)) {
-      if (confirm(`آیا از حذف کتاب "${book.title}" با شناسه ${book.id} مطمئن هستید؟`)) {
-        this.performDelete(book);
-      }
-    } else {
-      // در محیط غیرمرورگر (SSR)، confirm کار نمی‌کند، پس یا حذف نکنید یا راه دیگری پیدا کنید
-      console.warn("Delete confirmation skipped in non-browser environment.");
-      // this.performDelete(book); // اگر می‌خواهید بدون تایید حذف شود
+    const confirmed = await this.confirmation.confirm({
+      title: 'حذف کتاب',
+      message: `آیا از حذف کتاب "${book.title}" با شناسه ${book.id} مطمئن هستید؟`,
+      confirmLabel: 'حذف',
+    });
+    if (confirmed) {
+      this.performDelete(book);
     }
   }
 
@@ -531,15 +516,7 @@ convertBinaryToFile(binaryData: any, fileName: string, mimeType: string): File |
   }
 
   downloadExcelTemplate(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      const link = document.createElement('a');
-      link.setAttribute('type', 'hidden');
-      link.href = './assets/excel/book-import-template.xlsx';
-      link.download = 'book-import-template.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      link.remove(); // Optional: remove the link after the download
-    }
+    downloadUrl('./assets/excel/book-import-template.xlsx', 'book-import-template.xlsx', this.platformId);
   }
 
 }

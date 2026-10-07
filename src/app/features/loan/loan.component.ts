@@ -23,6 +23,7 @@ import { BookModel } from '../../core/model/bookModel';
 import { PersonModel } from '../../core/model/personModel';
 import { BookLoanService } from '../../core/service/book-loan.service';
 import { PersonService } from '../../core/service/person.service';
+import { ConfirmationService } from '../../shared/service/confirmation.service';
 
 
 @Component({
@@ -67,6 +68,7 @@ export class LoanComponent implements OnInit {
     private personService: PersonService, // To get persons for dropdown
     private bookService: BookService,   // To get books for dropdown
     private snackBar: MatSnackBar,
+    private confirmation: ConfirmationService,
     @Inject(PLATFORM_ID) private platformId: object
   ) {
     this.loanForm = this.fb.group({
@@ -169,21 +171,25 @@ export class LoanComponent implements OnInit {
     });
   }
 
-  returnBook(loan: BookLoanModel): void {
-    if (isPlatformBrowser(this.platformId)) {
-      if (confirm(`آیا از ثبت بازگشت کتاب "${loan.bookTitle}" توسط "${loan.personFirstName} ${loan.personLastName}" مطمئن هستید؟`)) {
-        this.loanService.returnLoan(loan.id).subscribe({
-          next: () => {
-            this.snackBar.open('کتاب با موفقیت بازگردانده شد.', 'بستن', { duration: 3000, direction: 'rtl' });
-            this.loadLoans();
-          },
-          error: (err) => {
-            const errorMessage = err.error?.message || 'خطا در ثبت بازگشت کتاب.';
-            this.snackBar.open(errorMessage, 'بستن', { duration: 5000, direction: 'rtl' });
-          }
-        });
-      }
+  async returnBook(loan: BookLoanModel): Promise<void> {
+    const confirmed = await this.confirmation.confirm({
+      title: 'ثبت بازگشت کتاب',
+      message: `آیا از ثبت بازگشت کتاب "${loan.bookTitle}" توسط "${loan.personFirstName} ${loan.personLastName}" مطمئن هستید؟`,
+      confirmLabel: 'ثبت بازگشت',
+    });
+    if (!confirmed) {
+      return;
     }
+    this.loanService.returnLoan(loan.id).subscribe({
+      next: () => {
+        this.snackBar.open('کتاب با موفقیت بازگردانده شد.', 'بستن', { duration: 3000, direction: 'rtl' });
+        this.loadLoans();
+      },
+      error: (err) => {
+        const errorMessage = err.error?.message || 'خطا در ثبت بازگشت کتاب.';
+        this.snackBar.open(errorMessage, 'بستن', { duration: 5000, direction: 'rtl' });
+      }
+    });
   }
 
   // --- Helper methods for display ---
