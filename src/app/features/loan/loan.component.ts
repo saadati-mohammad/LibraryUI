@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit, PLATFORM_ID} from '@angular/core';
+import {Component, inject, OnInit, PLATFORM_ID} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
@@ -62,15 +62,15 @@ export class LoanComponent implements OnInit {
   // Filtering
   filtersForm: FormGroup;
 
-  constructor(
-    private fb: FormBuilder,
-    private loanService: BookLoanService,
-    private personService: PersonService, // To get persons for dropdown
-    private bookService: BookService,   // To get books for dropdown
-    private snackBar: MatSnackBar,
-    private confirmation: ConfirmationService,
-    @Inject(PLATFORM_ID) private platformId: object
-  ) {
+  private fb = inject(FormBuilder);
+  private loanService = inject(BookLoanService);
+  private personService = inject(PersonService); // To get persons for dropdown
+  private bookService = inject(BookService);   // To get books for dropdown
+  private snackBar = inject(MatSnackBar);
+  private confirmation = inject(ConfirmationService);
+  private platformId = inject(PLATFORM_ID);
+
+  constructor() {
     this.loanForm = this.fb.group({
       personId: [null, Validators.required],
       bookId: [null, Validators.required],

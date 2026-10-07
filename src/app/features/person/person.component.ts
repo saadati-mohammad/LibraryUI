@@ -1,4 +1,4 @@
-import { Component, Inject, Input, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
+import { Component, inject, Input, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
 import { TableColumn, ListComponent } from '../../shared/component/list/list.component';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
@@ -76,13 +76,13 @@ export class PersonComponent implements OnInit, OnDestroy {
   isImporting = false;
   importError: string | null = null;
 
-  constructor(
-    private fb: FormBuilder,
-    private personService: PersonService,
-    private snackBar: MatSnackBar,
-    private confirmation: ConfirmationService,
-    @Inject(PLATFORM_ID) private platformId: object
-  ) {
+  private fb = inject(FormBuilder);
+  private personService = inject(PersonService);
+  private snackBar = inject(MatSnackBar);
+  private confirmation = inject(ConfirmationService);
+  private platformId = inject(PLATFORM_ID);
+
+  constructor() {
     this.personForm = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],

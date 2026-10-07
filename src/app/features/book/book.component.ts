@@ -1,5 +1,5 @@
 import { CommonModule, isPlatformBrowser } from "@angular/common";
-import { Component, Inject, Input, OnDestroy, OnInit, PLATFORM_ID } from "@angular/core";
+import { Component, inject, Input, OnDestroy, OnInit, PLATFORM_ID } from "@angular/core";
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
 import { MatButtonModule } from "@angular/material/button";
 import { MatFormFieldModule } from "@angular/material/form-field";
@@ -97,13 +97,13 @@ export class BookComponent implements OnInit, OnDestroy {
   excelFilePath = 'book-import-template.xlsx'; // مسیر فایل اکسل
 
 
-  constructor(
-    private fb: FormBuilder,
-    private bookService: BookService,
-    private snackBar: MatSnackBar, // اضافه شد
-    private confirmation: ConfirmationService,
-    @Inject(PLATFORM_ID) private platformId: object // اضافه شد
-  ) {
+  private fb = inject(FormBuilder);
+  private bookService = inject(BookService);
+  private snackBar = inject(MatSnackBar);
+  private confirmation = inject(ConfirmationService);
+  private platformId = inject(PLATFORM_ID);
+
+  constructor() {
     this.bookForm = this.fb.group({
       isbn10: [null, Validators.required],
       title: [null, Validators.required],
