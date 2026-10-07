@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { Message } from '../model/message.model';
@@ -8,7 +8,9 @@ import { SearchCriteria } from '../interface/search-criteria.interface';
 
 export interface MessageResponse {
   success: boolean;
-  data: any;
+  // The payload shape varies by endpoint (single message, list, paged result); callers
+  // narrow it. `unknown` keeps that explicit without disabling type checking.
+  data: unknown;
   message?: string;
   hasMore?: boolean;
 }
@@ -28,7 +30,7 @@ export class MessageService {
   private messagesSubject = new BehaviorSubject<Message[]>([]);
   public messages$ = this.messagesSubject.asObservable();
 
-  constructor(private http: HttpClient) { }
+  private readonly http = inject(HttpClient);
 
   // دریافت پیام‌های مکالمه بین دو کاربر
   getConversationMessages(criteria: ConversationCriteria): Observable<MessageResponse> {

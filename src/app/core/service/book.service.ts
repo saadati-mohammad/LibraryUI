@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { Observable } from 'rxjs';
 import { BookFilterModel, BookModel } from '../model/bookModel';
@@ -12,7 +12,7 @@ export class BookService {
   readonly baseUrl: string = `${environment.apiUrl}/book`;
   readonly baseUrlExcel: string = `${environment.apiUrl}`;
 
-  constructor(private http: HttpClient) { }
+  private readonly http = inject(HttpClient);
 
   getBookList(
     filters?: Partial<BookFilterModel>,

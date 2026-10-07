@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -34,7 +34,7 @@ export class AuthService {
     return token !== null && !this.isExpired(token);
   });
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   /** Exchange credentials for a JWT and persist the session. */
   login(username: string, password: string): Observable<LoginResponse> {

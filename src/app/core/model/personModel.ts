@@ -12,7 +12,8 @@ export interface PersonModel {
   membershipType?: string | null;
   address?: string | null;
   notes?: string | null;
-  profilePicture?: any; // File, string (URL), or byte[]
+  // File while editing in the form, or a string (URL / binary text) from the API.
+  profilePicture?: File | string | null;
   active: boolean;
 }
 

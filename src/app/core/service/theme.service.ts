@@ -1,5 +1,5 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 export type Theme = 'light' | 'dark';
@@ -18,15 +18,13 @@ const STORAGE_KEY = 'library-theme';
   providedIn: 'root'
 })
 export class ThemeService {
-  private readonly themeSubject: BehaviorSubject<Theme>;
-  public readonly currentTheme$: Observable<Theme>;
+  private readonly document = inject(DOCUMENT);
+  private readonly platformId = inject(PLATFORM_ID);
 
-  constructor(
-    @Inject(DOCUMENT) private document: Document,
-    @Inject(PLATFORM_ID) private platformId: object
-  ) {
-    this.themeSubject = new BehaviorSubject<Theme>(this.readInitialTheme());
-    this.currentTheme$ = this.themeSubject.asObservable();
+  private readonly themeSubject = new BehaviorSubject<Theme>(this.readInitialTheme());
+  public readonly currentTheme$: Observable<Theme> = this.themeSubject.asObservable();
+
+  constructor() {
     this.applyTheme(this.themeSubject.value);
   }
 

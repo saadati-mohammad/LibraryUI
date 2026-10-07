@@ -186,7 +186,7 @@ export class BookComponent implements OnInit, OnDestroy {
         columnDef: 'bookCover',
         header: 'جلد',
         isImageColumn: true,
-        imageSrc: (element: BookModel) => element.bookCoverFile,
+        imageSrc: (element: BookModel) => typeof element.bookCoverFile === 'string' ? element.bookCoverFile : null,
         defaultImage: './assets/pics/default-pic.png', // تصویر پیش‌فرض مخصوص کتاب
         cell: (element: BookModel) => `جلد کتاب ${element.title}` // برای متن alt
       },
@@ -270,7 +270,7 @@ export class BookComponent implements OnInit, OnDestroy {
       this.currentEditingBookId = book.id ?? null;
       const { bookCoverFile, ...bookDetailsToPatch } = book;
       this.bookForm.patchValue(bookDetailsToPatch);
-      this.selectedFile = book.bookCoverFile instanceof File ? book.bookCoverFile : this.convertBinaryToFile(book.bookCoverFile, 'profile.jpg', 'image/jpeg');
+      this.selectedFile = book.bookCoverFile instanceof File ? book.bookCoverFile : this.convertBinaryToFile(book.bookCoverFile ?? null, 'profile.jpg', 'image/jpeg');
 
       if (book.bookCoverFile) {
         try {
@@ -308,7 +308,7 @@ export class BookComponent implements OnInit, OnDestroy {
     this.isBookModalVisible = true;
   }
 
-convertBinaryToFile(binaryData: string, fileName: string, mimeType: string): File | null {
+convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mimeType: string): File | null {
     return base64ToFile(binaryData, fileName, mimeType);
   }
 

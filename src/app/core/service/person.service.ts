@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PersonFilterModel, PersonModel } from '../model/personModel';
@@ -12,7 +12,7 @@ export class PersonService {
   readonly baseUrl: string = `${environment.apiUrl}/person`;
   readonly baseUrlExcel: string = `${environment.apiUrl}`;
 
-  constructor(private http: HttpClient) { }
+  private readonly http = inject(HttpClient);
 
   getPersonList(
     filters?: Partial<PersonFilterModel>,

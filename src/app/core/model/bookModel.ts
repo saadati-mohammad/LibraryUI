@@ -16,7 +16,9 @@ export interface BookModel {
   language?: string | null;
   edition?: string | null;
   active: boolean;
-  bookCoverFile?: any; // می‌تواند File یا string (URL) یا byte[] باشد. در فرم File است.
+  // File while editing in the form, or a string (URL / binary text) when it comes back
+  // from the API.
+  bookCoverFile?: File | string | null;
   copyCount?: number | null;
   librarySection?: string | null;
   shelfCode?: string | null;

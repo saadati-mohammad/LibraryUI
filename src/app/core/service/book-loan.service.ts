@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { BookLoanFilterModel, BookLoanModel, CreateLoanRequest } from '../model/bookLoanModel';
@@ -12,7 +12,7 @@ import { PaginatedResponse } from '../model/paginated-response.model';
 export class BookLoanService {
   readonly baseUrl: string = `${environment.apiUrl}/loan`;
 
-  constructor(private http: HttpClient) { }
+  private readonly http = inject(HttpClient);
 
   getLoanList(
     filters?: Partial<BookLoanFilterModel>,

@@ -132,7 +132,7 @@ export class PersonComponent implements OnInit, OnDestroy {
         columnDef: 'profilePicture',
         header: 'عکس',
         isImageColumn: true,
-        imageSrc: (element: PersonModel) => element.profilePicture,
+        imageSrc: (element: PersonModel) => typeof element.profilePicture === 'string' ? element.profilePicture : null,
         defaultImage: './assets/pics/default-pic.png', // تصویر پیش‌فرض مخصوص پروفایل
         cell: (element: PersonModel) => `پروفایل ${element.firstName} ${element.lastName}` // برای متن alt
       },
@@ -193,7 +193,7 @@ export class PersonComponent implements OnInit, OnDestroy {
       this.currentEditingPersonId = person.id ?? null;
       const { profilePicture, ...personDetails } = person;
       this.personForm.patchValue(personDetails);
-      this.selectedFile = profilePicture instanceof File ? profilePicture : this.convertBinaryToFile(profilePicture, 'profile.jpg', 'image/jpeg');
+      this.selectedFile = profilePicture instanceof File ? profilePicture : this.convertBinaryToFile(profilePicture ?? null, 'profile.jpg', 'image/jpeg');
       if (profilePicture) {
         try {
           // اگر رشته است
@@ -230,7 +230,7 @@ export class PersonComponent implements OnInit, OnDestroy {
     this.isPersonModalVisible = true;
   }
 
-  convertBinaryToFile(binaryData: string, fileName: string, mimeType: string): File | null {
+  convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mimeType: string): File | null {
     return base64ToFile(binaryData, fileName, mimeType);
   }
 
