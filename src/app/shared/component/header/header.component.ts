@@ -3,7 +3,7 @@ import { RouterModule, Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDivider } from '@angular/material/divider';
+import { MatMenuModule } from '@angular/material/menu';
 import { NgForOf } from '@angular/common';
 import { AuthService } from '../../../core/service/auth.service';
 
@@ -20,7 +20,7 @@ interface NavLink {
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
-    MatDivider,
+    MatMenuModule,
     NgForOf,
   ],
   templateUrl: './header.component.html',
