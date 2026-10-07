@@ -1,14 +1,15 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
+import { provideTestProviders } from './testing/test-providers';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      // The root component renders a router outlet via BaseLayoutComponent, so a
-      // router provider is required for the component to instantiate in tests.
-      providers: [provideRouter([])],
+      // The root component renders the base layout, which includes the header. The
+      // header injects AuthService -> HttpClient, so the shared test providers (router,
+      // HttpClient, animations) are required for the component tree to instantiate.
+      providers: provideTestProviders(),
     }).compileComponents();
   });
 

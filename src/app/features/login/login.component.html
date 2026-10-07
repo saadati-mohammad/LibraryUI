@@ -1,0 +1,31 @@
+<div class="login-page">
+  <mat-card class="login-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>ورود به سامانه کتابخانه</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="login-form">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>نام کاربری</mat-label>
+          <input matInput name="username" [(ngModel)]="username" autocomplete="username"
+                 required aria-label="نام کاربری" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>رمز عبور</mat-label>
+          <input matInput type="password" name="password" [(ngModel)]="password"
+                 autocomplete="current-password" required aria-label="رمز عبور" />
+        </mat-form-field>
+
+        @if (error()) {
+          <p class="login-error" role="alert">{{ error() }}</p>
+        }
+
+        <button mat-flat-button color="primary" type="submit" class="full-width"
+                [disabled]="!canSubmit">
+          {{ loading() ? 'در حال ورود…' : 'ورود' }}
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,17 +1,18 @@
-import {Component} from '@angular/core';
-import {RouterModule} from '@angular/router';
-import {MatToolbarModule} from '@angular/material/toolbar';
-import {MatButtonModule} from '@angular/material/button';
-import {MatIconModule} from '@angular/material/icon';
-import {MatMenu, MatMenuItem, MatMenuTrigger} from '@angular/material/menu';
-import {MatDivider} from '@angular/material/divider';
-import {NgForOf} from '@angular/common';
+import { Component, inject } from '@angular/core';
+import { RouterModule, Router } from '@angular/router';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDivider } from '@angular/material/divider';
+import { NgForOf } from '@angular/common';
+import { AuthService } from '../../../core/service/auth.service';
 
 interface NavLink {
   path: string;
   label: string;
   icon: string;
 }
+
 @Component({
   selector: 'app-header',
   imports: [
@@ -19,31 +20,27 @@ interface NavLink {
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
-    NgForOf
+    MatDivider,
+    NgForOf,
   ],
   templateUrl: './header.component.html',
-  styleUrl: './header.component.css'
+  styleUrl: './header.component.css',
 })
 export class HeaderComponent {
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  /** Signed-in operator name, shown in the toolbar. */
+  readonly userName = this.auth.username;
+
   navLinks: NavLink[] = [
-    // { path: '/dashboard', label: 'داشبورد', icon: 'dashboard' },
     { path: '/book', label: 'کتاب‌ها', icon: 'menu_book' },
     { path: '/person', label: 'اعضا', icon: 'groups' },
     { path: '/loan', label: 'امانت‌ها', icon: 'assignment_return' },
-    // { path: '/chat', label: 'پیام ها', icon: 'chat' },
-    // { path: '/reservation', label: 'رزروها', icon: 'event_note' },
-    // { path: '/report', label: 'گزارش‌ها', icon: 'bar_chart' },
-    // { path: '/systemSetting', label: 'تنظیمات', icon: 'settings' }
   ];
 
-  // در صورت نیاز به اطلاعات کاربر یا لوگو در آینده
-  userName = 'نام کاربر'; // مثال
-  userRole = 'نقش کاربر'; // مثال
-  logoUrl = 'assets/logo.png'; // مسیر لوگوی خود را قرار دهید
-
-  constructor() { }
-
-  logout() {
-
+  logout(): void {
+    this.auth.logout();
+    void this.router.navigate(['/login']);
   }
 }

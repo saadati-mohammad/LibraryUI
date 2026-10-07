@@ -1,0 +1,30 @@
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--mat-sys-surface-container, #f4f4f4);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.login-error {
+  color: var(--mat-sys-error, #b3261e);
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+}
