@@ -10,10 +10,10 @@
 >
   <div class="modal" #modalContent [style.maxWidth]="maxWidth">
     <div class="modal-header">
-      <h3 class="modal-title" [id]="'modalTitle-' + title">
+      <h2 class="modal-title" [id]="'modalTitle-' + title">
         {{ title }}
         <span *ngIf="titleAccent" class="page-title-accent">{{ titleAccent }}</span>
-      </h3>
+      </h2>
       <button
         mat-icon-button
         class="modal-close-btn"

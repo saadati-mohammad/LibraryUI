@@ -12,6 +12,15 @@
   max-width: 24rem;
 }
 
+/* h1 is used for the page's main heading (a11y); keep it visually identical to the
+   Material card title it replaced. */
+.login-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.75rem;
+}
+
 .login-form {
   display: flex;
   flex-direction: column;
