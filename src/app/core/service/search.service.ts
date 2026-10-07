@@ -70,16 +70,38 @@ export class SearchService {
   }
 
   // هایلایت کردن کلمات جستجو
+  //
+  // SECURITY: `text` is user-authored message content. The result is rendered with
+  // [innerHTML], so every character of the source text MUST be HTML-escaped before the
+  // <mark> wrapper is added — otherwise a message containing `<img onerror=...>` would
+  // execute in every viewer's browser (stored XSS). Only the wrapper is literal HTML.
   highlightSearchTerm(text: string, searchTerm: string): string {
-    if (!searchTerm) return text;
+    if (!searchTerm) {
+      return this.escapeHtml(text);
+    }
 
     const regex = new RegExp(`(${this.escapeRegExp(searchTerm)})`, 'gi');
-    return text.replace(regex, '<mark class="search-term-highlight">$1</mark>');
+    return text
+      .split(regex)
+      .map(part => regex.test(part)
+        ? `<mark class="search-term-highlight">${this.escapeHtml(part)}</mark>`
+        : this.escapeHtml(part))
+      .join('');
   }
 
   // فرار از کاراکترهای خاص regex
   private escapeRegExp(string: string): string {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  // فرار از کاراکترهای HTML تا محتوای کاربر به‌صورت مارک‌آپ تفسیر نشود
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // دریافت نتایج فعلی

@@ -19,7 +19,6 @@ import { SearchCriteria } from '../../core/interface/search-criteria.interface';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { FileSizePipe } from "../../shared/pipe/file-size.pipe";
-import { SafeHtmlPipe } from "../../shared/pipe/safe-html.pipe";
 
 // WebSocket Message interface
 interface WebSocketMessage {
@@ -45,7 +44,7 @@ interface WebSocketMessage {
     selector: 'app-chat',
     templateUrl: './chat.component.html',
     standalone: true,
-    imports: [FormsModule, CommonModule, FileSizePipe, SafeHtmlPipe],
+    imports: [FormsModule, CommonModule, FileSizePipe],
     styleUrls: ['./chat.component.css']
 })
 export class ChatComponent implements OnInit, OnDestroy {
@@ -1788,16 +1787,16 @@ export class ChatComponent implements OnInit, OnDestroy {
             });
     }
     private showNotification(title: string, message: string, type: 'success' | 'error' | 'info' = 'info'): void {
-        // اینجا می‌توانید از کتابخانه toast استفاده کنید
-        console.log(`${type.toUpperCase()}: ${title} - ${message}`);
-
-        // یا یک نمایش ساده
+        // Build DOM nodes with textContent instead of innerHTML so the title/message
+        // (which may echo server or user input) can never be interpreted as markup.
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-    <strong>${title}</strong><br>
-    ${message}
-  `;
+
+        const titleEl = document.createElement('strong');
+        titleEl.textContent = title;
+        notification.appendChild(titleEl);
+        notification.appendChild(document.createElement('br'));
+        notification.appendChild(document.createTextNode(message));
 
         document.body.appendChild(notification);
 
