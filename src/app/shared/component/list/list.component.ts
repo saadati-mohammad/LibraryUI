@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, TemplateRef, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, TemplateRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -8,26 +8,35 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DomSanitizer, SafeHtml, SafeUrl } from '@angular/platform-browser';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-export interface TableColumn {
+/**
+ * A table row. The list is generic over the features' models; callers pass their
+ * own typed model (BookModel/PersonModel/BookLoanModel) and the accessor callbacks
+ * narrow it. `any` is deliberate here: the shared component is model-agnostic, and
+ * the callers' concrete callback signatures (e.g. `(element: BookModel) => string`)
+ * must be assignable to these fields. A narrower type would reject every call site.
+ */
+export type TableRow = any;
+
+export interface TableColumn<T = TableRow> {
   columnDef: string; // نام پراپرتی در آبجکت داده
   header: string;    // متنی که در هدر نمایش داده می‌شود
-  cell: (element: any) => string; // تابعی برای نمایش محتوای سلول
-  cellClass?: (element: any) => string; // برای کلاس‌دهی خاص به سلول‌ها (مثلا برای badge)
+  cell: (element: T) => string; // تابعی برای نمایش محتوای سلول
+  cellClass?: (element: T) => string; // برای کلاس‌دهی خاص به سلول‌ها (مثلا برای badge)
   isSticky?: boolean; // برای ستون‌های چسبان (sticky)
   isStickyEnd?: boolean; // برای ستون‌های چسبان در انتها (مانند عملیات)
   isImageColumn?: boolean; // برای شناسایی ستون تصویر
-  imageSrc?: (element: any) => string | null; // برای دریافت منبع تصویر
+  imageSrc?: (element: T) => string | null; // برای دریافت منبع تصویر
   defaultImage?: string; // مسیر تصویر پیش‌فرض
 }
 
-export interface ActionButtonConfig {
+export interface ActionButtonConfig<T = TableRow> {
   icon: string;
   tooltip: string;
   actionId: string; // برای شناسایی دکمه کلیک شده
   color?: 'primary' | 'accent' | 'warn'; // رنگ دکمه متریال
-  disabled?: (element: any) => boolean;
-  condition?: (element: any) => boolean; // شرط نمایش دکمه
-  onClick?: (element: any, event: MouseEvent) => void; // تابعی برای کلیک روی دکمه
+  disabled?: (element: T) => boolean;
+  condition?: (element: T) => boolean; // شرط نمایش دکمه
+  onClick?: (element: T, event: MouseEvent) => void; // تابعی برای کلیک روی دکمه
 }
 @Component({
   selector: 'app-list',
@@ -46,7 +55,6 @@ export class ListComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() tableTitle?: string;
   @Input() columns: TableColumn[] = [];
   @Input() data: any[] = [];
-  // @Input() actionButtons: ActionButtonConfig[] = [];
   @Input() pageSizeOptions: number[] = [5, 10, 25, 100];
   @Input() showPaginator = false;
   @Input() actionsTemplate: TemplateRef<any> | null = null;
@@ -63,13 +71,13 @@ export class ListComponent implements OnInit, AfterViewInit, OnChanges {
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
+  private readonly sanitizer = inject(DomSanitizer);
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['data'] || changes['columns'] || changes['actionsTemplate']) {
       this.setupTable();
     }
   }
-
-  constructor(private sanitizer: DomSanitizer) { }
 
   ngOnInit(): void {
     // this.setupTable(); // به ngOnChanges منتقل شد تا با تغییرات ورودی هم آپدیت شود
@@ -103,7 +111,6 @@ export class ListComponent implements OnInit, AfterViewInit, OnChanges {
 
   onActionClick(actionId: string, element: any, event: MouseEvent): void {
     event.stopPropagation(); // جلوگیری از تریگر شدن رویداد کلیک روی سطر
-    // TODO: Emit an event or handle action here
     this.actionClicked.emit({ actionId, element });
   }
 
@@ -125,7 +132,7 @@ export class ListComponent implements OnInit, AfterViewInit, OnChanges {
     }
     return true; // Default to visible
   }
-  
+
   handleImageError(event: Event, defaultImage: string | undefined): void {
     const element = event.target as HTMLImageElement;
     if (element) {
