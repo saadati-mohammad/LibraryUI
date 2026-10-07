@@ -10,13 +10,16 @@
   background-color: #0a192f;
   color: #ccd6f6;
   height: 64px;
-  padding: 0 24px;
+  padding: 0 16px;
+  max-width: 100vw;
+  overflow: hidden;
 
   .header-content {
     display: flex;
     align-items: center;
     width: 100%;
-    flex-direction: column;
+    flex-direction: row;
+    gap: 8px;
   }
 
   .logo-container {
@@ -40,11 +43,23 @@
   .nav-links-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
+    /* Allow the nav to shrink below its content width and scroll on very narrow
+       viewports instead of pushing the toolbar wider than the screen. */
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
 
     a[mat-button] {
       color: #d7d7d7;
-      padding: 8px 16px;
+      padding: 8px 12px;
+      flex: 0 0 auto;
       border-radius: 8px;
       transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
       line-height: normal;
