@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -32,11 +32,9 @@ export class LoginComponent {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
-  constructor(
-    private readonly auth: AuthService,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-  ) {}
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   get canSubmit(): boolean {
     return this.username.trim().length > 0 && this.password.length > 0 && !this.loading();

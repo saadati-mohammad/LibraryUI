@@ -11,7 +11,7 @@ import {
   ViewChild,
   AfterViewInit,
   Renderer2,
-  Inject,
+  inject,
   PLATFORM_ID
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -49,15 +49,9 @@ export class ModalComponent implements OnChanges, AfterViewInit {
   private lastFocusableElement: HTMLElement | null = null;
   private previouslyFocusedElement: HTMLElement | null = null;
 
-  private isBrowser: boolean;
-
-  constructor(
-    private renderer: Renderer2,
-    private el: ElementRef,
-    @Inject(PLATFORM_ID) platformId: object
-  ) {
-    this.isBrowser = isPlatformBrowser(platformId);
-  }
+  private readonly renderer = inject(Renderer2);
+  private readonly el = inject(ElementRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isVisible'] && this.isBrowser) {
