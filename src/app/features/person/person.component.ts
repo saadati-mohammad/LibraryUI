@@ -18,7 +18,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subscription, Subject, debounceTime, distinctUntilChanged, tap, Observable } from 'rxjs';
 import { PersonModel, PersonFilterModel } from '../../core/model/personModel';
-import { PaginatedResponse, PersonService } from '../../core/service/person.service';
+import { PersonService } from '../../core/service/person.service';
+import { PaginatedResponse } from '../../core/model/paginated-response.model';
 
 export enum FormOperation {
   ADD = 'ADD',
@@ -366,8 +367,10 @@ export class PersonComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.isImporting = false;
-        this.snackBar.open(err.error, 'بستن', { duration: 5000, direction: 'rtl' });
-        this.importError = err.error?.message || 'خطا در بارگذاری فایل.';
+        // The backend now returns a JSON envelope, so `err.error` is an object.
+        const message = err.error?.message || 'خطا در بارگذاری فایل.';
+        this.snackBar.open(message, 'بستن', { duration: 5000, direction: 'rtl' });
+        this.importError = message;
         console.error(err);
       }
     });

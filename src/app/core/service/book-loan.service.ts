@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { BookLoanFilterModel, BookLoanModel, CreateLoanRequest } from '../model/bookLoanModel';
-import { PaginatedResponse } from './book.service';
+import { PaginatedResponse } from '../model/paginated-response.model';
 
 
 @Injectable({
@@ -28,7 +28,9 @@ export class BookLoanService {
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== null && value !== undefined && value !== '') {
-          params = params.append(key, value);
+          // Coerce to string: HttpParams rejects non-string values and `false`/`0`
+          // would otherwise be dropped or stringified inconsistently.
+          params = params.append(key, String(value));
         }
       });
     }

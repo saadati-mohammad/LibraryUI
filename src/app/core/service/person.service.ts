@@ -3,15 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PersonFilterModel, PersonModel } from '../model/personModel';
-
-// اینترفیس PaginatedResponse را می‌توان در یک فایل مشترک قرار داد
-export interface PaginatedResponse<T> {
-  content: T[];
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number;
-}
+import { ExcelImportResult, PaginatedResponse } from '../model/paginated-response.model';
 
 @Injectable({
   providedIn: 'root'
@@ -35,9 +27,11 @@ export class PersonService {
 
     if (filters) {
       Object.keys(filters).forEach(key => {
-        const value = (filters as any)[key];
+        const value = (filters as Record<string, unknown>)[key];
         if (value !== null && value !== undefined && value !== '') {
-          params = params.append(key, value);
+          // HttpParams only accepts strings; coerce booleans/numbers explicitly so
+          // `false` and `0` are transmitted correctly instead of being coerced ad hoc.
+          params = params.append(key, String(value));
         }
       });
     }
@@ -79,12 +73,11 @@ export class PersonService {
     return this.http.get<PersonModel>(`${this.baseUrl}/${id}`);
   }
 
-  importPersonsFromExcel(file: File): Observable<any> {
+  importPersonsFromExcel(file: File): Observable<ExcelImportResult> {
     const formData = new FormData();
     formData.append('file', file, file.name);
     const url = `${this.baseUrlExcel}/excel-import/persons`;
-    return this.http.post(url, formData, {
-      responseType: 'text'
-    });
+    // Backend returns a JSON envelope: { success, imported, message }.
+    return this.http.post<ExcelImportResult>(url, formData);
   }
 }

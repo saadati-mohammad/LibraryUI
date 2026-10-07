@@ -3,32 +3,22 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { Observable } from 'rxjs';
 import { BookFilterModel, BookModel } from '../model/bookModel';
-
-
-export interface PaginatedResponse<T> {
-  content: T[];
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number; // current page number (0-indexed)
-  // ... other pagination properties if available
-}
+import { ExcelImportResult, PaginatedResponse } from '../model/paginated-response.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BookService {
-  readonly baseUrl: string = `${environment.apiUrl}/book`
-  readonly baseUrlٍExcel: string = `${environment.apiUrl}`
+  readonly baseUrl: string = `${environment.apiUrl}/book`;
+  readonly baseUrlExcel: string = `${environment.apiUrl}`;
 
   constructor(private http: HttpClient) { }
 
-  // --- BEGIN MODIFICATION ---
   getBookList(
-    filters?: Partial<BookFilterModel>, // استفاده از BookFilterModel
+    filters?: Partial<BookFilterModel>,
     page: number = 0,
     size: number = 10,
-    sort: string = 'id,desc' // مثلاً id,asc یا title,desc
+    sort: string = 'id,desc'
   ): Observable<PaginatedResponse<BookModel>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -37,14 +27,10 @@ export class BookService {
 
     if (filters) {
       Object.keys(filters).forEach(key => {
-        const value = (filters as any)[key];
+        const value = (filters as Record<string, unknown>)[key];
         if (value !== null && value !== undefined && value !== '') {
-          // برای فیلدهای boolean، اگر false هم باشد باید ارسال شود
-          if (typeof value === 'boolean') {
-            params = params.append(key, value.toString());
-          } else {
-            params = params.append(key, value);
-          }
+          // Coerce booleans/numbers to string so `false` and `0` are actually sent.
+          params = params.append(key, String(value));
         }
       });
     }
@@ -107,16 +93,13 @@ export class BookService {
     return this.http.get<BookModel>(`${this.baseUrl}/${id}`);
   }
 
-  importBooksFromExcel(file: File): Observable<any> {
-  const formData = new FormData();
-  formData.append('file', file, file.name);
+  importBooksFromExcel(file: File): Observable<ExcelImportResult> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
 
-  // Endpoint بر اساس کنترلر جاوا که ارائه دادید
-  const url = `${this.baseUrlٍExcel}/excel-import/books`;
+    const url = `${this.baseUrlExcel}/excel-import/books`;
 
-  // بک‌اند شما یک رشته متنی برمی‌گرداند، بنابراین responseType را 'text' قرار می‌دهیم.
-  return this.http.post(url, formData, {
-    responseType: 'text'
-  });
-}
+    // Backend returns a JSON envelope: { success, imported, message }.
+    return this.http.post<ExcelImportResult>(url, formData);
+  }
 }
