@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, HostListener, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, inject, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 
 import { Subject } from 'rxjs';
 
@@ -19,6 +19,7 @@ import { SearchCriteria } from '../../core/interface/search-criteria.interface';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { FileSizePipe } from "../../shared/pipe/file-size.pipe";
+import { LoggerService } from '../../core/service/logger.service';
 
 // WebSocket Message interface
 interface WebSocketMessage {
@@ -48,6 +49,9 @@ interface WebSocketMessage {
     styleUrls: ['./chat.component.css']
 })
 export class ChatComponent implements OnInit, OnDestroy {
+    // Diagnostic logs are suppressed in production builds; warnings/errors still print.
+    private logger = inject(LoggerService);
+
     @ViewChild('chatContainer') chatContainer!: ElementRef;
     @ViewChild('chatInput') chatInput!: ElementRef;
     @ViewChild('fileInput') fileInput!: ElementRef;
@@ -186,7 +190,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         console.warn('خطا در ارسال پیام:', wsMessage.message);
     }
     private handleWebSocketConnect(): void {
-        console.log('WebSocket connected');
+        this.logger.debug('WebSocket connected');
         this.connected = true;
         this.isReconnecting = false;
         this.reconnectAttempts = 0;
@@ -203,7 +207,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     private handleWebSocketDisconnect(): void {
-        console.log('WebSocket disconnected');
+        this.logger.debug('WebSocket disconnected');
         this.connected = false;
     }
 
@@ -216,7 +220,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
             this.markPendingMessagesAsFailed();
 
-            console.log(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+            this.logger.debug(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
             setTimeout(() => {
                 if (!this.client.connected) {
@@ -260,7 +264,7 @@ export class ChatComponent implements OnInit, OnDestroy {
                 this.handleIncomingWebSocketMessage(msg);
             });
 
-            console.log(`Subscribed to user messages: ${username}`);
+            this.logger.debug(`Subscribed to user messages: ${username}`);
         } catch (error) {
             console.error('Error subscribing to user messages:', error);
         }
@@ -276,7 +280,7 @@ export class ChatComponent implements OnInit, OnDestroy {
             }
 
             this.processedMessageIds.add(wsMessage.id);
-            console.log('Processing WebSocket message:', wsMessage.messageType, wsMessage.id);
+            this.logger.debug('Processing WebSocket message:', wsMessage.messageType, wsMessage.id);
 
             const message = this.convertWebSocketMessageToMessage(wsMessage);
 
@@ -308,7 +312,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         }
     }
     private handleSentConfirmation(message: Message, wsMessage: WebSocketMessage): void {
-        console.log('Handling sent confirmation for:', wsMessage.id);
+        this.logger.debug('Handling sent confirmation for:', wsMessage.id);
 
         const existingIndex = this.chatState.messages.findIndex(m =>
             m.status === 'pending' && m.sender === wsMessage.sender
@@ -562,7 +566,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         // بررسی اینکه آیا در حال پاسخ دادن هستیم
         const isReplyMessage = !!this.chatState.replyingToMessage;
 
-        console.log('Sending message:', { text, isReply: isReplyMessage });
+        this.logger.debug('Sending message:', { text, isReply: isReplyMessage });
 
         if (this.selectedFile) {
             this.uploadFileAndSendMessage(text);
@@ -577,7 +581,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         const timestamp = Date.now();
         const replyToMessage = this.chatState.replyingToMessage;
 
-        console.log('Sending text message with reply to:', replyToMessage?.id);
+        this.logger.debug('Sending text message with reply to:', replyToMessage?.id);
 
         // ایجاد پیام محلی
         const localMessage: Message = {
@@ -648,7 +652,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         // ارسال از طریق WebSocket
         if (this.connected && this.client) {
             try {
-                console.log('Sending via WebSocket:', wsMessage);
+                this.logger.debug('Sending via WebSocket:', wsMessage);
                 this.client.publish({
                     destination: '/app/chat.send',
                     body: JSON.stringify(wsMessage)
@@ -708,7 +712,7 @@ export class ChatComponent implements OnInit, OnDestroy {
             return;
         }
 
-        console.log('File upload not implemented yet');
+        this.logger.debug('File upload not implemented yet');
         this.addMockMessageWithFile(text);
     }
 
@@ -907,7 +911,7 @@ export class ChatComponent implements OnInit, OnDestroy {
             return;
         }
 
-        console.log('Performing search with criteria:', criteria);
+        this.logger.debug('Performing search with criteria:', criteria);
 
         // ساخت URL با query parameters
         const queryParams = new URLSearchParams();
@@ -930,7 +934,7 @@ export class ChatComponent implements OnInit, OnDestroy {
                 if (response.success) {
                     this.searchResults = response.data.content.map((msg: any) => this.mapBackendMessageToFrontend(msg));
                     this.updateSearchResults();
-                    console.log(`Found ${this.searchResults.length} messages`);
+                    this.logger.debug(`Found ${this.searchResults.length} messages`);
                 } else {
                     throw new Error(response.message || 'Search failed');
                 }
@@ -1036,7 +1040,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
         navigator.clipboard.writeText(messageInfo)
             .then(() => {
-                console.log('Message copied to clipboard');
+                this.logger.debug('Message copied to clipboard');
                 // می‌توانید یک toast notification نمایش دهید
             })
             .catch(err => {
@@ -1112,7 +1116,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         });
 
         this.closeForwardModal();
-        console.log(`Message forwarded to ${this.selectedContacts.size} contacts`);
+        this.logger.debug(`Message forwarded to ${this.selectedContacts.size} contacts`);
     }
 
     closeForwardModal(): void {
@@ -1122,7 +1126,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     // Edit functionality
     startEdit(message: Message): void {
-        console.log('Starting edit for message:', message.id);
+        this.logger.debug('Starting edit for message:', message.id);
 
         // بررسی اینکه آیا این پیام قابل ویرایش است
         if (message.type !== 'user' || message.deleted || message.file) {
@@ -1139,7 +1143,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     cancelEdit(): void {
-        console.log('Cancelling edit');
+        this.logger.debug('Cancelling edit');
         this.chatService.setEditingMessage(undefined);
         this.messageText = '';
         this.showEditPreview = false;
@@ -1148,7 +1152,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     // Reply functionality
     hideReplyPreview(): void {
-        console.log('Hiding reply preview');
+        this.logger.debug('Hiding reply preview');
         this.chatService.setReplyingToMessage(undefined);
         this.showReplyPreview = false;
     }
@@ -1188,7 +1192,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
         this.clearSearchHighlights();
 
-        console.log('Search cleared');
+        this.logger.debug('Search cleared');
     }
 
     goToPreviousSearchResult(): void {
@@ -1227,7 +1231,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     downloadFile(file: FileAttachment): void {
         if (file.id) {
-            console.log('Downloading file:', file.name);
+            this.logger.debug('Downloading file:', file.name);
         } else if (file.blob) {
             const url = URL.createObjectURL(file.blob);
             const a = document.createElement('a');
@@ -1603,7 +1607,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
         this.searchResults = results;
         this.updateSearchResults();
-        console.log(`Local search found ${this.searchResults.length} messages`);
+        this.logger.debug(`Local search found ${this.searchResults.length} messages`);
     }
 
     validateSearchSender(): boolean {
