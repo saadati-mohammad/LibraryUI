@@ -269,7 +269,8 @@ export class BookComponent implements OnInit, OnDestroy {
     if ((operation === FormOperation.UPDATE || operation === FormOperation.VIEW) && book) {
       this.currentEditingBookId = book.id ?? null;
       // Omit the binary/file field from the form patch; it is handled separately below.
-      const { bookCoverFile: _bookCoverFile, ...bookDetailsToPatch } = book;
+      const bookDetailsToPatch: Partial<BookModel> = { ...book };
+      delete bookDetailsToPatch.bookCoverFile;
       this.bookForm.patchValue(bookDetailsToPatch);
       this.selectedFile = book.bookCoverFile instanceof File ? book.bookCoverFile : this.convertBinaryToFile(book.bookCoverFile ?? null, 'profile.jpg', 'image/jpeg');
 
