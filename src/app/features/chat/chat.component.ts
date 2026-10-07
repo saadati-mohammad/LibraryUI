@@ -1805,7 +1805,11 @@ export class ChatComponent implements OnInit, OnDestroy {
         document.body.appendChild(notification);
 
         setTimeout(() => {
-            document.body.removeChild(notification);
+            // Guard: the node may already be gone (e.g. the view was destroyed), and
+            // removeChild throws NotFoundError if it is no longer a child.
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
         }, 3000);
     }
     private handleNetworkError(error: any, operation: string): void {
