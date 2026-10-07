@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint (fails on errors)
+        run: npx ng lint
+
       - name: Type check
         run: npx tsc --noEmit -p tsconfig.app.json
 
@@ -32,3 +35,6 @@ jobs:
 
       - name: Production build
         run: npx ng build --configuration production
+
+      - name: Production dependency audit (fail on high/critical)
+        run: npm audit --omit=dev --audit-level=high

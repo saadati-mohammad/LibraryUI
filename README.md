@@ -63,7 +63,31 @@ src/app/
   testing/        test-only helpers
 ```
 
+## Authentication
+
+The app requires a signed-in session. `AuthService` (`core/service/auth.service.ts`) calls
+`POST /api/auth/login`, stores the JWT in `localStorage`, and exposes `isAuthenticated()` and
+`getToken()`. A functional `authInterceptor` attaches the bearer token to API requests and
+signs the user out on `401`; `authGuard` redirects unauthenticated navigation to `/login`.
+The chat client passes the same token on the STOMP CONNECT frame.
+
+For local development the default dev credentials are `admin` / `admin` (see the backend
+`application-development.properties`).
+
+## End-to-end tests
+
+Playwright browser tests live in `e2e/` and drive the real UI against a running backend:
+
+```bash
+# Backend must be running on :8080 with APP_ADMIN_PASSWORD=admin
+npx playwright test --project=chromium
+npx playwright test --project=mobile
+```
+
+The config (`playwright.config.ts`) starts the Angular dev server automatically.
+
 ## Linting / formatting
 
-No ESLint config is committed yet. `npx tsc --noEmit -p tsconfig.app.json` is the
-current static check enforced in CI.
+ESLint (via `ng lint`) is configured and enforced in CI; it currently reports warnings only
+(`no-explicit-any`, `prefer-inject`, …) and no errors. `npx tsc --noEmit -p tsconfig.app.json`
+is also enforced in CI.
