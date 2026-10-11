@@ -1,31 +1,87 @@
+<header class="login-brand"><a href="/" aria-label="بازگشت به صفحهٔ اصلی کتابخانه"><span aria-hidden="true">ک</span> کتابخانه</a></header>
 <div class="login-page">
   <mat-card class="login-card" appearance="outlined">
     <mat-card-header>
       <mat-card-title><h1 class="login-title">ورود به سامانه کتابخانه</h1></mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="login-form">
+      @if (sessionExpired()) {
+        <p class="login-notice" role="status">
+          <mat-icon aria-hidden="true">schedule</mat-icon>
+          نشست شما منقضی شده است. لطفاً دوباره وارد شوید.
+        </p>
+      }
+
+      <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="login-form" novalidate>
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>نام کاربری</mat-label>
-          <input matInput name="username" [(ngModel)]="username" autocomplete="username"
-                 required aria-label="نام کاربری" />
+          <input
+            #usernameField
+            matInput
+            id="loginUsername"
+            name="username"
+            [(ngModel)]="username"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+            aria-label="نام کاربری"
+            [attr.aria-invalid]="loginForm.submitted && !username ? 'true' : null"
+            [attr.aria-describedby]="loginForm.submitted && !username ? 'loginUsernameError' : null"
+            (ngModelChange)="error.set(null)"
+          />
+          @if (loginForm.submitted && !username) {
+            <mat-error id="loginUsernameError">نام کاربری الزامی است.</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>رمز عبور</mat-label>
-          <input matInput type="password" name="password" [(ngModel)]="password"
-                 autocomplete="current-password" required aria-label="رمز عبور" />
+          <input
+            matInput
+            id="loginPassword"
+            name="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            [(ngModel)]="password"
+            autocomplete="current-password"
+            required
+            aria-label="رمز عبور"
+            [attr.aria-invalid]="loginForm.submitted && !password ? 'true' : null"
+            [attr.aria-describedby]="loginForm.submitted && !password ? 'loginPasswordError' : null"
+            (ngModelChange)="error.set(null)"
+          />
+          <!-- دکمه نمایش/مخفی‌سازی رمز با نام دسترس‌پذیر و aria-pressed -->
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            class="password-toggle"
+            [attr.aria-label]="showPassword() ? 'مخفی کردن رمز عبور' : 'نمایش رمز عبور'"
+            [attr.aria-pressed]="showPassword()"
+            [matTooltip]="showPassword() ? 'مخفی کردن رمز عبور' : 'نمایش رمز عبور'"
+            (click)="togglePasswordVisibility()"
+          >
+            <mat-icon aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (loginForm.submitted && !password) {
+            <mat-error id="loginPasswordError">رمز عبور الزامی است.</mat-error>
+          }
         </mat-form-field>
 
-        @if (error()) {
-          <p class="login-error" role="alert">{{ error() }}</p>
+        @if (error(); as message) {
+          <p class="login-error" role="alert">{{ message }}</p>
         }
 
-        <button mat-flat-button color="primary" type="submit" class="full-width"
-                [disabled]="!canSubmit">
+        <button mat-flat-button color="primary" type="submit" class="full-width submit-button"
+                [disabled]="!canSubmit" [attr.aria-busy]="loading()">
+          @if (loading()) {
+            <mat-progress-spinner diameter="20" mode="indeterminate" class="submit-spinner"
+                                  aria-hidden="true"></mat-progress-spinner>
+          }
           {{ loading() ? 'در حال ورود…' : 'ورود' }}
         </button>
       </form>
+      <p class="register-prompt">هنوز عضو کتابخانه نیستید؟ <a routerLink="/register">ایجاد حساب کاربری</a></p>
     </mat-card-content>
   </mat-card>
 </div>

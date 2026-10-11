@@ -1,6 +1,6 @@
 import { EnvironmentProviders, Provider } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
@@ -22,6 +22,6 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 export const provideTestProviders = (): (EnvironmentProviders | Provider)[] => [
   provideRouter([]),
   provideAnimationsAsync(),
-  provideHttpClient(),
+  provideHttpClient(withXhr()),
   provideHttpClientTesting(),
 ];

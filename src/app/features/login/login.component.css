@@ -1,11 +1,18 @@
 .login-page {
-  min-height: 100dvh;
+  min-height: calc(100dvh - 76px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: var(--mat-sys-surface-container, #f4f4f4);
+  background: var(--app-light-bg-primary);
 }
+
+.login-brand { max-width: 100%; padding: 16px max(16px, calc((100vw - 1180px) / 2)); background: #f5f7f2; }
+.login-brand a { display: inline-flex; align-items: center; gap: 9px; color: #183c33; text-decoration: none; font-weight: 800; font-size: 1.15rem; }
+.login-brand span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: #155e4b; color: #fff; }
+
+.register-prompt { margin: 1rem 0 0; text-align: center; color: var(--app-light-text-secondary); font-size: .9rem; }
+.register-prompt a { color: #155e4b; font-weight: 700; }
 
 .login-card {
   width: 100%;
@@ -32,8 +39,51 @@
   width: 100%;
 }
 
+/* Session-expiry notice (the interceptor redirects here with ?reason=session-expired
+   instead of opening a snackbar, which kept MatSnackBar in the initial bundle). */
+.login-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--app-border-radius-small);
+  background-color: #fff4e5;
+  border: 1px solid #f0b46b;
+  /* #7a4a06 on #fff4e5 is ~7:1 — AA for body text. */
+  color: #7a4a06;
+  font-size: 0.875rem;
+}
+
+.login-notice mat-icon {
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
 .login-error {
-  color: var(--mat-sys-error, #b3261e);
+  color: #b3261e;
   margin: 0 0 0.5rem;
   font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.submit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.submit-spinner {
+  display: inline-block;
+}
+
+.submit-spinner circle {
+  stroke: currentColor;
+}
+
+.password-toggle {
+  color: var(--app-light-text-secondary);
 }
