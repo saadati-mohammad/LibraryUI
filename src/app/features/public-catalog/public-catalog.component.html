@@ -1,0 +1,21 @@
+<app-public-nav />
+<main class="catalog-page">
+  <header class="page-intro"><p class="eyebrow">قفسه‌های کتابخانه</p><h1>فهرست کتاب‌ها</h1><p>عنوان، نویسنده یا موضوعی را جست‌وجو کنید.</p></header>
+  <form class="filters" (submit)="$event.preventDefault(); submitSearch(search.value)">
+    <label class="search-field"><span class="visually-hidden">جست‌وجوی کتاب</span><input #search type="search" [value]="query()" placeholder="مثلاً: ادبیات، نویسنده یا عنوان"></label>
+    <label class="select-field"><span>موضوع</span><select [value]="subject()" (change)="chooseSubject($any($event.target).value)"><option value="">همهٔ موضوع‌ها</option>@for (category of categories(); track category.name) { <option [value]="category.name">{{ category.name }}</option> }</select></label>
+    <label class="select-field"><span>مرتب‌سازی</span><select [value]="sort()" (change)="changeSort($any($event.target).value)"><option value="id,desc">تازه‌ثبت‌شده</option><option value="title,asc">عنوان: الف تا ی</option><option value="author,asc">نویسنده: الف تا ی</option><option value="publicationDate,desc">سال انتشار: جدیدتر</option></select></label>
+    <button type="submit">جست‌وجو</button>
+  </form>
+  <div class="results-heading"><h2>{{ subject() || (query() ? 'نتایج جست‌وجو' : 'همهٔ عنوان‌ها') }}</h2><span>{{ totalElements() }} عنوان</span></div>
+  @if (loading()) { <p class="status" role="status">در حال دریافت کتاب‌ها…</p> }
+  @else if (error()) { <div class="status error" role="alert"><p>دریافت فهرست با مشکل روبه‌رو شد.</p><button type="button" (click)="retry()">تلاش دوباره</button></div> }
+  @else if (!books().length) { <div class="empty"><span aria-hidden="true">⌕</span><h2>کتابی پیدا نشد</h2><p>عبارت دیگری جست‌وجو کنید یا فیلتر موضوع را پاک کنید.</p><button type="button" (click)="clearFilters()">پاک‌کردن فیلترها</button></div> }
+  @else {
+    <div class="book-grid">@for (book of books(); track book.id) {
+      <a class="book-card" [routerLink]="['/books',book.id]"><div class="cover" [class.with-image]="book.hasCover">@if(book.hasCover){<img [src]="cover(book.id)" [alt]="'جلد کتاب '+book.title" loading="lazy">}@else{<span aria-hidden="true">❧</span><small>کتابخانه</small>}</div><div class="book-info"><small>{{ book.subject || 'بدون موضوع' }}</small><h3>{{ book.title }}</h3><p>{{ book.author }}</p>@if(book.publicationDate){<time>{{ book.publicationDate.slice(0,4) }}</time>}</div></a>
+    }</div>
+    <nav class="pagination" aria-label="صفحه‌بندی نتایج"><button type="button" [disabled]="page()===0" (click)="go(-1)">قبلی</button><span>صفحهٔ {{ page()+1 }} از {{ totalPages() }}</span><button type="button" [disabled]="page()+1>=totalPages()" (click)="go(1)">بعدی</button></nav>
+  }
+</main>
+<footer class="catalog-footer"><a routerLink="/">بازگشت به صفحهٔ اصلی</a></footer>

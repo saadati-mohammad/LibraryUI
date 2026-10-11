@@ -1,0 +1,54 @@
+<app-public-nav />
+<main>
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow"><span aria-hidden="true">✦</span> هر کتاب، شروع یک مسیر تازه</p>
+      <h1>کتاب بعدی‌تان<br><span>منتظر کشف شدن است.</span></h1>
+      <p class="intro">در میان عنوان‌های کتابخانه بگردید، موضوع دلخواهتان را پیدا کنید و برای امانت یا رزرو با کتابدار در ارتباط باشید.</p>
+      <form class="search-box" (submit)="$event.preventDefault(); search(query.value)">
+        <label class="visually-hidden" for="home-search">جست‌وجوی عنوان، نویسنده یا موضوع</label>
+        <span aria-hidden="true">⌕</span>
+        <input #query id="home-search" type="search" placeholder="عنوان، نویسنده یا موضوع کتاب…" autocomplete="off">
+        <button type="submit">جست‌وجو</button>
+      </form>
+      <div class="hero-actions"><a class="primary-action" routerLink="/catalog">دیدن فهرست کتاب‌ها <span aria-hidden="true">←</span></a><a class="text-action" routerLink="/login">ورود اعضا</a></div>
+      <p class="trust-note"><span aria-hidden="true">✓</span> فهرست زندهٔ کتابخانه، بدون عنوان ساختگی</p>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="sun"></div><div class="book book-back"><i></i></div><div class="book book-mid"><i></i></div><div class="book book-front"><b>دانش<br>در سفر است</b><i></i><small>کتابخانه</small></div>
+      <div class="art-caption">برای هر پرسش،<br>یک صفحهٔ تازه</div>
+    </div>
+  </section>
+
+  <section class="discovery section-wrap" aria-labelledby="new-books-title">
+    <div class="section-heading"><div><p class="eyebrow">از قفسه‌های کتابخانه</p><h2 id="new-books-title">تازه در فهرست</h2></div><a routerLink="/catalog">همهٔ کتاب‌ها <span aria-hidden="true">←</span></a></div>
+    @if (loading()) { <p class="status" role="status">در حال دریافت فهرست کتاب‌ها…</p> }
+    @else if (failed()) { <p class="status" role="alert">فهرست اکنون در دسترس نیست. دوباره تلاش کنید یا بعداً به فهرست سر بزنید.</p> }
+    @else if (books().length === 0) { <p class="status">هنوز کتابی برای نمایش ثبت نشده است. به‌زودی دوباره سر بزنید.</p> }
+    @else {
+      <div class="book-grid">
+        @for (book of books(); track book.id) {
+          <a class="book-card" [routerLink]="['/books', book.id]">
+            <div class="cover" [class.with-image]="book.hasCover">
+              @if (book.hasCover) { <img [src]="cover(book.id)" [alt]="'جلد کتاب ' + book.title" loading="lazy"> }
+              @else { <span class="cover-symbol" aria-hidden="true">❧</span><span class="cover-label">کتابخانه</span> }
+            </div>
+            <div class="book-copy"><span class="book-subject">{{ book.subject || 'عنوان منتخب' }}</span><h3>{{ book.title }}</h3><p>{{ book.author }}</p></div>
+          </a>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="categories-section" aria-labelledby="categories-title"><div class="section-wrap">
+    <div class="section-heading"><div><p class="eyebrow">از علاقه‌تان شروع کنید</p><h2 id="categories-title">موضوع‌هایی برای گشت‌وگذار</h2></div><a routerLink="/categories">همهٔ موضوع‌ها <span aria-hidden="true">←</span></a></div>
+    @if (categories().length) { <div class="category-grid">
+      @for (category of categories(); track category.name) { <a class="category-card" routerLink="/catalog" [queryParams]="{subject: category.name}"><span aria-hidden="true">✳</span><span><strong>{{ category.name }}</strong><small>{{ category.titleCount }} عنوان</small></span><b aria-hidden="true">←</b></a> }
+    </div> } @else { <p class="muted">موضوع‌ها پس از ثبت کتاب در این بخش نمایش داده می‌شوند.</p> }
+  </div></section>
+
+  <section class="how-section section-wrap" id="how-it-works" aria-labelledby="how-title"><div class="how-intro"><p class="eyebrow">شروع ساده است</p><h2 id="how-title">از جست‌وجو تا ورق زدن</h2><p>فهرست را ببینید و عنوان مناسب را پیدا کنید. برای امانت و رزرو، اعضا می‌توانند با کتابخانه وارد ارتباط شوند.</p><a routerLink="/catalog" class="primary-action">شروع جست‌وجو <span aria-hidden="true">←</span></a></div>
+    <ol class="steps"><li><span>۱</span><div><h3>کتاب را پیدا کنید</h3><p>بر اساس عنوان، نویسنده یا موضوع در فهرست جست‌وجو کنید.</p></div></li><li><span>۲</span><div><h3>وضعیت را بررسی کنید</h3><p>اطلاعات کتاب را ببینید و برای راهنمایی امانت با کتابدار در تماس باشید.</p></div></li><li><span>۳</span><div><h3>با خیال آسوده بخوانید</h3><p>اعضا می‌توانند وضعیت امانت‌ها و رزروهای خود را در پنل کتابخانه پیگیری کنند.</p></div></li></ol>
+  </section>
+</main>
+<footer class="site-footer"><div class="section-wrap footer-inner"><a class="brand" routerLink="/"><span class="brand-mark" aria-hidden="true">ک</span><span>کتابخانه</span></a><p>فهرست کتابخانه را بگردید و خواندنی بعدی‌تان را پیدا کنید.</p><nav aria-label="پیوندهای پایانی"><a routerLink="/catalog">فهرست کتاب‌ها</a><a routerLink="/categories">موضوع‌ها</a><a routerLink="/login">ورود اعضا</a></nav></div></footer>
