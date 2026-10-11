@@ -1,0 +1,25 @@
+{
+  "$comment": [
+    "Dev-server proxy. This file is the SINGLE place that knows the backend port (:8079).",
+    "The Angular app uses same-origin relative URLs (environment.apiUrl = '/api',",
+    "environment.wsUrl = '/ws-chat'), so:",
+    "  * the browser never makes a cross-origin request, which removes the CORS dependency",
+    "    that previously broke whenever the backend port or allowed origins changed;",
+    "  * the auth interceptor's URL matching against '/api' cannot silently stop matching;",
+    "  * e2e/Playwright runs work without a second origin or backend port constant.",
+    "Used by `npm start` and by the Playwright webServer command."
+  ],
+  "/api": {
+    "target": "http://localhost:8079",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/ws-chat": {
+    "target": "http://localhost:8079",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "warn"
+  }
+}

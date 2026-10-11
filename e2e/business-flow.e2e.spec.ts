@@ -4,12 +4,13 @@ import { test, expect, Page } from '@playwright/test';
  * End-to-end business flow through the real UI + API: sign in, create a book via the
  * modal, verify it persists in the list and survives a reload, then search for it.
  *
- * Assumes the backend is running on :8080 with the development admin credentials.
+ * Assumes the backend is running on :8079 (proxied by the dev server) with the
+ * development admin credentials.
  */
 async function login(page: Page): Promise<void> {
   await page.goto('/login');
   await page.getByLabel('نام کاربری').fill('admin');
-  await page.getByLabel('رمز عبور').fill('admin');
+  await page.getByRole('textbox', { name: 'رمز عبور' }).fill('admin');
   await page.getByRole('button', { name: 'ورود' }).click();
   await expect(page).toHaveURL(/\/book/, { timeout: 15_000 });
 }
@@ -52,5 +53,55 @@ test.describe('Business flow: book CRUD', () => {
 
     // With required fields empty the save button must be disabled (validation gate).
     await expect(page.getByRole('button', { name: 'ذخیره کتاب' })).toBeDisabled();
+  });
+
+  test('updates a book, then deactivates it through the confirmation dialog', async ({ page }) => {
+    await login(page);
+    const unique = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const title = `کتاب چرخه ${unique}`;
+    await page.goto('/book');
+
+    await page.getByRole('button', { name: 'افزودن کتاب جدید' }).click();
+    const modal = page.locator('app-modal').filter({ has: page.locator('#bookFormInternal') });
+    await page.locator('#bookTitleForm').fill(title);
+    await page.locator('#bookAuthorForm').fill('نویسنده آزمون');
+    await page.locator('#bookSubjectForm').fill('موضوع آزمون');
+    await page.locator('#bookIsbn10Form').fill(`6${unique.slice(-9)}`);
+    const createdPromise = page.waitForResponse((response) =>
+      response.request().method() === 'POST' && response.url().includes('/api/book'),
+    );
+    await page.getByRole('button', { name: 'ذخیره کتاب' }).click();
+    const created = await createdPromise;
+    expect(created.status()).toBe(201);
+    const book = await created.json() as { id: number };
+    expect(book.id).toBeTruthy();
+    await expect(modal).toBeHidden();
+
+    let row = page.getByRole('row').filter({ hasText: title });
+    await expect(row).toBeVisible();
+    await row.getByRole('button', { name: 'ویرایش کتاب' }).click();
+    await expect(modal).toBeVisible();
+    const updatedTitle = `${title} ویرایش‌شده`;
+    await page.locator('#bookTitleForm').fill(updatedTitle);
+    const updatedPromise = page.waitForResponse((response) =>
+      response.request().method() === 'PUT' && response.url().includes(`/api/book/${book.id}`),
+    );
+    await page.getByRole('button', { name: 'بروزرسانی کتاب' }).click();
+    expect((await updatedPromise).ok()).toBe(true);
+    await expect(modal).toBeHidden();
+    row = page.getByRole('row').filter({ hasText: updatedTitle });
+    await expect(row).toBeVisible();
+
+    await row.getByRole('button', { name: 'حذف کتاب' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    const deletedPromise = page.waitForResponse((response) =>
+      response.request().method() === 'DELETE' && response.url().includes(`/api/book/${book.id}`),
+    );
+    await dialog.getByRole('button', { name: 'حذف', exact: true }).click();
+    expect((await deletedPromise).ok()).toBe(true);
+    await expect(row).toBeHidden();
+    await page.reload();
+    await expect(page.getByRole('row').filter({ hasText: updatedTitle })).toHaveCount(0);
   });
 });

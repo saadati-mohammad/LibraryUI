@@ -22,19 +22,73 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --omit=peer
 
       - name: Lint (fails on errors)
-        run: npx ng lint
+        run: npm run lint
 
-      - name: Type check
-        run: npx tsc --noEmit -p tsconfig.app.json
+      - name: Type check application and browser tests
+        run: npm run typecheck
 
       - name: Unit tests (headless)
-        run: npx ng test --watch=false --browsers=ChromeHeadless
+        run: npm run test:ci
 
       - name: Production build
-        run: npx ng build --configuration production
+        run: npm run build
 
-      - name: Production dependency audit (fail on high/critical)
-        run: npm audit --omit=dev --audit-level=high
+      - name: Dependency audit (skip optional peer dependencies)
+        run: npm audit --omit=peer --audit-level=high
+
+  integration:
+    name: Full-stack browser tests
+    runs-on: ubuntu-latest
+    env:
+      SERVER_PORT: 8079
+      APP_ADMIN_USERNAME: admin
+      APP_ADMIN_PASSWORD: admin
+      JWT_SECRET: ci-only-signing-key-that-is-at-least-32-bytes-long
+
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install frontend dependencies without unused optional peers
+        run: npm ci --omit=peer
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Checkout backend
+        run: git clone --depth 1 https://github.com/saadati-mohammad/libraryBk.git libraryBk
+
+      - name: Start backend
+        shell: bash
+        run: |
+          chmod +x libraryBk/mvnw
+          cd libraryBk
+          nohup ./mvnw -q spring-boot:run > ../backend.log 2>&1 &
+          echo $! > ../backend.pid
+          cd ..
+          for attempt in {1..60}; do
+            status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:8079/api/book || true)
+            if [ "$status" = "401" ]; then exit 0; fi
+            sleep 2
+          done
+          cat backend.log
+          exit 1
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run desktop and mobile browser workflows
+        run: npm run e2e

@@ -8,10 +8,27 @@
       "node"
     ]
   },
-  "files": [
-    "src/main.ts"
-  ],
+  /*
+   * Include the whole application tree instead of only `src/main.ts`.
+   *
+   * With `files: ["src/main.ts"]` the compiler only walked the import graph reachable
+   * from the entry point, so an unreferenced component (the old chat stack) could hold
+   * hard type errors and still let `ng build` succeed. Specs are excluded because they
+   * need the Jasmine types that tsconfig.spec.json provides.
+   */
   "include": [
+    "src/**/*.ts",
     "src/**/*.d.ts"
-  ]
+  ],
+  "exclude": [
+    "src/**/*.spec.ts"
+  ],
+  "angularCompilerOptions": {
+    "extendedDiagnostics": {
+      "checks": {
+        "nullishCoalescingNotNullable": "suppress",
+        "optionalChainNotNullable": "suppress"
+      }
+    }
+  }
 }

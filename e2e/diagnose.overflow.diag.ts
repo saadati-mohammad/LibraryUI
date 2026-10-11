@@ -4,7 +4,7 @@ import { test } from '@playwright/test';
 test('diagnose overflow offenders at 320px', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('نام کاربری').fill('admin');
-  await page.getByLabel('رمز عبور').fill('admin');
+  await page.getByRole('textbox', { name: 'رمز عبور' }).fill('admin');
   await page.getByRole('button', { name: 'ورود' }).click();
   await page.waitForURL(/\/book/, { timeout: 15_000 });
 

@@ -1,22 +1,21 @@
 # LibraryUI
 
-Angular 20 front end for the Library management system. Talks to the `libraryBk`
-Spring Boot backend over REST and STOMP/WebSocket for chat.
+Angular 22 front end for the Library management system. Talks to the `libraryBk`
+Spring Boot backend over authenticated REST APIs.
 
 ## Tech stack
 
 | Concern | Choice |
 | --- | --- |
-| Framework | Angular 20 (standalone components) |
+| Framework | Angular 22.2 (standalone components) |
 | UI | Angular Material + Tailwind CSS |
 | Charts | Chart.js via ng2-charts |
-| Realtime | `@stomp/stompjs` + `sockjs-client` |
-| Tests | Karma + Jasmine |
+| Tests | Vitest; Playwright browser tests |
 | Build | Angular CLI (`ng`) |
 
 ## Prerequisites
 
-- Node.js 22+
+- Node.js 22.22.3+ or 24.15.0+ (Angular 22 supported versions)
 - npm 10+
 
 ## Development server
@@ -26,10 +25,10 @@ npm ci        # install exact dependencies from the lockfile
 npm start     # ng serve
 ```
 
-Open `http://localhost:4200/`. The app reloads on source changes.
-
-The dev environment (`src/environments/environment.ts`) points at the backend on
-`http://localhost:8080`.
+Open `http://localhost:4200/`. The app reloads on source changes and proxies `/api` and
+`/ws-chat` to the backend on port `8079` (configured in `proxy.conf.json`). Start the backend
+with the development profile; local development defaults to `admin` / `admin` only in that
+profile.
 
 ## Building
 
@@ -79,7 +78,7 @@ For local development the default dev credentials are `admin` / `admin` (see the
 Playwright browser tests live in `e2e/` and drive the real UI against a running backend:
 
 ```bash
-# Backend must be running on :8080 with APP_ADMIN_PASSWORD=admin
+# Backend must be running on :8079 with APP_ADMIN_PASSWORD=admin
 npx playwright test --project=chromium
 npx playwright test --project=mobile
 ```
@@ -88,6 +87,15 @@ The config (`playwright.config.ts`) starts the Angular dev server automatically.
 
 ## Linting / formatting
 
-ESLint (via `ng lint`) is configured and enforced in CI; it currently reports warnings only
-(`no-explicit-any`, `prefer-inject`, …) and no errors. `npx tsc --noEmit -p tsconfig.app.json`
-is also enforced in CI.
+ESLint (via `ng lint`) is configured and enforced in CI. Strict application and browser-test
+type checks use `npm run typecheck`.
+
+## Public catalog and member accounts
+
+The public pages use read-only `/api/public/**` projections. Registration creates a member
+account and the account area reads that member's own profile, loans, and reservations. The
+staff catalog dialog accepts USB/Bluetooth keyboard-wedge ISBN scanners and can request
+Open Library metadata; staff review metadata before saving. See `docs/engineering/` for the
+feature matrix, responsive and security audits, barcode workflow, and production release
+gates. Email verification and password recovery are not implemented, so public self-
+registration must remain closed until those release gates are met.

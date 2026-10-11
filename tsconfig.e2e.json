@@ -1,0 +1,26 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/*
+ * Type-check project for the Playwright layer (E2E specs + the Playwright config).
+ *
+ * These files are outside `src/` and are not part of the Angular application build, so
+ * without this project they were only ever "checked" by Playwright's own transpiler,
+ * which does not type-check at all. `npm run typecheck` runs this together with the root
+ * project so E2E drift fails CI instead of surfacing as a broken run.
+ */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/e2e",
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "e2e/**/*.ts",
+    "playwright.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

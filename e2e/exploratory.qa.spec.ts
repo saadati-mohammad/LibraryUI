@@ -27,9 +27,16 @@ function attachObservers(page: Page, sink: { console: string[]; failed: string[]
 async function login(page: Page) {
   await page.goto('/login');
   await page.getByLabel('نام کاربری').fill('admin');
-  await page.getByLabel('رمز عبور').fill('admin');
+  await page.getByRole('textbox', { name: 'رمز عبور' }).fill('admin');
+  const loginResponse = page.waitForResponse((response) =>
+    response.request().method() === 'POST' && response.url().includes('/api/auth/login'),
+  );
   await page.getByRole('button', { name: 'ورود' }).click();
+  expect((await loginResponse).ok(), 'Login API should succeed before navigation').toBe(true);
   await page.waitForURL(/\/book/, { timeout: 15_000 });
+  // Let the successful login response finish before the next route navigation; otherwise
+  // Chromium may report the in-flight request as ERR_ABORTED even though auth succeeded.
+  await page.waitForLoadState('networkidle').catch(() => {});
 }
 
 test.describe('Exploratory QA', () => {

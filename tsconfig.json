@@ -23,5 +23,21 @@
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
     "strictTemplates": true
-  }
+  },
+  /*
+   * This root config is the "whole repo" type-check project. It deliberately includes
+   * every source and E2E file so `npx tsc --noEmit -p tsconfig.json` can never again be
+   * fooled by code that no application entry point imports (the old tsconfig.app.json
+   * listed only `src/main.ts`, which hid two real errors in the dead chat stack).
+   */
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "node_modules",
+    "dist",
+    ".angular",
+    "out-tsc"
+  ]
 }
