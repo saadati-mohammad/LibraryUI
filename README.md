@@ -12,6 +12,7 @@ Spring Boot backend over authenticated REST APIs.
 | Charts | Chart.js via ng2-charts |
 | Tests | Vitest unit tests; Playwright desktop/mobile browser tests |
 | Mobile scanning | Installable Angular PWA, camera ISBN scanning, and keyboard-wedge scanners |
+| Staff access | Admin-only staff account and role management |
 | Build | Angular CLI (`ng`) |
 
 ## Prerequisites
@@ -115,6 +116,13 @@ use a proprietary serial or network protocol instead of keyboard emulation need 
 model-specific integration.
 
 See `docs/engineering/` for the feature matrix, responsive and security audits, barcode
-workflow, and production release gates. Email verification and password recovery are not
-implemented, so public self-registration must remain closed until those release gates are
-met.
+workflow, and production release gates. Public self-registration remains controlled by the
+backend deployment policy. Password recovery is available at `/forgot-password`; members
+use their registered email and staff use the recovery email maintained by an administrator.
+The emailed link opens `/reset-password`, expires after 20 minutes, and can only be used once.
+SMTP and `PUBLIC_APP_URL` must be configured in the backend before the feature can deliver mail.
+
+Administrators can manage librarian and administrator accounts at `/staff-accounts`. New
+staff passwords must contain at least 12 characters and a unique recovery email. Deactivation is reversible and
+preserves the account record; the API rechecks current roles and account status on every
+request, so role changes or deactivation also take effect for already-issued tokens.

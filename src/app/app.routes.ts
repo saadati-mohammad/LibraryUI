@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guard/auth.guard';
 import { staffGuard } from './core/guard/staff.guard';
 import { memberGuard } from './core/guard/member.guard';
+import { adminGuard } from './core/guard/admin.guard';
 
 /**
  * Public discovery routes expose only the read-only catalog projection. Staff workflows
@@ -33,6 +34,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/login.component').then(m => m.LoginComponent),
   },
   {
+    path: 'forgot-password',
+    loadComponent: () => import('./features/password-recovery/forgot-password.component').then(m => m.ForgotPasswordComponent),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./features/password-recovery/reset-password.component').then(m => m.ResetPasswordComponent),
+  },
+  {
     path: 'phone-scan',
     loadComponent: () => import('./features/phone-scanner/phone-scanner.component').then(m => m.PhoneScannerComponent),
   },
@@ -60,6 +69,11 @@ export const routes: Routes = [
     path: 'person',
     canActivate: [authGuard, staffGuard],
     loadComponent: () => import('./features/person/person.component').then(m => m.PersonComponent),
+  },
+  {
+    path: 'staff-accounts',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/staff-accounts/staff-accounts.component').then(m => m.StaffAccountsComponent),
   },
   {
     path: 'loan',

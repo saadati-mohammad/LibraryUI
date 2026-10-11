@@ -96,6 +96,18 @@ export class AuthService {
     return this.http.post<MemberProfile>(`${environment.apiUrl}/auth/register`, request);
   }
 
+  requestPasswordReset(email: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${environment.apiUrl}/auth/forgot-password`, { email },
+    );
+  }
+
+  resetPassword(token: string, password: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${environment.apiUrl}/auth/reset-password`, { token, password },
+    );
+  }
+
   logout(): void {
     this.clearSession();
   }

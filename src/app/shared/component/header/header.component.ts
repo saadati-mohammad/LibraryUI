@@ -57,13 +57,19 @@ export class HeaderComponent {
     this.isDark() ? 'تغییر به پوسته روشن' : 'تغییر به پوسته تیره',
   );
 
-  navLinks: NavLink[] = [
+  private readonly staffNavLinks: NavLink[] = [
     { path: '/dashboard', label: 'داشبورد', icon: 'dashboard' },
     { path: '/book', label: 'کتاب‌ها', icon: 'menu_book' },
     { path: '/person', label: 'اعضا', icon: 'groups' },
     { path: '/loan', label: 'امانت‌ها', icon: 'assignment_return' },
     { path: '/reservation', label: 'رزروها', icon: 'event_available' },
   ];
+
+  get navLinks(): NavLink[] {
+    return this.auth.role()?.toUpperCase() === 'ADMIN'
+      ? [...this.staffNavLinks, { path: '/staff-accounts', label: 'حساب‌های کارکنان', icon: 'manage_accounts' }]
+      : this.staffNavLinks;
+  }
 
   toggleTheme(): void {
     this.themeService.toggleTheme();
