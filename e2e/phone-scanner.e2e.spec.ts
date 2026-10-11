@@ -27,7 +27,7 @@ test('paired phone scanner sends keyboard-wedge ISBN input to its one-time sessi
   });
 
   await page.goto(`/phone-scan#pair=${sessionId}.${pairingToken}`);
-  await expect(page.getByText('گوشی به فرم کتاب در رایانه وصل است')).toBeVisible();
+  await expect(page.locator('.connected')).toContainText('گوشی موقت به فرم کتاب در رایانه وصل است');
   const scanner = page.locator('#phoneBarcode');
   await scanner.fill('978-0-306-40615-7');
   await scanner.press('Enter');
@@ -50,4 +50,9 @@ test('registered phone retains its enrollment and authenticates continuous sessi
   await page.locator('#phoneBarcode').fill('9780306406157');
   await page.locator('#phoneBarcode').press('Enter');
   await expect.poll(() => requestBody).toEqual({ pairingToken, barcode: '9780306406157', deviceId: 42, deviceToken });
+  await expect(page.getByRole('status').first()).toContainText('گوشی ثبت‌شده و مجاز');
+  await page.goto('/phone-scan');
+  await page.getByRole('button', { name: 'فراموش‌کردن ثبت این گوشی' }).click();
+  await expect(page.locator('.status')).toContainText('ثبت این گوشی از این مرورگر پاک شد');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('library.phone-scanner.device'))).toBeNull();
 });

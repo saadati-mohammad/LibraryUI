@@ -19,9 +19,10 @@ import type { DecodeHintType as DecodeHintKey } from '@zxing/library';
             برای اتصال، از صفحهٔ افزودن کتاب در رایانه گزینهٔ «اتصال اسکنر گوشی» را بزنید و QR را با این گوشی اسکن کنید.
           </div>
           <p class="status" aria-live="polite">{{statusMessage}}</p>
+          @if (registeredDeviceId !== null) { <button type="button" class="secondary" (click)="forgetRegisteredDevice()">فراموش‌کردن ثبت این گوشی</button> }
           <p class="muted">این صفحه را می‌توانید به صفحهٔ اصلی گوشی اضافه کنید؛ برای هر نوبت اسکن، اتصال تازه‌ای از رایانه بسازید.</p>
         } @else {
-          <p class="connected" role="status">گوشی به فرم کتاب در رایانه وصل است. بارکد ISBN را اسکن کنید.</p>
+          <p class="connected" role="status">{{registeredDeviceId !== null ? 'گوشی ثبت‌شده و مجاز' : 'گوشی موقت'}} به فرم کتاب در رایانه وصل است. بارکد ISBN را اسکن کنید.</p>
           <div class="camera-frame" [hidden]="!cameraActive">
             <video #video autoplay muted playsinline aria-label="نمای زندهٔ دوربین گوشی"></video>
           </div>
@@ -145,6 +146,14 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
     this.scannerControls?.stop();
     this.scannerControls = null;
     this.cameraActive = false;
+  }
+
+  forgetRegisteredDevice(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try { localStorage.removeItem('library.phone-scanner.device'); } catch { /* Storage may be disabled by browser policy. */ }
+    this.registeredDeviceId = null;
+    this.registeredDeviceToken = '';
+    this.statusMessage = 'ثبت این گوشی از این مرورگر پاک شد؛ برای ثبت دوباره QR مدیر را اسکن کنید.';
   }
 
   submitBarcode(rawValue = this.barcodeValue): void {
