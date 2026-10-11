@@ -36,6 +36,23 @@ test('paired phone scanner sends keyboard-wedge ISBN input to its one-time sessi
   await expect(page.getByRole('status').last()).toContainText('به رایانه ارسال شد');
 });
 
+test('phone scanner keeps keyboard input ready for consecutive no-mouse scans', async ({ page }) => {
+  const scans: string[] = [];
+  await page.route('**/api/phone-scanner/sessions/**', async route => {
+    const body = route.request().postDataJSON() as { barcode: string };
+    scans.push(body.barcode);
+    await route.fulfill({ json: { sequence: scans.length, barcode: body.barcode, receivedAt: new Date().toISOString() } });
+  });
+
+  await page.goto(`/phone-scan#pair=${sessionId}.${pairingToken}`);
+  await page.locator('#phoneBarcode').fill('9780306406157');
+  await page.locator('#phoneBarcode').press('Enter');
+  await expect.poll(() => scans.length).toBe(1);
+  await page.keyboard.type('9780140328721');
+  await page.keyboard.press('Enter');
+  await expect.poll(() => scans).toEqual(['9780306406157', '9780140328721']);
+});
+
 test('registered phone retains its enrollment and authenticates continuous session scans', async ({ page }) => {
   const deviceToken = 'registered-phone-token-012345678901234567890123456789012345';
   let requestBody: Record<string, unknown> | undefined;

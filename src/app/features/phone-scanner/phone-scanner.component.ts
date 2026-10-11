@@ -128,7 +128,8 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
       this.scannerControls = await reader.decodeFromConstraints(
         { audio: false, video: { facingMode: { ideal: 'environment' } } },
         this.video?.nativeElement ?? (() => { throw new Error('Camera preview is unavailable'); })(),
-        result => { if (result) this.submitBarcode(result.getText()); },
+        // Keep camera mode hands-free without opening the phone's soft keyboard after each scan.
+        result => { if (result) this.submitBarcode(result.getText(), false); },
       );
       this.cameraActive = true;
       this.statusMessage = 'دوربین فعال است؛ بارکد را در کادر نگه دارید.';
@@ -156,7 +157,7 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
     this.statusMessage = 'ثبت این گوشی از این مرورگر پاک شد؛ برای ثبت دوباره QR مدیر را اسکن کنید.';
   }
 
-  submitBarcode(rawValue = this.barcodeValue): void {
+  submitBarcode(rawValue = this.barcodeValue, refocusInput = true): void {
     const barcode = normalizeIsbn(rawValue);
     if (!isValidIsbn(barcode)) {
       this.statusMessage = 'بارکد ISBN معتبر نیست؛ بارکد کتاب را دوباره بخوانید.';
@@ -178,7 +179,7 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
           this.sending = false;
           try { navigator.vibrate?.(45); } catch { /* Haptics are optional on unsupported devices. */ }
           this.changeDetector.detectChanges();
-          setTimeout(() => this.barcodeInput?.nativeElement.focus(), 0);
+          if (refocusInput) setTimeout(() => this.barcodeInput?.nativeElement.focus(), 0);
         }),
       error: (error: { status?: number }) => this.zone.run(() => {
           if (error.status === 401) {
