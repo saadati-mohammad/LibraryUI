@@ -67,7 +67,9 @@ export class HeaderComponent {
 
   get navLinks(): NavLink[] {
     return this.auth.role()?.toUpperCase() === 'ADMIN'
-      ? [...this.staffNavLinks, { path: '/staff-accounts', label: 'حساب‌های کارکنان', icon: 'manage_accounts' }]
+      ? [...this.staffNavLinks,
+        { path: '/staff-accounts', label: 'حساب‌های کارکنان', icon: 'manage_accounts' },
+        { path: '/input-devices', label: 'دستگاه‌های ورودی', icon: 'devices' }]
       : this.staffNavLinks;
   }
 

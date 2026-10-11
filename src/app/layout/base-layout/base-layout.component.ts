@@ -23,7 +23,7 @@ export class BaseLayoutComponent {
 
   private hasStaffHeader(url: string): boolean {
     const path = url.split(/[?#]/, 1)[0];
-    return ['/dashboard', '/book', '/person', '/loan', '/reservation'].some(
+    return ['/dashboard', '/book', '/person', '/loan', '/reservation', '/staff-accounts', '/input-devices'].some(
       route => path === route || path.startsWith(`${route}/`),
     );
   }
