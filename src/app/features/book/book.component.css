@@ -1,0 +1,26 @@
+.excel-import-button {
+  background-color: #166534;
+}
+
+.excel-import-button:hover {
+  background-color: #14532d;
+}
+
+.excel-import-button:focus-visible {
+  outline: 3px solid #74b89a;
+  outline-offset: 2px;
+}
+
+.barcode-camera-preview {
+  display: block;
+  width: min(100%, 32rem);
+  max-height: 20rem;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  background: #111827;
+}
+
+.barcode-camera-preview[hidden] {
+  display: none !important;
+}
