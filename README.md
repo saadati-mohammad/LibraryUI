@@ -10,7 +10,8 @@ Spring Boot backend over authenticated REST APIs.
 | Framework | Angular 22.2 (standalone components) |
 | UI | Angular Material + Tailwind CSS |
 | Charts | Chart.js via ng2-charts |
-| Tests | Vitest; Playwright browser tests |
+| Tests | Vitest unit tests; Playwright desktop/mobile browser tests |
+| Mobile scanning | Installable Angular PWA, camera ISBN scanning, and keyboard-wedge scanners |
 | Build | Angular CLI (`ng`) |
 
 ## Prerequisites
@@ -43,13 +44,19 @@ reverse proxy).
 ## Testing
 
 ```bash
-npm test
+npm run typecheck
+npm run lint
+npm run test:ci
+npm run build
+npm run e2e -- --workers=1
 ```
 
 Component tests use a shared provider helper at
 `src/app/testing/test-providers.ts` which supplies `HttpClient`, the router, and
 animations. Add `providers: provideTestProviders()` to any new component spec that
-injects an HTTP-backed service.
+injects an HTTP-backed service. Playwright runs desktop Chromium and a Pixel 5 profile;
+the backend must be available on port `8079`. Browser tests share its H2 database, so run
+them with one worker.
 
 ## Project layout
 
@@ -94,8 +101,20 @@ type checks use `npm run typecheck`.
 
 The public pages use read-only `/api/public/**` projections. Registration creates a member
 account and the account area reads that member's own profile, loans, and reservations. The
-staff catalog dialog accepts USB/Bluetooth keyboard-wedge ISBN scanners and can request
-Open Library metadata; staff review metadata before saving. See `docs/engineering/` for the
-feature matrix, responsive and security audits, barcode workflow, and production release
-gates. Email verification and password recovery are not implemented, so public self-
-registration must remain closed until those release gates are met.
+staff catalog dialog supports manual entry, ISBN lookup, and title/author search through the
+Open Library and Google Books catalogs. Provider results are best-effort and do not represent
+an exhaustive index of every published book; staff should review metadata before saving.
+
+USB, Bluetooth, and Wi-Fi barcode readers that expose themselves as a keyboard (HID/keyboard
+wedge) work by typing the ISBN into the focused scan field and pressing Enter. For phones,
+the book-entry dialog can create a short-lived pairing session and QR link to `/phone-scan`.
+That route is an installable PWA with camera scanning (on HTTPS), manual ISBN input, and
+support for a scanner connected to the phone as a keyboard. Pairing is temporary and the
+desktop and phone must be able to reach the same application origin. Scanner models that
+use a proprietary serial or network protocol instead of keyboard emulation need a
+model-specific integration.
+
+See `docs/engineering/` for the feature matrix, responsive and security audits, barcode
+workflow, and production release gates. Email verification and password recovery are not
+implemented, so public self-registration must remain closed until those release gates are
+met.
