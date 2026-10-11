@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -50,10 +50,10 @@ jobs:
 
     steps:
       - name: Checkout frontend
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -61,15 +61,16 @@ jobs:
       - name: Install frontend dependencies without unused optional peers
         run: npm ci --omit=peer
 
+      - name: Checkout backend
+        run: git clone --depth 1 https://github.com/saadati-mohammad/libraryBk.git libraryBk
+
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-
-      - name: Checkout backend
-        run: git clone --depth 1 https://github.com/saadati-mohammad/libraryBk.git libraryBk
+          cache-dependency-path: libraryBk/pom.xml
 
       - name: Start backend
         shell: bash
