@@ -151,3 +151,27 @@ The current application is a working small-library MVP: guests can discover titl
 ## Scope boundary
 
 “Best-in-class” is not a single achievable binary state. This report separates hard correctness/security issues from large product capabilities. Phase 2 will compare competitors and value/effort; Phase 3 will map accepted stories; phases 4–6 will ship and verify a coherent, backward-compatible subset. Hardware protocols, national metadata subscriptions, real SMS, and production security properties require provider/device/deployment access and will be stated explicitly if not verifiable here.
+
+## Security re-audit addendum (2026-10-11)
+
+### AUD-019 — Authenticated staff could poll or close another staff member's phone-scanner session (High, fixed)
+
+- **Evidence:** scanner sessions used random IDs and pairing secrets, but desktop poll/close checked only the broad staff role; sessions did not record their creator.
+- **Impact:** a staff user who obtained another session ID could read pending scans or terminate that scan flow.
+- **Fix:** sessions now bind to the authenticated staff username; poll and close require the same owner and reject cross-staff access with 403.
+- **Verification:** API integration test covers owner and non-owner poll/close; full `mvnw.cmd -B clean verify` passed 170 H2 tests with zero failures/errors.
+- **Backlog:** T-010/T-014 remains in progress pending broader endpoint audit.
+
+### AUD-020 — Global file storage statistics were available to any authenticated role (Medium, fixed)
+
+- **Evidence:** `/api/v1/files/stats` fell through to generic authenticated API access despite exposing global storage telemetry.
+- **Fix:** endpoint now requires ADMIN or LIBRARIAN.
+- **Verification:** a registered MEMBER login receives 403; covered by full 170-test API verification.
+- **Backlog:** T-014 remains in progress pending full authorization matrix review.
+
+### AUD-021 — WebSocket credentials and message actions did not fully follow REST security (High, fixed)
+
+- **Evidence:** STOMP CONNECT checked signature/account state but not JWT credential version; SEND did not restrict client destinations; `chat.markRead` did not verify the authenticated user was the recipient.
+- **Fix:** CONNECT and each SEND/SUBSCRIBE check the current credential version and account state; client SEND destinations are limited to the known application handlers; mark-read enforces recipient ownership.
+- **Verification:** stale-token, forbidden broker-topic SEND, sender-denial and recipient-acceptance tests pass; API `clean verify` passed 170 H2 tests with zero failures/errors.
+- **Backlog:** T-014 remains in progress for the remaining REST/WebSocket threat matrix.
