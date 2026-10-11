@@ -13,11 +13,13 @@
       }
 
       <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="login-form" novalidate>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>نام کاربری</mat-label>
+        <div class="login-field">
+          <label class="login-label" for="loginUsername">نام کاربری</label>
+          <div class="login-input-shell">
+            <mat-icon class="login-field-icon" aria-hidden="true">person</mat-icon>
           <input
             #usernameField
-            matInput
+            class="login-input"
             id="loginUsername"
             name="username"
             [(ngModel)]="username"
@@ -30,15 +32,18 @@
             [attr.aria-describedby]="loginForm.submitted && !username ? 'loginUsernameError' : null"
             (ngModelChange)="error.set(null)"
           />
+          </div>
           @if (loginForm.submitted && !username) {
-            <mat-error id="loginUsernameError">نام کاربری الزامی است.</mat-error>
+            <p class="login-field-error" id="loginUsernameError">نام کاربری الزامی است.</p>
           }
-        </mat-form-field>
+        </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>رمز عبور</mat-label>
+        <div class="login-field">
+          <label class="login-label" for="loginPassword">رمز عبور</label>
+          <div class="login-input-shell">
+            <mat-icon class="login-field-icon" aria-hidden="true">lock</mat-icon>
           <input
-            matInput
+            class="login-input password-input"
             id="loginPassword"
             name="password"
             [type]="showPassword() ? 'text' : 'password'"
@@ -50,10 +55,7 @@
             [attr.aria-describedby]="loginForm.submitted && !password ? 'loginPasswordError' : null"
             (ngModelChange)="error.set(null)"
           />
-          <!-- دکمه نمایش/مخفی‌سازی رمز با نام دسترس‌پذیر و aria-pressed -->
           <button
-            mat-icon-button
-            matSuffix
             type="button"
             class="password-toggle"
             [attr.aria-label]="showPassword() ? 'مخفی کردن رمز عبور' : 'نمایش رمز عبور'"
@@ -63,10 +65,11 @@
           >
             <mat-icon aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
+          </div>
           @if (loginForm.submitted && !password) {
-            <mat-error id="loginPasswordError">رمز عبور الزامی است.</mat-error>
+            <p class="login-field-error" id="loginPasswordError">رمز عبور الزامی است.</p>
           }
-        </mat-form-field>
+        </div>
 
         @if (error(); as message) {
           <p class="login-error" role="alert">{{ message }}</p>

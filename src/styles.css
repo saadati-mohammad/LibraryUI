@@ -1,5 +1,9 @@
 /* styles.css - Global Styles */
 @import "tailwindcss";
+@import "@fontsource-variable/vazirmatn";
+@import "@fullcalendar/angular/skeleton.css";
+@import "@fullcalendar/angular/themes/classic/theme.css";
+@import "@fullcalendar/angular/themes/classic/palette.css";
 
 /* Angular Material Base Styles (Keep these if your project uses them generally) */
 html,
@@ -9,6 +13,45 @@ body {
 
 body {
   margin: 0;
+}
+
+.cdk-overlay-container { z-index: 2000; }
+
+/* Keep plain Tailwind form controls consistent across staff forms. */
+input.border-gray-300,
+textarea.border-gray-300,
+select.border-gray-300 {
+  min-height: 2.75rem;
+  border-color: var(--app-light-border-color-stronger);
+  border-radius: 0.625rem;
+  background-color: var(--app-light-bg-secondary);
+  color: var(--app-light-text-primary);
+  font: inherit;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+input.border-gray-300::placeholder,
+textarea.border-gray-300::placeholder {
+  color: var(--app-light-text-secondary);
+  opacity: 0.78;
+}
+
+input.border-gray-300:focus,
+textarea.border-gray-300:focus,
+select.border-gray-300:focus {
+  border-color: var(--app-light-accent-primary);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(var(--app-light-accent-primary-rgb), 0.2);
+}
+
+input.border-gray-300:disabled,
+textarea.border-gray-300:disabled,
+select.border-gray-300:disabled {
+  background-color: var(--app-light-bg-tertiary);
+  color: var(--app-light-text-secondary);
+  cursor: not-allowed;
 }
 
 /* ----------------------------------------- */
@@ -24,6 +67,7 @@ body {
 
   --app-light-text-primary: #333333;
   --app-light-text-secondary: #555555;
+  --app-light-text-link: #0056b3;
 
   --app-light-accent-primary: #007bff;
   --app-light-accent-primary-rgb: 0, 123, 255;
@@ -40,6 +84,14 @@ body {
   --app-light-status-overdue-bg: rgba(220, 53, 69, 0.1);
   --app-light-status-returned-color: #4b5563;
   --app-light-status-returned-bg: rgba(108, 117, 125, 0.07);
+  --app-surface: var(--app-light-bg-secondary);
+  --mat-table-background-color: var(--app-light-bg-secondary);
+  --mat-table-header-headline-color: var(--app-light-text-primary);
+  --mat-table-row-item-label-text-color: var(--app-light-text-primary);
+  --mat-table-row-item-outline-color: var(--app-light-border-color);
+  --mat-paginator-container-background-color: var(--app-light-bg-secondary);
+  --mat-paginator-container-text-color: var(--app-light-text-secondary);
+  --mat-paginator-enabled-icon-color: var(--app-light-text-secondary);
 
   /* Sizing and Spacing */
   --app-border-radius-main: 8px;
@@ -56,6 +108,7 @@ body {
   --app-dark-border-color-stronger: #47546e;
   --app-dark-text-primary: #e8edf7;
   --app-dark-text-secondary: #c3cbdb;
+  --app-dark-text-link: #9fc4ff;
   --app-dark-accent-primary: #7fb0ff;
   --app-dark-accent-primary-rgb: 127, 176, 255;
   --app-success-color: #157347;
@@ -75,8 +128,18 @@ body {
   --app-light-border-color-stronger: var(--app-dark-border-color-stronger);
   --app-light-text-primary: var(--app-dark-text-primary);
   --app-light-text-secondary: var(--app-dark-text-secondary);
+  --app-light-text-link: var(--app-dark-text-link);
   --app-light-accent-primary: var(--app-dark-accent-primary);
+  --app-light-accent-secondary-color: #c4a7ff;
   --app-light-accent-primary-rgb: var(--app-dark-accent-primary-rgb);
+  --app-surface: var(--app-dark-bg-secondary);
+  --mat-table-background-color: var(--app-dark-bg-secondary);
+  --mat-table-header-headline-color: var(--app-dark-text-primary);
+  --mat-table-row-item-label-text-color: var(--app-dark-text-primary);
+  --mat-table-row-item-outline-color: var(--app-dark-border-color);
+  --mat-paginator-container-background-color: var(--app-dark-bg-secondary);
+  --mat-paginator-container-text-color: var(--app-dark-text-secondary);
+  --mat-paginator-enabled-icon-color: var(--app-dark-text-secondary);
 
   --app-light-status-active-color: #5fd08a;
   --app-light-status-active-bg: rgba(95, 208, 138, 0.14);
@@ -95,35 +158,57 @@ body {
   color-scheme: dark;
 }
 
+/* Staff screens use Tailwind's fixed light utility colours in their templates. Map
+   those utilities onto the active theme so text and cards do not stay dark-on-dark or
+   light-on-white after the theme toggle. Public pages keep their own fixed light palette. */
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .bg-white {
+  background-color: var(--app-dark-bg-secondary) !important;
+  color: var(--app-dark-text-primary);
+}
+
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .bg-gray-50,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .bg-indigo-100,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .bg-blue-100,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .bg-green-100,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .bg-red-100,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .bg-amber-100 {
+  background-color: var(--app-dark-bg-tertiary) !important;
+}
+
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-gray-900,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-gray-800,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-gray-700,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-indigo-900 {
+  color: var(--app-dark-text-primary) !important;
+}
+
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-gray-600,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-gray-500 {
+  color: var(--app-dark-text-secondary) !important;
+}
+
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-indigo-600,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-indigo-800,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-indigo-700,
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) .text-blue-700 {
+  color: var(--app-dark-accent-primary) !important;
+}
+
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) button.bg-yellow-400 {
+  color: #3b2f00 !important;
+}
+
+[data-theme='dark'] :is(app-dashboard, app-book, app-person, app-loan, app-reservation) button.bg-green-500 {
+  background-color: #166534 !important;
+}
+
 /* ----------------------------------------- */
 /* --- Base Body & Font Styles --- */
 /* ----------------------------------------- */
-/* One canonical Persian stack, used everywhere. It is declared with *locally installed*
-   faces only (no CDN): the app must render correctly offline, and a runtime "latest"
-   stylesheet from a third party is both an offline failure mode and a supply-chain risk.
-   Every family in the chain ships full Arabic/Persian coverage and a matching bold face,
-   so Persian text is never synthesised/oblique. */
-@font-face {
-  font-family: 'Vazirmatn';
-  src: local('Vazirmatn'), local('Vazirmatn Regular');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Vazirmatn';
-  src: local('Vazirmatn Bold'), local('Vazirmatn-Bold');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* The names must match the family actually declared above: the old rules used a
-   `Vazir` family that was never declared anywhere, so those elements fell back to the
-   browser default and rendered Persian with inconsistent glyph shapes. */
+/* Bundle the Persian-capable variable font so typography stays consistent even when
+   Vazirmatn is not installed on the visitor's device. */
 :root {
-  --app-font-family: 'Vazirmatn', Tahoma, 'Segoe UI', 'Iranian Sans', 'Noto Naskh Arabic',
+  --app-font-family: 'Vazirmatn Variable', Tahoma, 'Segoe UI', 'Iranian Sans', 'Noto Naskh Arabic',
     system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -139,8 +224,8 @@ body {
   direction: rtl;
   background-color: var(--app-light-bg-primary);
   color: var(--app-light-text-primary);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.75;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -159,7 +244,7 @@ body {
 }
 
 .mat-mdc-form-field .mat-mdc-text-field-wrapper {
-  direction: ltr;
+  direction: rtl;
 }
 
 .mat-mdc-form-field .mat-mdc-form-field-hint-wrapper,
@@ -184,7 +269,7 @@ body {
 .mat-mdc-paginator .mat-mdc-paginator-page-size-label,
 .mat-mdc-paginator .mat-mdc-paginator-range-label {
   color: var(--app-light-text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
 }
 
 .mat-mdc-paginator .mat-mdc-select-value {
@@ -200,7 +285,8 @@ body {
 }
 
 .mat-mdc-paginator .mat-mdc-icon-button:disabled {
-  color: rgba(0, 0, 0, 0.20);
+  color: var(--app-light-text-secondary);
+  opacity: 0.72;
 }
 
 /* Global style for MatSort header arrow (previously with ::ng-deep) */
@@ -247,7 +333,7 @@ body {
   width: 100%;
   padding: 0.625rem 0.9375rem;
   /* 10px 15px */
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 400;
   line-height: 1.6;
   color: var(--app-light-text-primary);
@@ -276,7 +362,7 @@ body {
 }
 
 .form-control::placeholder {
-  color: #6c757d;
+  color: var(--app-light-text-secondary);
   opacity: 1;
 }
 
@@ -346,12 +432,12 @@ input[type="file"].form-control-file-input {
 
 .form-control-file-text {
   padding: 0.625rem 0.9375rem;
-  color: #6c757d;
+  color: var(--app-light-text-secondary);
   flex-grow: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   line-height: 1.6;
   z-index: 1;
   display: flex;
@@ -369,4 +455,8 @@ td,
 th,
 span {
   font-family: var(--app-font-family);
+}
+
+small {
+  font-size: max(0.875rem, 0.875em);
 }

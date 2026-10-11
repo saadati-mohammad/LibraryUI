@@ -2,6 +2,8 @@
 
 .refresh-button {
   align-self: flex-start;
+  color: var(--app-light-text-link) !important;
+  border-color: currentColor !important;
 }
 
 /* ----------------------------------------- */
@@ -107,8 +109,7 @@
 }
 
 .recent-table th {
-  /* #374151 on white is ~10:1 — comfortably AA, unlike the previous gray-500. */
-  color: #374151;
+  color: var(--app-light-text-primary);
   font-weight: 600;
   background-color: var(--app-light-bg-tertiary);
 }

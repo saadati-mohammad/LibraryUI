@@ -3,7 +3,7 @@
   position: sticky;
   top: 0;
   z-index: 1000;
-  font-family: 'Vazirmatn', Tahoma, sans-serif;
+  font-family: var(--app-font-family);
 }
 
 .app-header {
@@ -159,7 +159,7 @@
 
   .mat-mdc-menu-item {
     color: #ccd6f6 !important;
-    font-family: 'Vazirmatn', Tahoma, sans-serif !important;
+    font-family: var(--app-font-family) !important;
 
     .mat-icon {
       color: #a9b6d0 !important;

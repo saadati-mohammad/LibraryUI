@@ -123,8 +123,8 @@
 }
 
 .lux-table td.action-cell button[mat-icon-button]:disabled {
-  color: rgba(0, 0, 0, 0.26);
-  /* Standard disabled color */
+  color: var(--app-light-text-secondary);
+  opacity: 0.72;
 }
 
 /* Status Badge Styles (assuming these are applied via cellClass or directly in cell HTML) */
@@ -359,7 +359,7 @@
   }
   .lux-table td.mat-mdc-cell::before {
     content: attr(data-label);
-    color: #66796f;
+  color: var(--app-light-text-secondary);
     font-size: .78rem;
     font-weight: 650;
   }
