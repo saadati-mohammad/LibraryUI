@@ -92,4 +92,6 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run desktop and mobile browser workflows
-        run: npm run e2e
+        # These browser specs share the integration H2 database and seeded admin account.
+        # Serialize them to avoid cross-worker mutations and make results deterministic.
+        run: npm run e2e -- --workers=1
