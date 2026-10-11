@@ -1,6 +1,6 @@
 import { CommonModule, isPlatformBrowser } from "@angular/common";
 import { Component, DestroyRef, inject, Input, OnDestroy, OnInit, PLATFORM_ID, ChangeDetectionStrategy } from "@angular/core";
-import { AbstractControl, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
+import { ReactiveFormsModule, FormGroup, FormBuilder } from "@angular/forms";
 import { MatButtonModule } from "@angular/material/button";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatIconModule } from "@angular/material/icon";
@@ -13,7 +13,6 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { BookFilterModel, BookModel } from "../../core/model/bookModel";
 import { BookService } from "../../core/service/book.service";
 import { PaginatedResponse } from "../../core/model/paginated-response.model";
-import { notFutureDate } from "../../core/util/date.util";
 import { ListComponent, TableColumn } from "../../shared/component/list/list.component";
 import { ModalComponent } from "../../shared/component/modal/modal.component";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
@@ -31,6 +30,7 @@ import { BookMetadata, BookMetadataService } from "../../core/service/book-metad
 import { PhoneBarcodeRelayService, PhoneScannerSession } from "../../core/service/phone-barcode-relay.service";
 import { isValidIsbn, isbn13To10, normalizeIsbn } from "../../core/util/isbn.util";
 import { PagedFilterPage } from '../../shared/component/paged-filter-page';
+import { BookFormFactory, todayIso } from './book-form.factory';
 import type { IScannerControls } from '@zxing/browser';
 import type { DecodeHintType as DecodeHintKey } from '@zxing/library';
 
@@ -38,20 +38,6 @@ export enum FormOperation {
   ADD = 'ADD',
   UPDATE = 'UPDATE',
   VIEW = 'VIEW' // اضافه کردن حالت مشاهده
-}
-
-/** ISO date of today — the upper bound of the publication-date field. */
-function todayIso(): string {
-  const now = new Date();
-  const month = `${now.getMonth() + 1}`.padStart(2, '0');
-  const day = `${now.getDate()}`.padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
-}
-
-function isbnRequired(control: AbstractControl): { isbnRequired: true } | null {
-  const isbn10 = String(control.get('isbn10')?.value ?? '').trim();
-  const isbn13 = String(control.get('isbn13')?.value ?? '').trim();
-  return isbn10 || isbn13 ? null : { isbnRequired: true };
 }
 
 @Component({
@@ -118,6 +104,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   filterPanelOpenState = false;
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly bookForms = inject(BookFormFactory);
 
   // مربوط به بارگذاری اکسل
   isExcelImportModalVisible = false;
@@ -156,65 +143,8 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
 
   constructor() {
     super();
-    this.bookForm = this.fb.group({
-      isbn10: [null],
-      title: [null, Validators.required],
-      author: [null, Validators.required],
-      translator: [null],
-      description: [''],
-      publisher: [null],
-      isbn13: [null],
-      deweyDecimal: [null],
-      congressClassification: [null],
-      subject: [null, Validators.required],
-      summary: [''],
-      publicationDate: [null, [notFutureDate]],
-      pageCount: [null, [Validators.min(1), Validators.max(100000)]],
-      language: [null],
-      edition: [null],
-      active: [true, Validators.required],
-      copyCount: [null, [Validators.min(0), Validators.max(100000)]],
-      librarySection: [null],
-      shelfCode: [null],
-      rowNumbers: [null],
-      columnNumber: [null],
-      positionNote: [''],
-      /**
-       * Cover is held in the form so `<app-file-picker formControlName="bookCoverFile">`
-       * can clear it (`null`) — the tri-state signal that tells the API to delete the
-       * stored cover. It is stripped from the JSON payload before submit.
-       */
-      bookCoverFile: [null as File | null],
-    }, { validators: isbnRequired });
-
-    // --- BEGIN MODIFICATION: Expanded Filter Form ---
-    this.bookFiltersForm = this.fb.group({
-      title: [''],
-      author: [''],
-      translator: [''],
-      publisher: [''],
-      isbn10: [''],
-      isbn13: [''],
-      description: [''],
-      deweyDecimal: [''],
-      congressClassification: [''],
-      subject: [''],
-      summary: [''],
-      publicationDate: [null],
-      pageCount: [null, [Validators.min(1)]],
-      language: [''],
-      edition: [''],
-      // Defaults to "فعال" so a soft-deleted (active=false) book disappears from the list
-      // as operators expect; "همه"/"غیرفعال" remain one click away.
-      active: [true],
-      copyCount: [null, [Validators.min(0)]],
-      librarySection: [''],
-      shelfCode: [''],
-      rowNumbers: [''],
-      columnNumber: [''],
-      positionNote: ['']
-    });
-    // --- END MODIFICATION ---
+    this.bookForm = this.bookForms.createEditorForm();
+    this.bookFiltersForm = this.bookForms.createFiltersForm();
   }
 
   ngOnInit(): void {
