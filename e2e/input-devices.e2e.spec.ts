@@ -4,16 +4,17 @@ test('admin provisions, edits, disables and revokes a keyboard-wedge scanner', a
   const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   const devices: Array<Record<string, unknown>> = [];
   const type = { key: 'KEYBOARD_WEDGE', displayName: 'اسکنر USB / بلوتوث', capabilities: ['keyboard-wedge', 'usb'], configSchema: { type: 'object', properties: { terminator: { type: 'string', enum: ['ENTER', 'TAB', 'NONE'] }, minimumLength: { type: 'integer', minimum: 1, maximum: 128 } } } };
+  const phoneType = { key: 'PHONE_CAMERA', displayName: 'دوربین گوشی', capabilities: ['camera', 'pwa'], configSchema: { type: 'object', properties: { cameraFacing: { type: 'string', enum: ['environment', 'user'] } } } };
   await page.route('**/api/auth/login', route => route.fulfill({ status: 200, json: { token: `e30.${payload}.signature`, username: 'admin', role: 'ADMIN', expiresInSeconds: 3600 } }));
   await page.route('**/api/book**', route => route.fulfill({ json: { content: [], totalPages: 0, totalElements: 0, number: 0, size: 10 } }));
   await page.route('**/api/admin/input-devices**', async route => {
     const path = new URL(route.request().url()).pathname;
     const method = route.request().method();
-    if (path.endsWith('/types')) return route.fulfill({ json: [type] });
+    if (path.endsWith('/types')) return route.fulfill({ json: [type, phoneType] });
     if (path.endsWith('/audit')) return route.fulfill({ json: [] });
     if (method === 'GET') return route.fulfill({ json: devices });
     if (method === 'POST' && !/\/(enable|disable|rotate-token)$/.test(path)) {
-      const item = { id: 7, ...route.request().postDataJSON() as object, capabilities: type.capabilities, enabled: true, revoked: false, lastSeenAt: null, version: 0 };
+      const item = { id: 7 + devices.length, ...route.request().postDataJSON() as object, capabilities: type.capabilities, enabled: true, revoked: false, lastSeenAt: null, version: 0 };
       devices.push(item);
       return route.fulfill({ status: 201, json: { device: item, token: 'one-time-device-token' } });
     }
@@ -44,4 +45,9 @@ test('admin provisions, edits, disables and revokes a keyboard-wedge scanner', a
   await page.once('dialog', dialog => dialog.accept());
   await updated.getByRole('button', { name: 'لغو دسترسی' }).click();
   await expect(page.locator('.device-row').filter({ hasText: 'اسکنر میز امانت ۲' })).toContainText('لغوشده');
+  await page.getByLabel('نام دستگاه').fill('گوشی میز امانت');
+  await page.getByLabel('نوع ورودی').selectOption('PHONE_CAMERA');
+  await page.getByRole('button', { name: 'ثبت دستگاه' }).click();
+  await expect(page.locator('.enrollment-qr')).toBeVisible();
+  await expect(page.locator('.token-box')).toContainText('توکن دستگاه');
 });

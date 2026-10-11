@@ -18,6 +18,7 @@ import type { DecodeHintType as DecodeHintKey } from '@zxing/library';
           <div class="notice" role="status">
             برای اتصال، از صفحهٔ افزودن کتاب در رایانه گزینهٔ «اتصال اسکنر گوشی» را بزنید و QR را با این گوشی اسکن کنید.
           </div>
+          <p class="status" aria-live="polite">{{statusMessage}}</p>
           <p class="muted">این صفحه را می‌توانید به صفحهٔ اصلی گوشی اضافه کنید؛ برای هر نوبت اسکن، اتصال تازه‌ای از رایانه بسازید.</p>
         } @else {
           <p class="connected" role="status">گوشی به فرم کتاب در رایانه وصل است. بارکد ISBN را اسکن کنید.</p>
@@ -61,23 +62,52 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
   private lastSubmittedAt = 0;
   sessionId = '';
   pairingToken = '';
+  registeredDeviceId: number | null = null;
+  registeredDeviceToken = '';
   barcodeValue = '';
   statusMessage = 'دوربین را روشن کنید یا بارکدخوان را به‌صورت صفحه‌کلید وصل کنید.';
   cameraStarting = false;
   cameraActive = false;
   sending = false;
+  private readonly handleHashChange = (): void => this.readPairFromHash();
 
   ngOnInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
+    window.addEventListener('hashchange', this.handleHashChange);
+    const device = new URLSearchParams(window.location.hash.slice(1)).get('device');
+    const [deviceId, deviceToken] = device?.split('.', 2) ?? [];
+    if (deviceId && /^\d+$/.test(deviceId) && deviceToken && deviceToken.length >= 40) {
+      try {
+        localStorage.setItem('library.phone-scanner.device', JSON.stringify({ id: Number(deviceId), token: deviceToken }));
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+        this.statusMessage = 'این گوشی به‌عنوان اسکنر ثبت شد. حالا QR اتصال موقت را از رایانه اسکن کنید.';
+      } catch { this.statusMessage = 'ذخیره امن دستگاه در این مرورگر ممکن نیست؛ از اتصال موقت استفاده کنید.'; }
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem('library.phone-scanner.device') ?? 'null') as { id?: number; token?: string } | null;
+      if (saved && Number.isSafeInteger(saved.id) && typeof saved.token === 'string') {
+        this.registeredDeviceId = saved.id!;
+        this.registeredDeviceToken = saved.token;
+      }
+    } catch { /* Storage may be disabled by the browser; ephemeral QR pairing still works. */ }
+    this.readPairFromHash();
+  }
+
+  private readPairFromHash(): void {
     const pair = new URLSearchParams(window.location.hash.slice(1)).get('pair');
     const [sessionId, pairingToken] = pair?.split('.', 2) ?? [];
     if (sessionId && pairingToken && /^[0-9a-f-]{36}$/i.test(sessionId) && pairingToken.length >= 40) {
       this.sessionId = sessionId;
       this.pairingToken = pairingToken;
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+      this.changeDetector.detectChanges();
     }
   }
 
-  ngOnDestroy(): void { this.stopCamera(); }
+  ngOnDestroy(): void {
+    if (isPlatformBrowser(this.platformId)) window.removeEventListener('hashchange', this.handleHashChange);
+    this.stopCamera();
+  }
 
   async startCamera(): Promise<void> {
     if (!isPlatformBrowser(this.platformId) || this.cameraStarting || this.cameraActive) return;
@@ -128,7 +158,10 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
     if (this.sending) return;
     this.sending = true;
     this.barcodeValue = '';
-    this.relay.submitFromPhone(this.sessionId, this.pairingToken, barcode).subscribe({
+    const submission = this.registeredDeviceId !== null
+      ? this.relay.submitRegisteredFromPhone(this.sessionId, this.pairingToken, barcode, this.registeredDeviceId, this.registeredDeviceToken)
+      : this.relay.submitFromPhone(this.sessionId, this.pairingToken, barcode);
+    submission.subscribe({
       next: scan => this.zone.run(() => {
           this.lastSubmitted = barcode;
           this.lastSubmittedAt = Date.now();
@@ -139,8 +172,14 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
           setTimeout(() => this.barcodeInput?.nativeElement.focus(), 0);
         }),
       error: (error: { status?: number }) => this.zone.run(() => {
+          if (error.status === 401) {
+            this.registeredDeviceId = null;
+            this.registeredDeviceToken = '';
+            localStorage.removeItem('library.phone-scanner.device');
+          }
           this.statusMessage = error.status === 410
             ? 'اتصال منقضی شده؛ QR تازه‌ای از رایانه اسکن کنید.'
+            : error.status === 401 ? 'دسترسی اسکنر لغو شده است؛ از مدیر بخواهید گوشی را دوباره ثبت کند.'
             : 'ارسال انجام نشد؛ اتصال شبکه را بررسی کنید و دوباره اسکن کنید.';
           this.sending = false;
           this.changeDetector.detectChanges();

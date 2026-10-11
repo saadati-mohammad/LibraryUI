@@ -3,7 +3,9 @@
     <p>اسکنرهای USB، بلوتوث و Wi-Fi که مانند صفحه‌کلید کار می‌کنند را ثبت و مدیریت کنید.</p></div><button type="button" class="secondary" (click)="load()" [disabled]="loading()">به‌روزرسانی</button></header>
   @if (notice()) { <p class="notice" role="status">{{notice()}}</p> }
   @if (error()) { <p class="error" role="alert">{{error()}}</p> }
-  @if (token()) { <section class="token-box" aria-live="polite"><h2>توکن دستگاه — فقط همین یک‌بار نمایش داده می‌شود</h2><p>آن را در جای امن نگه دارید. با بستن این پیام دیگر از داخل سامانه قابل بازیابی نیست.</p><code dir="ltr">{{token()}}</code><button class="primary" type="button" (click)="dismissToken()">ذخیره شد؛ بستن</button></section> }
+  @if (token()) { <section class="token-box" aria-live="polite"><h2>توکن دستگاه — فقط همین یک‌بار نمایش داده می‌شود</h2><p>آن را امن نگه دارید. گوشی را روی همین شبکه باز کنید و QR را با آن اسکن کنید؛ سپس برای هر نوبت، QR اتصال را از فرم رایانه اسکن کنید.</p><code dir="ltr">{{token()}}</code>
+    @if (enrollmentQr(); as qr) { <img class="enrollment-qr" [src]="qr" alt="QR امن برای ثبت این گوشی به‌عنوان اسکنر"> }
+    <button class="primary" type="button" (click)="dismissToken()">ذخیره شد؛ بستن</button></section> }
   <section class="panel" aria-labelledby="device-form-title">
     <h2 id="device-form-title">{{editing() ? 'ویرایش دستگاه' : 'ثبت دستگاه ورودی'}}</h2>
     <form class="device-form" (ngSubmit)="save()" #deviceForm="ngForm">
@@ -56,5 +58,5 @@
     @if (!auditEvents().length) { <p>رویدادی ثبت نشده است یا سابقه‌ای در دسترس نیست.</p> }
     @for (event of auditEvents(); track event.id) { <p class="audit-event"><b>{{event.action}}</b> · {{event.actorUsername}} · {{date(event.occurredAt)}}</p> }
   </section> }
-  <p class="security-note">توکن دستگاه به‌شکل هش‌شده در سرور نگهداری می‌شود. این صفحه فعلاً رجیستری اسکنر HID و تنظیمات دوربین را مدیریت می‌کند؛ جفت‌سازی موبایل و اتصال فرم‌ها در حال توسعه است.</p>
+  <p class="security-note">توکن دستگاه به‌شکل هش‌شده در سرور نگهداری می‌شود. گوشی ثبت‌شده را می‌توان از همین صفحه غیرفعال یا لغو کرد؛ هر نوبت اسکن نیز اتصال موقت جداگانه دارد.</p>
 </main>

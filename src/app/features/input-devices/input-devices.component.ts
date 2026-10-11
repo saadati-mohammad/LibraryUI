@@ -23,6 +23,7 @@ export class InputDevicesComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly notice = signal<string | null>(null);
   readonly token = signal<string | null>(null);
+  readonly enrollmentQr = signal<string | null>(null);
   readonly editing = signal<InputDevice | null>(null);
   readonly auditDevice = signal<InputDevice | null>(null);
   readonly auditEvents = signal<InputDeviceAuditEvent[]>([]);
@@ -60,7 +61,7 @@ export class InputDevicesComponent implements OnInit {
       });
     } else {
       this.service.create({ ...body, typeKey: this.draft.typeKey }).subscribe({
-        next: (result: ProvisionedInputDevice) => { this.saving.set(false); this.notice.set('دستگاه ثبت شد. توکن فقط همین یک‌بار نمایش داده می‌شود.'); this.token.set(result.token); this.cancelEdit(); this.load(); },
+        next: (result: ProvisionedInputDevice) => { this.saving.set(false); this.notice.set('دستگاه ثبت شد. توکن فقط همین یک‌بار نمایش داده می‌شود.'); this.showToken(result); this.cancelEdit(); this.load(); },
         error: onFailure,
       });
     }
@@ -96,7 +97,7 @@ export class InputDevicesComponent implements OnInit {
 
   rotateToken(device: InputDevice): void {
     if (!window.confirm(`توکن «${device.name}» عوض شود؟ توکن قبلی فوراً از اعتبار می‌افتد.`)) return;
-    this.service.rotateToken(device.id).subscribe({ next: (result: ProvisionedInputDevice) => { this.token.set(result.token); this.notice.set('توکن جدید ساخته شد؛ آن را امن ذخیره کنید.'); }, error: () => this.error.set('تعویض توکن انجام نشد.') });
+    this.service.rotateToken(device.id).subscribe({ next: (result: ProvisionedInputDevice) => { this.showToken(result); this.notice.set('توکن جدید ساخته شد؛ گوشی قبلی فوراً از اعتبار می‌افتد. QR را با گوشی دوباره اسکن کنید.'); }, error: () => this.error.set('تعویض توکن انجام نشد.') });
   }
 
   showAudit(device: InputDevice): void {
@@ -104,7 +105,17 @@ export class InputDevicesComponent implements OnInit {
     this.service.audit(device.id).subscribe({ next: events => this.auditEvents.set(events), error: () => this.error.set('دریافت رویدادهای دستگاه انجام نشد.') });
   }
 
-  dismissToken(): void { this.token.set(null); }
+  dismissToken(): void { this.token.set(null); this.enrollmentQr.set(null); }
+  private async showToken(result: ProvisionedInputDevice): Promise<void> {
+    this.token.set(result.token);
+    this.enrollmentQr.set(null);
+    if (result.device.typeKey !== 'PHONE_CAMERA') return;
+    try {
+      const QRCode = await import('qrcode');
+      const enrollmentUrl = `${window.location.origin}/phone-scan#device=${result.device.id}.${result.token}`;
+      this.enrollmentQr.set(await QRCode.toDataURL(enrollmentUrl, { width: 220, margin: 1, errorCorrectionLevel: 'M' }));
+    } catch { this.error.set('ساخت QR انجام نشد؛ پیوند ثبت گوشی در دسترس نیست.'); }
+  }
   fieldLabel(key: string): string { return ({ prefix: 'پیشوند اسکن', suffix: 'پسوند اسکن', terminator: 'پایان‌دهنده', minimumLength: 'حداقل طول بارکد', cameraFacing: 'دوربین پیش‌فرض', torchEnabled: 'چراغ‌قوه' } as Record<string, string>)[key] ?? key; }
   date(value: string | null): string { return value ? new Intl.DateTimeFormat('fa-IR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : 'هنوز ثبت نشده'; }
   private blankDraft(): DeviceDraft { return { name: '', typeKey: '', ownerUsername: '', station: '', config: {} }; }
