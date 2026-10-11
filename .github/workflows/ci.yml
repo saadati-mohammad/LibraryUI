@@ -51,6 +51,7 @@ jobs:
       # Keep production throttling intact; use an isolated high ceiling in this test job.
       APP_SECURITY_RATE_LIMIT_LOGIN_LIMIT: 1000
       APP_SECURITY_RATE_LIMIT_RESET_LIMIT: 1000
+      APP_SECURITY_RATE_LIMIT_DEVICE_LIMIT: 1000
 
     steps:
       - name: Checkout frontend
