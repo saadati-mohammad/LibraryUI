@@ -159,19 +159,26 @@ The current application is a working small-library MVP: guests can discover titl
 - **Evidence:** scanner sessions used random IDs and pairing secrets, but desktop poll/close checked only the broad staff role; sessions did not record their creator.
 - **Impact:** a staff user who obtained another session ID could read pending scans or terminate that scan flow.
 - **Fix:** sessions now bind to the authenticated staff username; poll and close require the same owner and reject cross-staff access with 403.
-- **Verification:** API integration test covers owner and non-owner poll/close; full `mvnw.cmd -B clean verify` passed 170 H2 tests with zero failures/errors.
+- **Verification:** API integration test covers owner and non-owner poll/close; full `mvnw.cmd -B clean verify` passed 172 H2 tests with zero failures/errors.
 - **Backlog:** T-010/T-014 remains in progress pending broader endpoint audit.
 
 ### AUD-020 — Global file storage statistics were available to any authenticated role (Medium, fixed)
 
 - **Evidence:** `/api/v1/files/stats` fell through to generic authenticated API access despite exposing global storage telemetry.
 - **Fix:** endpoint now requires ADMIN or LIBRARIAN.
-- **Verification:** a registered MEMBER login receives 403; covered by full 170-test API verification.
+- **Verification:** a registered MEMBER login receives 403; covered by full 172-test API verification.
 - **Backlog:** T-014 remains in progress pending full authorization matrix review.
 
 ### AUD-021 — WebSocket credentials and message actions did not fully follow REST security (High, fixed)
 
 - **Evidence:** STOMP CONNECT checked signature/account state but not JWT credential version; SEND did not restrict client destinations; `chat.markRead` did not verify the authenticated user was the recipient.
 - **Fix:** CONNECT and each SEND/SUBSCRIBE check the current credential version and account state; client SEND destinations are limited to the known application handlers; mark-read enforces recipient ownership.
-- **Verification:** stale-token, forbidden broker-topic SEND, sender-denial and recipient-acceptance tests pass; API `clean verify` passed 170 H2 tests with zero failures/errors.
+- **Verification:** stale-token, forbidden broker-topic SEND, sender-denial and recipient-acceptance tests pass; API `clean verify` passed 172 H2 tests with zero failures/errors.
 - **Backlog:** T-014 remains in progress for the remaining REST/WebSocket threat matrix.
+
+### AUD-022 — A message recipient could edit or delete the sender's message over REST (Medium, fixed)
+
+- **Evidence:** REST update/delete accepted either conversation participant, while WebSocket already allowed only the sender.
+- **Fix:** REST edit/delete now require the authenticated sender. Recipient read behavior remains unchanged.
+- **Verification:** `MessageAuthorizationTest` checks recipient update/delete return 403 and data/active state remain unchanged; all 11 tests in the class pass.
+- **Backlog:** T-014 remains in progress pending the full authorization matrix.
