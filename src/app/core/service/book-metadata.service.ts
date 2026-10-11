@@ -22,4 +22,8 @@ export class BookMetadataService {
   lookup(isbn: string): Observable<BookMetadata[]> {
     return this.http.get<BookMetadata[]>(`${environment.apiUrl}/book/metadata/isbn/${encodeURIComponent(isbn)}`);
   }
+
+  search(query: string): Observable<BookMetadata[]> {
+    return this.http.get<BookMetadata[]>(`${environment.apiUrl}/book/metadata/search`, { params: { q: query.trim() } });
+  }
 }

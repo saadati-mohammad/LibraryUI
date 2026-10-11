@@ -22,4 +22,13 @@ describe('BookMetadataService', () => {
     expect(request.request.method).toBe('GET');
     request.flush(candidates);
   });
+
+  it('searches book metadata by an encoded Persian title', () => {
+    const candidates = [{ title: 'شازده کوچولو', author: 'نویسنده' }];
+    service.search('شازده کوچولو').subscribe(result => expect(result).toEqual(candidates));
+    const request = http.expectOne(request => request.url === '/api/book/metadata/search'
+      && request.params.get('q') === 'شازده کوچولو');
+    expect(request.request.method).toBe('GET');
+    request.flush(candidates);
+  });
 });

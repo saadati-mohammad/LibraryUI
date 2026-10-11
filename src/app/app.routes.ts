@@ -33,6 +33,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/login.component').then(m => m.LoginComponent),
   },
   {
+    path: 'phone-scan',
+    loadComponent: () => import('./features/phone-scanner/phone-scanner.component').then(m => m.PhoneScannerComponent),
+  },
+  {
     path: 'register',
     loadComponent: () => import('./features/register/register.component').then(m => m.RegisterComponent),
   },

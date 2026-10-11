@@ -8,7 +8,7 @@ import { MatInputModule } from "@angular/material/input";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatSelectModule } from "@angular/material/select";
 import { MatTooltipModule } from "@angular/material/tooltip";
-import { Observable, Subscription } from "rxjs";
+import { Observable, Subscription, catchError, interval, of, switchMap } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { BookFilterModel, BookModel } from "../../core/model/bookModel";
 import { BookService } from "../../core/service/book.service";
@@ -28,6 +28,7 @@ import { ConfirmationService } from "../../shared/service/confirmation.service";
 import { DateInputComponent } from "../../shared/component/date-input/date-input.component";
 import { FilePickerComponent } from "../../shared/component/file-picker/file-picker.component";
 import { BookMetadata, BookMetadataService } from "../../core/service/book-metadata.service";
+import { PhoneBarcodeRelayService, PhoneScannerSession } from "../../core/service/phone-barcode-relay.service";
 import { isValidIsbn, isbn13To10, normalizeIsbn } from "../../core/util/isbn.util";
 import { PagedFilterPage } from '../../shared/component/paged-filter-page';
 import type { IScannerControls } from '@zxing/browser';
@@ -131,9 +132,11 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   private snackBar = inject(MatSnackBar);
   private confirmation = inject(ConfirmationService);
   private readonly metadata = inject(BookMetadataService);
+  private readonly phoneBarcodeRelay = inject(PhoneBarcodeRelayService);
   private platformId = inject(PLATFORM_ID);
 
   barcodeValue = '';
+  catalogSearchQuery = '';
   scanStatus: string | null = null;
   isLookingUpMetadata = false;
   isStartingCamera = false;
@@ -142,6 +145,11 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   private lastCameraIsbn: string | null = null;
   private emptyCameraFrames = 0;
   metadataCandidates: BookMetadata[] = [];
+  metadataSelectionOpen = false;
+  phoneScannerSession: PhoneScannerSession | null = null;
+  phoneScannerUrl = '';
+  private phoneScannerPoll?: Subscription;
+  private lastPhoneScanSequence = 0;
   private readonly completedScans = new Set<string>();
   private readonly pendingBatchIsbns: string[] = [];
   private scannerControls: IScannerControls | null = null;
@@ -218,6 +226,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
 
   ngOnDestroy(): void {
     this.stopCameraScan();
+    this.closePhoneScannerSession();
     this.coverRemovalSubscription?.unsubscribe();
     // Release the object URLs for every cover this page loaded.
     [...this.imageLoader.covers.keys()].forEach((id) => this.imageLoader.forget('cover', id));
@@ -307,6 +316,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
 
 
   openBookModal(operation: FormOperation, book?: BookModel): void {
+    this.closePhoneScannerSession();
     this.stopCameraScan();
     this.bookForm.enable();
     this.currentFormOperation = operation;
@@ -412,6 +422,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
       return;
     }
     this.isLookingUpMetadata = true;
+    this.metadataSelectionOpen = false;
     this.scanStatus = 'در حال جست‌وجوی اطلاعات کتاب…';
     this.metadata.lookup(isbn).subscribe({
       next: (candidates) => {
@@ -441,6 +452,93 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
         }
         this.isLookingUpMetadata = false;
       }
+    });
+  }
+
+  async startPhoneScanner(): Promise<void> {
+    if (this.phoneScannerSession || !isPlatformBrowser(this.platformId)) return;
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      this.scanStatus = 'برای اتصال گوشی، برنامه را با نشانی شبکهٔ رایانه و HTTPS باز کنید؛ localhost روی گوشی به خود گوشی اشاره می‌کند.';
+      return;
+    }
+    this.isLookingUpMetadata = true;
+    this.scanStatus = 'در حال ایجاد اتصال امن و موقت با گوشی…';
+    this.phoneBarcodeRelay.createSession().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: async session => {
+        this.phoneScannerSession = session;
+        this.lastPhoneScanSequence = 0;
+        const phoneUrl = new URL('phone-scan', document.baseURI);
+        phoneUrl.hash = `pair=${session.sessionId}.${session.pairingToken}`;
+        this.phoneScannerUrl = phoneUrl.toString();
+        this.scanStatus = 'اتصال ۱۰ دقیقه فعال است؛ QR را با PWA یا دوربین گوشی اسکن کنید.';
+        try {
+          const QRCode = await import('qrcode');
+          const canvas = document.getElementById('phoneScannerQr') as HTMLCanvasElement | null;
+          if (canvas) await QRCode.toCanvas(canvas, this.phoneScannerUrl, { width: 240, margin: 1, errorCorrectionLevel: 'M' });
+        } catch {
+          this.scanStatus = 'اتصال ساخته شد؛ لینک امن را با دکمهٔ بازکردن روی گوشی منتقل کنید.';
+        }
+        this.phoneScannerPoll = interval(800).pipe(
+          switchMap(() => this.phoneBarcodeRelay.poll(session.sessionId, this.lastPhoneScanSequence).pipe(catchError(() => of([])))),
+          takeUntilDestroyed(this.destroyRef),
+        ).subscribe(scans => this.receivePhoneScans(scans));
+        this.isLookingUpMetadata = false;
+      },
+      error: () => {
+        this.isLookingUpMetadata = false;
+        this.scanStatus = 'اتصال گوشی ایجاد نشد؛ شبکه و ورود کاربری را بررسی کنید.';
+      },
+    });
+  }
+
+  closePhoneScannerSession(): void {
+    this.phoneScannerPoll?.unsubscribe();
+    this.phoneScannerPoll = undefined;
+    const sessionId = this.phoneScannerSession?.sessionId;
+    this.phoneScannerSession = null;
+    this.phoneScannerUrl = '';
+    this.lastPhoneScanSequence = 0;
+    if (sessionId) this.phoneBarcodeRelay.closeSession(sessionId).subscribe({ error: () => undefined });
+  }
+
+  private receivePhoneScans(scans: { sequence: number; barcode: string }[]): void {
+    if (!scans.length) return;
+    if (!this.continuousScanMode && (this.isLookingUpMetadata || this.metadataCandidates.length > 0
+      || Boolean(this.bookForm.get('title')?.value))) return;
+    for (const scan of scans) {
+      if (!this.continuousScanMode && (this.isLookingUpMetadata || this.metadataCandidates.length > 0
+        || Boolean(this.bookForm.get('title')?.value))) break;
+      this.lastPhoneScanSequence = scan.sequence;
+      this.barcodeValue = scan.barcode;
+      this.lookupScannedIsbn();
+      if (!this.continuousScanMode) break;
+    }
+  }
+
+  /** Search global catalogs by Persian or Latin title/author before manual entry. */
+  searchBookCatalog(): void {
+    const query = this.catalogSearchQuery.trim();
+    if (query.length < 2) {
+      this.scanStatus = 'برای جست‌وجو، دست‌کم دو نویسه از عنوان یا نام نویسنده را بنویسید.';
+      return;
+    }
+    if (this.isLookingUpMetadata) return;
+    this.isLookingUpMetadata = true;
+    this.metadataCandidates = [];
+    this.metadataSelectionOpen = true;
+    this.scanStatus = 'در حال جست‌وجوی فهرست‌های کتاب…';
+    this.metadata.search(query).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (candidates) => {
+        this.metadataCandidates = candidates;
+        this.scanStatus = candidates.length
+          ? `${candidates.length} نتیجه از فهرست‌های کتاب پیدا شد؛ مورد درست را انتخاب کنید.`
+          : 'نتیجه‌ای پیدا نشد؛ اطلاعات را دستی وارد کنید یا با شابک جست‌وجو کنید.';
+        this.isLookingUpMetadata = false;
+      },
+      error: () => {
+        this.scanStatus = 'فهرست‌های برخط در دسترس نیستند؛ اطلاعات را دستی وارد کنید یا دوباره تلاش کنید.';
+        this.isLookingUpMetadata = false;
+      },
     });
   }
 
@@ -570,6 +668,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
       ...(metadata.subject ? { subject: metadata.subject } : {}),
     });
     this.metadataCandidates = [];
+    this.metadataSelectionOpen = false;
     this.scanStatus = this.continuousScanMode
       ? 'اطلاعات پیدا شد؛ در حال ثبت کتاب…'
       : 'اطلاعات انتخاب‌شده در فرم قرار گرفت. پیش از ذخیره، فیلدها را بررسی و اصلاح کنید.';
@@ -619,6 +718,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
 
   onBookModalClose(): void {
     this.continuousScanMode = false;
+    this.closePhoneScannerSession();
     this.pendingBatchIsbns.length = 0;
     this.stopCameraScan();
     this.isBookModalVisible = false;
@@ -683,6 +783,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
           setTimeout(() => document.getElementById('bookBarcodeScan')?.focus(), 0);
           this.processNextBatchScan();
         } else {
+          this.closePhoneScannerSession();
           this.isBookModalVisible = false;
         }
         this.loadBooks();
