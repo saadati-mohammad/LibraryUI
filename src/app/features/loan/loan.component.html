@@ -1,17 +1,23 @@
-
 <div class="container mx-auto px-4 py-6 rtl">
   <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-    <div class="px-6 py-5 border-b border-gray-200 flex flex-col md:flex-row md:justify-between md:items-center">
-      <div class="flex items-center space-x-2">
+    <div class="px-6 py-5 border-b border-gray-200 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+      <div class="flex items-center space-x-2 rtl:space-x-reverse">
         <h1 class="text-3xl font-bold text-indigo-900">
           مدیریت <span class="text-indigo-600">امانت‌ها</span>
         </h1>
       </div>
-      <div class="flex space-x-4 mt-4 md:mt-0">
-        <button (click)="openLoanModal()"
-          class="flex items-center bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-200">
+      <div class="flex items-center gap-3">
+        <button type="button"
+          class="inline-flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-100 font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+          matTooltip="بارگذاری مجدد فهرست امانت‌ها" aria-label="بارگذاری مجدد فهرست امانت‌ها" [disabled]="isLoadingTable"
+          (click)="loadLoans()">
+          <mat-icon aria-hidden="true">refresh</mat-icon>
+          بازخوانی
+        </button>
+        <button type="button" (click)="openLoanModal()"
+          class="flex items-center bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
+            stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           ثبت امانت جدید
@@ -30,31 +36,35 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label for="personNationalId" class="block text-sm font-medium text-gray-700 mb-1">کد ملی عضو</label>
-              <input id="personNationalId" type="text" formControlName="personNationalId" placeholder="جستجو کد ملی..."
+              <input id="personNationalId" type="text" formControlName="personNationalId" autocomplete="off"
+                inputmode="numeric" maxlength="10" placeholder="جستجو کد ملی..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2" />
             </div>
             <div>
               <label for="bookIsbn" class="block text-sm font-medium text-gray-700 mb-1">شابک ۱۳ رقمی کتاب</label>
-              <input id="bookIsbn" type="text" formControlName="bookIsbn" placeholder="جستجو شابک..."
-                class="w-full border border-gray-300 rounded-md px-3 py-2" />
+              <input id="bookIsbn" type="text" formControlName="bookIsbn" autocomplete="off" inputmode="numeric"
+                placeholder="جستجو شابک..." class="w-full border border-gray-300 rounded-md px-3 py-2" />
             </div>
             <div>
-              <label for="status" class="block text-sm font-medium text-gray-700 mb-1">وضعیت</label>
-              <select id="status" formControlName="status" class="w-full border border-gray-300 rounded-md px-3 py-2">
-                <option [ngValue]="null">همه</option>
-                <option value="ON_LOAN">در امانت</option>
-                <option value="OVERDUE">دیرکرد</option>
-                <option value="RETURNED">بازگشتی</option>
-              </select>
+              <!-- سه گزینه قبلی مقدار null را با رشته‌های ساده ترکیب می‌کردند؛ اکنون همه
+              گزینه‌ها با [value] و نوع LoanStatus | null یکدست هستند. -->
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>وضعیت</mat-label>
+                <mat-select id="status" formControlName="status">
+                  @for (option of statusOptions; track option.label) {
+                    <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
             </div>
           </div>
-          <div class="mt-6 flex justify-end space-x-4">
+          <div class="mt-6 flex justify-end gap-4">
             <button type="button" (click)="resetFilters()"
-              class="bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2 px-5 rounded-lg">
+              class="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-5 rounded-lg">
               پاک کردن
             </button>
             <button type="submit" [disabled]="isLoadingTable"
-              class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg disabled:opacity-50">
+              class="bg-indigo-700 hover:bg-indigo-800 text-white font-semibold py-2 px-5 rounded-lg disabled:opacity-50">
               اعمال فیلترها
             </button>
           </div>
@@ -62,10 +72,26 @@
       </details>
     </div>
 
+    <!-- خطای بارگذاری با تلاش مجدد؛ قبلاً خطا بی‌صدا نادیده گرفته می‌شد. -->
+    @if (loadError) {
+      <div class="px-6 pt-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-red-300 bg-red-50 px-4 py-3"
+          role="alert">
+          <p class="text-sm text-red-800">
+            <mat-icon class="align-middle text-red-700" aria-hidden="true">error_outline</mat-icon>
+            خطا در بارگذاری امانت‌ها: {{ loadError }}
+          </p>
+          <button type="button" mat-stroked-button color="warn" (click)="loadLoans()">تلاش مجدد</button>
+        </div>
+      </div>
+    }
+
     <div class="px-6 py-4">
       <app-list [tableTitle]="tableTitle" [columns]="columns" [data]="data" [showPaginator]="true"
         [pageSizeOptions]="pageSizeOptions" [actionsTemplate]="loanActionsTemplate" [isLoading]="isLoadingTable"
         [totalItems]="totalElements" [currentPage]="currentPage" [pageSize]="pageSize"
+        [emptyIcon]="'assignment_return'" [emptyMessage]="'امانتی برای نمایش وجود ندارد.'"
+        [emptyHint]="'برای ثبت امانت جدید از دکمه «ثبت امانت جدید» استفاده کنید.'"
         (pageChanged)="handlePageEvent($event)">
       </app-list>
     </div>
@@ -74,48 +100,76 @@
 
 <!-- قالب ستون عملیات -->
 <ng-template #loanActionsTemplate let-loanRow>
-  <button *ngIf="loanRow.status === 'ON_LOAN' || loanRow.status === 'OVERDUE'"
-    class="text-green-600 hover:text-green-800 transition-colors duration-200 mx-1"
-    [matTooltip]="'ثبت بازگشت کتاب ' + loanRow.bookTitle" (click)="returnBook(loanRow)" aria-label="بازگشت کتاب">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 8.812A9.025 9.025 0 0112 5c4.97 0 9 4.03 9 9s-4.03 9-9 9a9.003 9.003 0 01-4.793-1.425" />
-    </svg>
-  </button>
+  @if (loanRow.status === 'ON_LOAN' || loanRow.status === 'OVERDUE') {
+    <button
+      class="text-green-700 hover:text-green-900 transition-colors duration-200 mx-1"
+      [matTooltip]="'ثبت بازگشت کتاب ' + loanRow.bookTitle" (click)="returnBook(loanRow)"
+      [attr.aria-label]="'ثبت بازگشت کتاب ' + loanRow.bookTitle">
+      <mat-icon aria-hidden="true">assignment_turned_in</mat-icon>
+    </button>
+  }
 </ng-template>
 
 <!-- مودال ثبت امانت -->
 <app-modal [(isVisible)]="isLoanModalVisible" title="ثبت" titleAccent="امانت جدید" submitButtonText="ثبت امانت"
-  submitButtonIcon="save" (submit)="onLoanSubmit()" (cancel)="onLoanModalClose()"
+  submitButtonIcon="save" (submitted)="onLoanSubmit()" (cancelled)="onLoanModalClose()"
   [disableSubmit]="loanForm.invalid || isSubmitting" [isLoading]="isSubmitting" maxWidth="600px">
   <div modal-body>
     <form [formGroup]="loanForm" id="loanFormInternal">
       <div class="space-y-4">
         <div>
+          <!-- انتخابگر با جستجوی نوع‌به‌نوع و صفحه محدود (≤۲۵ ردیف) به‌جای بارگذاری ۱۰۰۰ ردیف. -->
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>انتخاب عضو *</mat-label>
-            <mat-select formControlName="personId" placeholder="جستجو و انتخاب عضو...">
-              <mat-option *ngFor="let person of allActivePersons" [value]="person.id">
+            <mat-label>انتخاب عضو</mat-label>
+            <input type="text" matInput id="loanPersonInput" formControlName="personId" autocomplete="off"
+              placeholder="جستجو و انتخاب عضو..." [matAutocomplete]="personAuto"
+              (input)="onPersonSearch($any($event.target).value)"
+              [attr.aria-invalid]="loanForm.get('personId')?.invalid && loanForm.get('personId')?.touched ? 'true' : null" />
+            @if (isSearchingPersons()) {
+              <mat-hint>در حال جستجو…</mat-hint>
+            }
+            <mat-error>انتخاب یک عضو از فهرست الزامی است.</mat-error>
+          </mat-form-field>
+          <mat-autocomplete #personAuto="matAutocomplete" [displayWith]="formatPerson">
+            @for (person of personOptions(); track person.id) {
+              <mat-option [value]="person.id">
                 {{ person.firstName }} {{ person.lastName }} ({{ person.nationalId }})
               </mat-option>
-            </mat-select>
-          </mat-form-field>
+            }
+            @if (personOptions().length === 0) {
+              <mat-option disabled>عضوی یافت نشد.</mat-option>
+            }
+          </mat-autocomplete>
         </div>
 
         <div>
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>انتخاب کتاب *</mat-label>
-            <mat-select formControlName="bookId" placeholder="جستجو و انتخاب کتاب...">
-              <mat-option *ngFor="let book of allAvailableBooks" [value]="book.id">
+            <mat-label>انتخاب کتاب</mat-label>
+            <input type="text" matInput id="loanBookInput" formControlName="bookId" autocomplete="off"
+              placeholder="جستجو و انتخاب کتاب..." [matAutocomplete]="bookAuto"
+              (input)="onBookSearch($any($event.target).value)"
+              [attr.aria-invalid]="loanForm.get('bookId')?.invalid && loanForm.get('bookId')?.touched ? 'true' : null" />
+            @if (isSearchingBooks()) {
+              <mat-hint>در حال جستجو…</mat-hint>
+            }
+            <mat-error>انتخاب یک کتاب از فهرست الزامی است.</mat-error>
+          </mat-form-field>
+          <mat-autocomplete #bookAuto="matAutocomplete" [displayWith]="formatBook">
+            @for (book of bookOptions(); track book.id) {
+              <mat-option [value]="book.id">
                 {{ book.title }} ({{ book.author }})
               </mat-option>
-            </mat-select>
-          </mat-form-field>
+            }
+            @if (bookOptions().length === 0) {
+              <mat-option disabled>کتابی یافت نشد.</mat-option>
+            }
+          </mat-autocomplete>
         </div>
 
         <div>
           <label for="loanNotes" class="block text-sm font-medium text-gray-700 mb-1">یادداشت</label>
           <textarea id="loanNotes" formControlName="notes" rows="3" placeholder="یادداشت‌های مربوط به این امانت..."
-            class="w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
+          class="w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
         </div>
       </div>
     </form>

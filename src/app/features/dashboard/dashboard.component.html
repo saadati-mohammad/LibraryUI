@@ -1,149 +1,207 @@
-<!-- src/app/features/dashboard/dashboard.component.html -->
-
-<!-- Loading Spinner -->
-<div *ngIf="isLoading" class="flex items-center justify-center h-[calc(100vh-150px)]">
-    <mat-progress-spinner mode="indeterminate" diameter="60"></mat-progress-spinner>
-</div>
-
-<!-- Dashboard Content -->
-<div *ngIf="!isLoading" class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 rtl">
-    <!-- Header -->
-    <header class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">داشبورد مدیریتی</h1>
-        <p class="mt-1 text-lg text-gray-500">خلاصه وضعیت و فعالیت‌های اخیر کتابخانه</p>
-    </header>
-
-    <!-- Stat Cards -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <!-- Total Books -->
-        <div
-            class="bg-white overflow-hidden shadow-lg rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse transform hover:-translate-y-1 transition-transform duration-300">
-            <div class="bg-indigo-100 p-4 rounded-full">
-                <mat-icon class="text-indigo-600 scale-125">menu_book</mat-icon>
-            </div>
-            <div>
-                <p class="text-sm font-medium text-gray-500 truncate">تعداد کل کتاب‌ها</p>
-                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ stats.totalBooks }}</p>
-            </div>
-        </div>
-        <!-- Active Members -->
-        <div
-            class="bg-white overflow-hidden shadow-lg rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse transform hover:-translate-y-1 transition-transform duration-300">
-            <div class="bg-blue-100 p-4 rounded-full">
-                <mat-icon class="text-blue-600 scale-125">groups</mat-icon>
-            </div>
-            <div>
-                <p class="text-sm font-medium text-gray-500 truncate">اعضای فعال</p>
-                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ stats.activeMembers }}</p>
-            </div>
-        </div>
-        <!-- On Loan Books -->
-        <div
-            class="bg-white overflow-hidden shadow-lg rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse transform hover:-translate-y-1 transition-transform duration-300">
-            <div class="bg-green-100 p-4 rounded-full">
-                <mat-icon class="text-green-600 scale-125">assignment_return</mat-icon>
-            </div>
-            <div>
-                <p class="text-sm font-medium text-gray-500 truncate">کتاب‌های در امانت</p>
-                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ stats.onLoanBooks }}</p>
-            </div>
-        </div>
-        <!-- Overdue Books -->
-        <div
-            class="bg-white overflow-hidden shadow-lg rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse transform hover:-translate-y-1 transition-transform duration-300">
-            <div class="bg-red-100 p-4 rounded-full">
-                <mat-icon class="text-red-600 scale-125">warning_amber</mat-icon>
-            </div>
-            <div>
-                <p class="text-sm font-medium text-gray-500 truncate">امانت‌های دارای دیرکرد</p>
-                <p class="mt-1 text-3xl font-semibold text-red-600">{{ stats.overdueBooks }}</p>
-            </div>
-        </div>
+<!-- داشبورد مدیریتی — همه داده‌ها از GET /api/dashboard/summary -->
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 rtl">
+  <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800">داشبورد مدیریتی</h1>
+      <p class="mt-1 text-lg text-gray-600">خلاصه وضعیت و فعالیت‌های اخیر کتابخانه</p>
     </div>
 
-    <!-- Charts & Actionable Lists -->
-    <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <!-- Loan Activity Chart (Main Chart) -->
-        <div class="lg:col-span-2 bg-white p-6 shadow-lg rounded-2xl">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">فعالیت امانت‌ها (۷ روز گذشته)</h2>
-            <div class="h-80">
-                <canvas baseChart [data]="loanActivityChartData" [options]="loanActivityChartOptions"
-                    [type]="loanActivityChartType"></canvas>
-            </div>
-        </div>
+    <button
+      type="button"
+      mat-stroked-button
+      class="refresh-button"
+      matTooltip="بارگذاری مجدد اطلاعات داشبورد"
+      [disabled]="isLoading()"
+      (click)="loadSummary()"
+    >
+      <mat-icon aria-hidden="true">refresh</mat-icon>
+      بازخوانی
+    </button>
+  </header>
 
-        <!-- Overdue Loans List -->
-        <div class="bg-white p-6 shadow-lg rounded-2xl flex flex-col">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">لیست دیرکردها</h2>
-            <div class="flex-grow overflow-y-auto -mr-6 pr-6">
-                <ul *ngIf="overdueLoans.length > 0; else noOverdue" class="space-y-4">
-                    <li *ngFor="let loan of overdueLoans"
-                        class="flex items-center justify-between space-x-3 rtl:space-x-reverse">
-                        <div class="flex-shrink-0">
-                            <mat-icon class="text-red-500">error_outline</mat-icon>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate" [title]="loan.bookTitle">{{
-                                loan.bookTitle }}</p>
-                            <p class="text-sm text-gray-500 truncate"
-                                [title]="loan.personFirstName + ' ' + loan.personLastName">{{ loan.personFirstName }} {{
-                                loan.personLastName }}</p>
-                        </div>
-                        <div class="text-xs text-red-600 font-semibold whitespace-nowrap">
-                            {{ loan.dueDate | date:'yy/MM/dd' }}
-                        </div>
-                    </li>
-                </ul>
-                <ng-template #noOverdue>
-                    <div class="flex flex-col items-center justify-center h-full text-center text-gray-500">
-                        <mat-icon class="text-green-500 scale-150 mb-2">check_circle_outline</mat-icon>
-                        <p class="font-medium">هیچ امانت دارای دیرکردی وجود ندارد.</p>
-                        <p class="text-sm">وضعیت عالی است!</p>
-                    </div>
-                </ng-template>
-            </div>
+  <!-- حالت بارگذاری: اسکلتون کارت‌ها -->
+  @if (isLoading()) {
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5" role="status" aria-live="polite">
+      <span class="sr-only">در حال بارگذاری اطلاعات داشبورد…</span>
+      @for (card of [1, 2, 3, 4, 5]; track card) {
+        <div class="bg-white shadow-lg rounded-2xl p-6" aria-hidden="true">
+          <div class="skeleton-line skeleton-line-sm"></div>
+          <div class="skeleton-line skeleton-line-lg"></div>
         </div>
+      }
     </div>
-
-    <!-- Recent Activities -->
-    <div class="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
-        <!-- Recently Added Books -->
-        <div class="bg-white p-6 shadow-lg rounded-2xl">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">کتاب‌های جدید</h2>
-            <ul *ngIf="recentBooks.length > 0; else noRecentBooks" class="space-y-3">
-                <li *ngFor="let book of recentBooks" class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium text-gray-800">{{ book.title }}</p>
-                        <p class="text-sm text-gray-500">{{ book.author }}</p>
-                    </div>
-                    <button mat-button type="button" color="primary" (click)="viewBook(book)">مشاهده</button>
-                </li>
-            </ul>
-            <ng-template #noRecentBooks>
-                <p class="text-center text-gray-500 py-4">کتاب جدیدی اضافه نشده است.</p>
-            </ng-template>
-        </div>
-
-        <!-- Newest Members -->
-        <div class="bg-white p-6 shadow-lg rounded-2xl">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">اعضای جدید</h2>
-            <ul *ngIf="recentMembers.length > 0; else noRecentMembers" class="space-y-3">
-                <li *ngFor="let person of recentMembers" class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium text-gray-800">{{ person.firstName }} {{ person.lastName }}</p>
-                        <p class="text-sm text-gray-500">{{ person.email }}</p>
-                    </div>
-                    <button mat-button type="button" color="primary" (click)="viewPerson(person)">مشاهده</button>
-                </li>
-            </ul>
-            <ng-template #noRecentMembers>
-                <p class="text-center text-gray-500 py-4">عضو جدیدی ثبت‌نام نکرده است.</p>
-            </ng-template>
-        </div>
+    <div class="mt-8 bg-white p-6 shadow-lg rounded-2xl" aria-hidden="true">
+      <div class="skeleton-line skeleton-line-sm"></div>
+      <div class="skeleton-chart"></div>
     </div>
-</div>
+  }
 
-<div>
-    <app-book [isSlaveMode]="true" #bookManager></app-book>
-    <app-person [isSlaveMode]="true" #personManager></app-person>
+  <!-- حالت خطا با تلاش مجدد -->
+  @if (!isLoading() && error(); as message) {
+    <div
+      class="rounded-2xl border border-red-300 bg-red-50 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+      role="alert"
+    >
+      <p class="text-red-800">
+        <mat-icon class="align-middle text-red-700" aria-hidden="true">error_outline</mat-icon>
+        {{ message }}
+      </p>
+      <button type="button" mat-flat-button color="primary" (click)="loadSummary()">
+        <mat-icon aria-hidden="true">refresh</mat-icon>
+        تلاش مجدد
+      </button>
+    </div>
+  }
+
+  <!-- محتوا -->
+  @if (!isLoading() && !error() && summary(); as data) {
+    <!-- کارت‌های شاخص -->
+    <section aria-label="شاخص‌های کلیدی">
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <!-- کل کتاب‌ها -->
+        <div class="bg-white overflow-hidden shadow-lg rounded-2xl p-5 flex items-center gap-4 transform hover:-translate-y-1 transition-transform duration-300">
+          <div class="bg-indigo-100 p-3 rounded-full">
+            <mat-icon class="text-indigo-700" aria-hidden="true">menu_book</mat-icon>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600">تعداد کل کتاب‌ها</p>
+            <p class="mt-1 text-3xl font-semibold text-gray-900">{{ toPersian(data.totalBooks) }}</p>
+          </div>
+        </div>
+
+        <!-- کل اعضا -->
+        <div class="bg-white overflow-hidden shadow-lg rounded-2xl p-5 flex items-center gap-4 transform hover:-translate-y-1 transition-transform duration-300">
+          <div class="bg-blue-100 p-3 rounded-full">
+            <mat-icon class="text-blue-700" aria-hidden="true">groups</mat-icon>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600">تعداد اعضا</p>
+            <p class="mt-1 text-3xl font-semibold text-gray-900">{{ toPersian(data.totalPersons) }}</p>
+          </div>
+        </div>
+
+        <!-- امانت‌های فعال -->
+        <div class="bg-white overflow-hidden shadow-lg rounded-2xl p-5 flex items-center gap-4 transform hover:-translate-y-1 transition-transform duration-300">
+          <div class="bg-green-100 p-3 rounded-full">
+            <mat-icon class="text-green-700" aria-hidden="true">assignment_return</mat-icon>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600">کتاب‌های در امانت</p>
+            <p class="mt-1 text-3xl font-semibold text-gray-900">{{ toPersian(data.activeLoans) }}</p>
+          </div>
+        </div>
+
+        <!-- دیرکرد -->
+        <div class="bg-white overflow-hidden shadow-lg rounded-2xl p-5 flex items-center gap-4 transform hover:-translate-y-1 transition-transform duration-300">
+          <div class="bg-red-100 p-3 rounded-full">
+            <mat-icon class="text-red-700" aria-hidden="true">warning_amber</mat-icon>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600">امانت‌های دارای دیرکرد</p>
+            <p class="mt-1 text-3xl font-semibold text-red-700">{{ toPersian(data.overdueLoans) }}</p>
+          </div>
+        </div>
+
+        <!-- رزروهای فعال -->
+        <div class="bg-white overflow-hidden shadow-lg rounded-2xl p-5 flex items-center gap-4 transform hover:-translate-y-1 transition-transform duration-300">
+          <div class="bg-amber-100 p-3 rounded-full">
+            <mat-icon class="text-amber-800" aria-hidden="true">event_available</mat-icon>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600">رزروهای فعال</p>
+            <p class="mt-1 text-3xl font-semibold text-gray-900">{{ toPersian(data.activeReservations) }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- نمودار ماهانه امانت‌ها + جدول جایگزین دسترس‌پذیر -->
+    <section class="mt-8 bg-white p-6 shadow-lg rounded-2xl" aria-labelledby="monthlyLoansHeading">
+      <h2 id="monthlyLoansHeading" class="text-xl font-semibold text-gray-800 mb-4">
+        روند امانت‌های ماهانه
+      </h2>
+
+      @if (monthlyRows().length > 0) {
+        <div class="h-80">
+          <canvas
+            baseChart
+            role="img"
+            aria-label="نمودار میله‌ای تعداد امانت‌ها به تفکیک ماه"
+            [data]="monthlyLoansChartData"
+            [options]="monthlyLoansChartOptions"
+            [type]="monthlyLoansChartType"
+          ></canvas>
+        </div>
+
+        <!-- Fallback: a canvas carries no accessible content, so the same series is also
+             published as a real table (visually hidden to avoid duplicating the chart). -->
+        <table class="sr-only">
+          <caption>تعداد امانت‌ها به تفکیک ماه</caption>
+          <thead>
+            <tr>
+              <th scope="col">ماه</th>
+              <th scope="col">تعداد امانت</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of monthlyRows(); track row.label) {
+              <tr>
+                <th scope="row">{{ row.label }}</th>
+                <td>{{ toPersian(row.count) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <div class="empty-chart" role="status">
+          <mat-icon aria-hidden="true">insights</mat-icon>
+          <p>داده‌ای برای رسم نمودار امانت‌های ماهانه ثبت نشده است.</p>
+        </div>
+      }
+    </section>
+
+    <!-- امانت‌های اخیر -->
+    <section class="mt-8 bg-white p-6 shadow-lg rounded-2xl" aria-labelledby="recentLoansHeading">
+      <h2 id="recentLoansHeading" class="text-xl font-semibold text-gray-800 mb-4">امانت‌های اخیر</h2>
+
+      @if (data.recentLoans?.length) {
+        <div class="overflow-x-auto" tabindex="0" aria-label="جدول امانت‌های اخیر؛ برای پیمایش افقی از کلیدهای جهت‌نما استفاده کنید">
+          <table class="recent-table">
+            <caption class="sr-only">فهرست آخرین امانت‌های ثبت‌شده</caption>
+            <thead>
+              <tr>
+                <th scope="col">کتاب</th>
+                <th scope="col">عضو</th>
+                <th scope="col">تاریخ امانت</th>
+                <th scope="col">سررسید</th>
+                <th scope="col">وضعیت</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (loan of data.recentLoans; track loan.id) {
+                <tr>
+                  <td class="emphasize">{{ loan.bookTitle || '---' }}</td>
+                  <td>{{ personName(loan) }}</td>
+                  <td>{{ formatDate(loan.loanDate) }}</td>
+                  <td>{{ formatDate(loan.dueDate) }}</td>
+                  <td>
+                    <span class="status-badge" [class.status-overdue]="loan.status === 'OVERDUE'"
+                      [class.status-active]="loan.status === 'ON_LOAN'"
+                      [class.status-returned]="loan.status === 'RETURNED'">
+                      {{ statusLabel(loan.status) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-chart" role="status">
+          <mat-icon aria-hidden="true">history_toggle_off</mat-icon>
+          <p>امانتی ثبت نشده است.</p>
+        </div>
+      )}
+    </section>
+  }
 </div>

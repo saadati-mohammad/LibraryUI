@@ -1,80 +1,112 @@
 <div class="dynamic-table-wrapper">
-  <h2 *ngIf="tableTitle" class="table-section-title direction-rtl">
-    {{ tableTitle }}
-    <span *ngIf="dataSource && dataSource.data.length > 0"> ({{ dataSource.data.length }} مورد)</span>
-  </h2>
+  @if (tableTitle) {
+    <h2 class="table-section-title direction-rtl">
+      {{ tableTitle }}
+      @if (!isLoading && (dataSource?.data?.length ?? 0) > 0) {
+        <span>
+          ({{ dataSource.data.length }} مورد)
+        </span>
+      }
+    </h2>
+  }
 
-  <div *ngIf="isLoading" class="loading-shade" style="z-index: 1000;">
-    <mat-spinner diameter="50"></mat-spinner>
-    <p>در حال بارگذاری اطلاعات...</p>
-  </div>
+  <div class="mat-elevation-z2 table-container direction-rtl" tabindex="0" role="region" [attr.aria-label]="tableTitle + '؛ جدول قابل پیمایش'">
+    <!-- حالت بارگذاری: ردیف‌های اسکلتون به‌جای اسپینر تمام‌صفحه -->
+    @if (showSkeleton) {
+      <div class="skeleton-table" role="status" aria-live="polite">
+        <span class="sr-only">در حال بارگذاری اطلاعات…</span>
+        <div class="skeleton-row skeleton-header" aria-hidden="true">
+          <span class="skeleton-cell"></span>
+          <span class="skeleton-cell"></span>
+          <span class="skeleton-cell"></span>
+        </div>
+        @for (row of skeletonRowList; track row) {
+          <div class="skeleton-row" aria-hidden="true">
+            <span class="skeleton-cell"></span>
+            <span class="skeleton-cell"></span>
+            <span class="skeleton-cell"></span>
+          </div>
+        }
+      </div>
+    }
 
-  <div class="mat-elevation-z2 table-container direction-rtl">
-    <table mat-table [dataSource]="dataSource" class="lux-table">
+    <!-- حالت خالی: آیکون + پیام + راهنما -->
+    @if (showEmptyState) {
+      <div class="empty-state" role="status">
+        <mat-icon class="empty-state-icon" aria-hidden="true">{{ emptyIcon }}</mat-icon>
+        <p class="empty-state-message">{{ emptyMessage }}</p>
+        @if (emptyHint) {
+          <p class="empty-state-hint">{{ emptyHint }}</p>
+        }
+      </div>
+    }
+
+    <table mat-table [dataSource]="dataSource" class="lux-table" [class.is-busy]="isLoading && !showSkeleton">
 
       <!-- ستون‌های داینامیک -->
-      <ng-container *ngFor="let column of columns" [matColumnDef]="column.columnDef" [sticky]="column.isSticky"
-        [stickyEnd]="column.isStickyEnd">
-        <!-- تمپلیت برای ستون‌های معمولی -->
-        <ng-container *ngIf="!column.isImageColumn">
-          <th mat-header-cell *matHeaderCellDef>
-            {{ column.header }}
-          </th>
-          <td mat-cell *matCellDef="let element" [ngClass]="getCellClass(column, element)">
-            <span [innerHTML]="getCellHtml(column, element)"></span>
-          </td>
+      @for (column of columns; track column) {
+        <ng-container [matColumnDef]="column.columnDef" [sticky]="column.isSticky"
+          [stickyEnd]="column.isStickyEnd">
+          <!-- تمپلیت برای ستون‌های معمولی -->
+          @if (!column.isImageColumn) {
+            <th mat-header-cell *matHeaderCellDef>
+              {{ column.header }}
+            </th>
+            <td mat-cell *matCellDef="let element" [attr.data-label]="column.header" [ngClass]="getCellClass(column, element)">
+              <span [innerHTML]="getCellHtml(column, element)"></span>
+            </td>
+          }
+          <!-- تمپلیت جدید برای ستون تصویر -->
+          @if (column.isImageColumn) {
+            <th mat-header-cell *matHeaderCellDef>
+              {{ column.header }}
+            </th>
+            <td mat-cell *matCellDef="let element" class="image-cell" [attr.data-label]="column.header">
+              <img [src]="getImageUrl(element, column)" [alt]="column.cell(element)" class="table-image"
+                (error)="handleImageError($event, column.defaultImage)">
+            </td>
+          }
         </ng-container>
-        <!-- تمپلیت جدید برای ستون تصویر -->
-        <ng-container *ngIf="column.isImageColumn">
-          <th mat-header-cell *matHeaderCellDef>
-            {{ column.header }}
-          </th>
-          <td mat-cell *matCellDef="let element" class="image-cell">
-            <img [src]="getImageUrl(element, column)" [alt]="column.cell(element)" class="table-image"
-              (error)="handleImageError($event, column.defaultImage)">
-          </td>
-        </ng-container>
-      </ng-container>
+      }
 
-      <ng-container matColumnDef="actions" [stickyEnd]="true" *ngIf="actionsTemplate">
-        <th mat-header-cell *matHeaderCellDef> عملیات </th>
-        <td mat-cell *matCellDef="let element" class="action-cell">
-          <ng-container *ngTemplateOutlet="actionsTemplate; context: { $implicit: element }">
-          </ng-container>
-        </td>
-      </ng-container>
+      @if (actionsTemplate) {
+        <ng-container matColumnDef="actions" [stickyEnd]="true">
+          <th mat-header-cell *matHeaderCellDef> عملیات </th>
+          <td mat-cell *matCellDef="let element" class="action-cell" data-label="عملیات">
+            <ng-container *ngTemplateOutlet="actionsTemplate; context: { $implicit: element }">
+            </ng-container>
+          </td>
+        </ng-container>
+      }
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
-
-      <!-- ردیف برای زمانی که داده‌ای وجود ندارد -->
-      <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [attr.colspan]="displayedColumns.length">
-          داده‌ای برای نمایش وجود ندارد.
-        </td>
-      </tr>
     </table>
   </div>
 
   <div class="mt-4 flex items-center justify-between bg-white px-4 py-2 rounded-lg shadow-md">
     <!-- اطلاعات صفحه و تعداد کل آیتم‌ها -->
-    <div class="text-sm text-gray-600" *ngIf="totalItems > 0">
-      نمایش
-      <span class="font-semibold">{{ currentPage * pageSize + 1 }}</span>
-      تا
-      <span class="font-semibold">{{
-        (currentPage + 1) * pageSize > totalItems
-        ? totalItems
-        : (currentPage + 1) * pageSize
+    @if (totalItems > 0) {
+      <div class="text-sm text-gray-600">
+        نمایش
+        <span class="font-semibold">{{ currentPage * pageSize + 1 }}</span>
+        تا
+        <span class="font-semibold">{{
+          (currentPage + 1) * pageSize > totalItems
+          ? totalItems
+          : (currentPage + 1) * pageSize
         }}</span>
-      از
-      <span class="font-semibold">{{ totalItems }}</span>
-    </div>
+        از
+        <span class="font-semibold">{{ totalItems }}</span>
+      </div>
+    }
 
     <!-- خود کامپوننت mat-paginator با کلاس‌های سفارشی -->
-    <mat-paginator *ngIf="showPaginator && !isLoading && totalItems > 0" [length]="totalItems" [pageIndex]="currentPage"
-      [pageSize]="pageSize" [pageSizeOptions]="pageSizeOptions" (page)="onPageChange($event)" showFirstLastButtons
-      aria-label="انتخاب صفحه" class="custom-paginator flex items-center">
-    </mat-paginator>
+    @if (showPaginator && !isLoading && totalItems > 0) {
+      <mat-paginator [length]="totalItems" [pageIndex]="currentPage"
+        [pageSize]="pageSize" [pageSizeOptions]="pageSizeOptions" (page)="onPageChange($event)" showFirstLastButtons
+        aria-label="انتخاب صفحه" class="custom-paginator flex items-center">
+      </mat-paginator>
+    }
   </div>
 </div>

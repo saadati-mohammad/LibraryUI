@@ -1,0 +1,27 @@
+<div class="date-input">
+  <input
+    #dateInput
+    type="date"
+    class="date-input-native"
+    [id]="inputId()"
+    [value]="value() ?? ''"
+    [attr.min]="min()"
+    [attr.max]="max()"
+    [attr.aria-describedby]="describedBy()"
+    [required]="required()"
+    [disabled]="!interactive()"
+    [attr.placeholder]="placeholder()"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+  />
+  <button
+    type="button"
+    class="date-input-trigger"
+    matTooltip="باز کردن تقویم"
+    [attr.aria-label]="'باز کردن تقویم برای ' + inputId()"
+    [disabled]="!interactive()"
+    (click)="openPicker()"
+  >
+    <mat-icon aria-hidden="true">calendar_month</mat-icon>
+  </button>
+</div>

@@ -1,0 +1,57 @@
+:host {
+  display: block;
+}
+
+.date-input {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.date-input-native {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: var(--app-light-text-primary);
+  background-color: var(--app-light-bg-secondary);
+  border: 1px solid var(--app-light-border-color-stronger);
+  border-radius: var(--app-border-radius-small);
+  transition: border-color var(--app-transition-speed) ease-in-out,
+    box-shadow var(--app-transition-speed) ease-in-out;
+}
+
+.date-input-native:focus-visible {
+  outline: 0;
+  border-color: var(--app-light-accent-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
+}
+
+.date-input-native:disabled {
+  background-color: var(--app-light-bg-tertiary);
+  opacity: 0.7;
+}
+
+.date-input-trigger {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  border: 1px solid var(--app-light-border-color-stronger);
+  border-radius: var(--app-border-radius-small);
+  background-color: var(--app-light-bg-tertiary);
+  color: var(--app-light-text-secondary);
+  cursor: pointer;
+}
+
+.date-input-trigger:hover:not(:disabled) {
+  border-color: var(--app-light-accent-primary);
+  color: var(--app-light-accent-primary);
+}
+
+.date-input-trigger:focus-visible {
+  outline: 2px solid var(--app-light-accent-primary);
+  outline-offset: 1px;
+}

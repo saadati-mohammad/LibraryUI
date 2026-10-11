@@ -1,9 +1,14 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PersonFilterModel, PersonModel } from '../model/personModel';
 import { ExcelImportResult, PaginatedResponse } from '../model/paginated-response.model';
+import {
+  buildEntityFormData,
+  buildFileFormData,
+  buildQueryParams,
+} from '../util/http-request.util';
 
 @Injectable({
   providedIn: 'root'
@@ -20,47 +25,29 @@ export class PersonService {
     size = 10,
     sort = 'id,desc'
   ): Observable<PaginatedResponse<PersonModel>> {
-    let params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString())
-      .set('sort', sort);
-
-    if (filters) {
-      Object.keys(filters).forEach(key => {
-        const value = (filters as Record<string, unknown>)[key];
-        if (value !== null && value !== undefined && value !== '') {
-          // HttpParams only accepts strings; coerce booleans/numbers explicitly so
-          // `false` and `0` are transmitted correctly instead of being coerced ad hoc.
-          params = params.append(key, String(value));
-        }
-      });
-    }
+    // `buildQueryParams` keeps falsy-but-meaningful filters (`active: false`).
+    const params = buildQueryParams(filters, page, size, sort);
     return this.http.get<PaginatedResponse<PersonModel>>(this.baseUrl, { params });
   }
 
   addPerson(personData: PersonModel, profilePicture?: File): Observable<PersonModel> {
-    const formData = new FormData();
-    formData.append('person', new Blob([JSON.stringify(personData)], { type: 'application/json' }));
-    if (profilePicture) {
-      formData.append('profilePicture', profilePicture, profilePicture.name);
-    }
+    const formData = buildEntityFormData('person', personData, {
+      fileField: 'profilePicture',
+      file: profilePicture,
+    });
     return this.http.post<PersonModel>(this.baseUrl, formData);
   }
 
+  /**
+   * Updates a person. The picture argument is tri-state (see {@link buildEntityFormData}):
+   * `null` means "remove the stored picture", `undefined` means "keep it", a `File` means
+   * "replace it".
+   */
   updatePerson(id: number, personData: PersonModel, profilePicture?: File | null): Observable<PersonModel> {
-    const formData = new FormData();
-
-    if (profilePicture === null) {
-      const personDataWithoutPicture = { ...personData, profilePicture: null };
-      formData.append('person', new Blob([JSON.stringify(personDataWithoutPicture)], { type: 'application/json' }));
-    } else {
-      formData.append('person', new Blob([JSON.stringify(personData)], { type: 'application/json' }));
-    }
-
-    if (profilePicture instanceof File) {
-      formData.append('profilePicture', profilePicture, profilePicture.name);
-    }
-
+    const formData = buildEntityFormData('person', personData, {
+      fileField: 'profilePicture',
+      file: profilePicture,
+    });
     return this.http.put<PersonModel>(`${this.baseUrl}/${id}`, formData);
   }
 
@@ -74,10 +61,8 @@ export class PersonService {
   }
 
   importPersonsFromExcel(file: File): Observable<ExcelImportResult> {
-    const formData = new FormData();
-    formData.append('file', file, file.name);
     const url = `${this.baseUrlExcel}/excel-import/persons`;
     // Backend returns a JSON envelope: { success, imported, message }.
-    return this.http.post<ExcelImportResult>(url, formData);
+    return this.http.post<ExcelImportResult>(url, buildFileFormData('file', file));
   }
 }

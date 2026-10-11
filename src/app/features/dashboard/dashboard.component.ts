@@ -1,95 +1,143 @@
-import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID, ViewChild } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
+import { isPlatformBrowser } from '@angular/common';
+import { Component, DestroyRef, OnInit, PLATFORM_ID, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-
-// --- Chart.js Imports ---
-import { BaseChartDirective } from 'ng2-charts'; // <--- FIX: ADD THIS LINE
-import { ChartConfiguration, ChartOptions, ChartType, Chart, registerables } from 'chart.js';
-import 'chartjs-adapter-date-fns'; // برای کار با تاریخ‌ها
-
-// --- Project Services & Models ---
-import { BookService } from '../../core/service/book.service';
-import { PersonService } from '../../core/service/person.service';
-import { BookLoanService } from '../../core/service/book-loan.service';
-import { BookModel } from '../../core/model/bookModel';
-import { PersonModel } from '../../core/model/personModel';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterModule } from '@angular/router';
+import { BaseChartDirective } from 'ng2-charts';
+import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { BookLoanModel } from '../../core/model/bookLoanModel';
-import { forkJoin, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { DashboardSummaryModel, MonthlyLoanCount } from '../../core/model/dashboard.model';
+import { DashboardService } from '../../core/service/dashboard.service';
+import { parseIsoDate } from '../../core/util/date.util';
 
-import { BookComponent, FormOperation as BookFormOperation } from '../book/book.component';
-import { PersonComponent, FormOperation as PersonFormOperation } from '../person/person.component';
+// chart.js is configured exactly once, at module load. `registerables` is idempotent, so
+// this also covers the (unlikely) case of the dashboard chunk being evaluated twice.
+Chart.register(...registerables);
 
+/** Persian month names indexed by `Date.getMonth()`. */
+const PERSIAN_MONTHS = [
+  'ژانویه',
+  'فوریه',
+  'مارس',
+  'آوریل',
+  'مه',
+  'ژوئن',
+  'ژوئیه',
+  'اوت',
+  'سپتامبر',
+  'اکتبر',
+  'نوامبر',
+  'دسامبر',
+];
 
-// مدل برای نگهداری آمار
-interface DashboardStats {
-  totalBooks: number;
-  activeMembers: number;
-  onLoanBooks: number;
-  overdueBooks: number;
+const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+
+/** Converts the ASCII digits of a number to Persian digits for a consistently RTL UI. */
+export function toPersianDigits(value: number | string): string {
+  return String(value).replace(/\d/g, (digit) => PERSIAN_DIGITS[Number(digit)]);
 }
+
+/** `yyyy-MM` → `ژانویه ۲۰۲۵`; falls back to the raw label when the shape is unexpected. */
+function formatMonthLabel(month: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(month ?? '');
+  if (!match) {
+    return month ?? '';
+  }
+  const monthIndex = Number(match[2]) - 1;
+  const name = PERSIAN_MONTHS[monthIndex] ?? match[2];
+  return `${name} ${toPersianDigits(match[1])}`;
+}
+
+/** Persian rendering of an ISO `yyyy-MM-dd` date. */
+function formatPersianDate(value: string | null | undefined): string {
+  const date = parseIsoDate(value);
+  if (!date) {
+    return value ?? '---';
+  }
+  return new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+const LOAN_STATUS_LABELS: Record<string, string> = {
+  ON_LOAN: 'در امانت',
+  RETURNED: 'بازگشتی',
+  OVERDUE: 'دیرکرد',
+};
+
+/**
+ * Management dashboard.
+ *
+ * Every figure is read from `GET /api/dashboard/summary`. The previous version issued six
+ * list requests and **fabricated the loan-activity series with `Math.random()`** while
+ * labelling it as real data; that mock chart is gone, and the monthly series now comes
+ * from the API. The chart is also paired with an accessible table fallback, because a
+ * `<canvas>` has no accessible content of its own.
+ */
 @Component({
   selector: 'app-dashboard',
+  standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    BookComponent,
-    PersonComponent,
-    BaseChartDirective // from ng2-charts
-  ],
+    MatTooltipModule,
+    BaseChartDirective
+],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css'
+  changeDetection: ChangeDetectionStrategy.Eager,
+  styleUrl: './dashboard.component.css',
 })
-export class DashboardComponent implements OnInit, OnDestroy {
-  @ViewChild(BaseChartDirective) chart: BaseChartDirective | undefined;
-  @ViewChild('bookManager') bookManager!: BookComponent;
-  @ViewChild('personManager') personManager!: PersonComponent;
+export class DashboardComponent implements OnInit {
+  private readonly dashboardService = inject(DashboardService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  private destroy$ = new Subject<void>();
-  private isBrowser: boolean;
+  readonly isLoading = signal(true);
+  readonly error = signal<string | null>(null);
+  readonly summary = signal<DashboardSummaryModel | null>(null);
+  /** Month labels paired with counts, used by the accessible table fallback. */
+  readonly monthlyRows = signal<{ label: string; count: number }[]>([]);
 
-  isLoading = true;
-  stats: DashboardStats = {
-    totalBooks: 0,
-    activeMembers: 0,
-    onLoanBooks: 0,
-    overdueBooks: 0
+  readonly monthlyLoansChartData: ChartConfiguration<'bar'>['data'] = {
+    labels: [],
+    datasets: [
+      {
+        data: [],
+        label: 'تعداد امانت‌ها',
+        backgroundColor: 'rgba(79, 70, 229, 0.75)',
+        hoverBackgroundColor: 'rgba(79, 70, 229, 1)',
+        borderColor: 'rgba(79, 70, 229, 1)',
+        borderRadius: 6,
+        maxBarThickness: 32,
+      },
+    ],
   };
-  recentBooks: BookModel[] = [];
-  recentMembers: PersonModel[] = [];
-  overdueLoans: BookLoanModel[] = [];
 
-  // Bar Chart: Loan Activity
-  public loanActivityChartOptions: ChartConfiguration['options'] = {
+  readonly monthlyLoansChartOptions: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: { duration: 300 },
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#6b7280' }
+        ticks: { color: '#4b5563', font: { family: 'Vazirmatn, Tahoma, sans-serif' } },
       },
       y: {
         beginAtZero: true,
-        // --- FIX STARTS HERE ---
-        grid: {
-          color: '#e5e7eb', // text-gray-200
-        },
-        border: { // The 'dash' property is now inside the 'border' object
-          dash: [5, 5]
-        },
-        // --- FIX ENDS HERE ---
         ticks: {
-          color: '#6b7280', // text-gray-500
-          stepSize: 1
-        }
-      }
+          color: '#4b5563',
+          precision: 0,
+          font: { family: 'Vazirmatn, Tahoma, sans-serif' },
+        },
+        grid: { color: '#e5e7eb' },
+      },
     },
     plugins: {
       legend: { display: false },
@@ -97,166 +145,97 @@ export class DashboardComponent implements OnInit, OnDestroy {
         backgroundColor: '#1f2937',
         titleColor: '#ffffff',
         bodyColor: '#e5e7eb',
-        bodySpacing: 4,
         padding: 12,
         cornerRadius: 6,
         callbacks: {
-          label: (context) => `${context.parsed.y} امانت`
-        }
-      }
-    }
-  };
-  public loanActivityChartData: ChartConfiguration<'bar'>['data'] = {
-    labels: [],
-    datasets: [{
-      data: [],
-      label: 'تعداد امانت‌ها',
-      backgroundColor: 'rgba(79, 70, 229, 0.7)', // indigo-600
-      hoverBackgroundColor: 'rgba(79, 70, 229, 1)',
-      borderColor: 'rgba(79, 70, 229, 1)',
-      borderRadius: 6,
-      barThickness: 20
-    }]
-  };
-  public loanActivityChartType: ChartType = 'bar';
-
-  // Pie Chart: Loan Status
-  public loanStatusChartOptions: ChartConfiguration['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          color: '#374151', // text-gray-700
-          font: { size: 12, family: 'Vazirmatn' }
-        }
+          label: (context) => `${toPersianDigits(context.parsed.y ?? 0)} امانت`,
+        },
       },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            const label = context.label || '';
-            const value = context.parsed || 0;
-            return `${label}: ${value}`;
-          }
-        }
-      }
-    }
+    },
   };
-  public loanStatusChartData: ChartConfiguration<'pie'>['data'] = {
-    labels: ['در امانت', 'دیرکرد'],
-    datasets: [{
-      data: [0, 0],
-      backgroundColor: ['#3b82f6' /* blue-500 */, '#ef4444' /* red-500 */],
-      hoverBackgroundColor: ['#2563eb' /* blue-600 */, '#dc2626' /* red-600 */],
-      borderColor: '#ffffff',
-      hoverBorderColor: '#f9fafb' // bg-gray-50
-    }]
-  };
-  public loanStatusChartType: ChartType = 'pie';
 
-
-  constructor(
-    @Inject(PLATFORM_ID) platformId: object,
-    private bookService: BookService,
-    private personService: PersonService,
-    private loanService: BookLoanService,
-    private snackBar: MatSnackBar,
-  ) {
-    this.isBrowser = isPlatformBrowser(platformId);
-    if (this.isBrowser) {
-      Chart.register(...registerables);
-    }
-  }
+  readonly monthlyLoansChartType = 'bar' as const;
 
   ngOnInit(): void {
-    this.loadDashboardData();
+    this.loadSummary();
   }
 
-  loadDashboardData(): void {
-    this.isLoading = true;
-
-    // A list of observables to fetch all data in parallel
-    const dataSources = {
-      books: this.bookService.getBookList(undefined, 0, 1), // for total count
-      activePersons: this.personService.getPersonList({ active: true }, 0, 1),
-      onLoan: this.loanService.getLoanList({ status: 'ON_LOAN' }, 0, 1),
-      overdue: this.loanService.getLoanList({ status: 'OVERDUE' }, 0, 10), // Get up to 10 overdue loans for the list
-      recentBooks: this.bookService.getBookList({}, 0, 5, 'id,desc'),
-      recentMembers: this.personService.getPersonList({}, 0, 5, 'id,desc')
-    };
-
-    forkJoin(dataSources)
-      .pipe(takeUntil(this.destroy$))
+  /** Reloads the summary; bound to the refresh button and to the error-state retry. */
+  loadSummary(): void {
+    this.isLoading.set(true);
+    this.error.set(null);
+    this.dashboardService
+      .getSummary()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (results) => {
-          // --- Populate Stats Cards ---
-          this.stats = {
-            totalBooks: results.books.totalElements,
-            activeMembers: results.activePersons.totalElements,
-            onLoanBooks: results.onLoan.totalElements,
-            overdueBooks: results.overdue.totalElements,
-          };
-
-          // --- Populate Lists ---
-          this.recentBooks = results.recentBooks.content;
-          this.recentMembers = results.recentMembers.content;
-          this.overdueLoans = results.overdue.content;
-
-          // --- Setup Charts ---
-          this.setupLoanStatusChart();
-          this.setupLoanActivityChart();
-
-          this.isLoading = false;
+        next: (summary) => {
+          this.applySummary(summary);
+          this.isLoading.set(false);
         },
-        error: (err) => {
-          console.error('Error loading dashboard data:', err);
-          if (this.isBrowser) {
-            this.snackBar.open('خطا در بارگذاری اطلاعات داشبورد.', 'بستن', { duration: 5000, direction: 'rtl' });
-          }
-          this.isLoading = false;
-        }
+        error: (httpError: unknown) => {
+          this.summary.set(null);
+          this.monthlyRows.set([]);
+          this.resetChart();
+          this.error.set(this.describeError(httpError));
+          this.isLoading.set(false);
+        },
       });
   }
 
-  private setupLoanStatusChart(): void {
-    this.loanStatusChartData.datasets[0].data = [
-      this.stats.onLoanBooks,
-      this.stats.overdueBooks,
-    ];
-    this.chart?.update();
+  formatDate(value: string | null | undefined): string {
+    return formatPersianDate(value);
   }
 
-  private setupLoanActivityChart(): void {
-    // NOTE: This is mock data as there is no backend endpoint for daily loan counts.
-    // In a real application, you would fetch this data from an API.
-    const labels: string[] = [];
-    const data: number[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      labels.push(date.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' }));
-      // Generate random data for demonstration
-      data.push(Math.floor(Math.random() * 15) + 1);
+  toPersian(value: number | string | null | undefined): string {
+    return value === null || value === undefined ? '---' : toPersianDigits(value);
+  }
+
+  personName(loan: BookLoanModel): string {
+    return `${loan.personFirstName ?? ''} ${loan.personLastName ?? ''}`.trim() || '---';
+  }
+
+  statusLabel(status: string): string {
+    return LOAN_STATUS_LABELS[status] ?? status;
+  }
+
+  // --- Internals ------------------------------------------------------------
+
+  private applySummary(summary: DashboardSummaryModel): void {
+    this.summary.set(summary);
+
+    const series: MonthlyLoanCount[] = Array.isArray(summary?.monthlyLoans)
+      ? summary.monthlyLoans
+      : [];
+    const labels = series.map((point) => formatMonthLabel(point.month));
+    const counts = series.map((point) => Number(point.count) || 0);
+
+    this.monthlyLoansChartData.labels = labels;
+    this.monthlyLoansChartData.datasets[0].data = counts;
+    this.monthlyRows.set(
+      series.map((point, index) => ({
+        label: labels[index],
+        count: counts[index],
+      })),
+    );
+  }
+
+  private resetChart(): void {
+    this.monthlyLoansChartData.labels = [];
+    this.monthlyLoansChartData.datasets[0].data = [];
+  }
+
+  private describeError(error: unknown): string {
+    if (!this.isBrowser) {
+      return 'خطا در بارگذاری اطلاعات داشبورد.';
     }
-
-    this.loanActivityChartData.labels = labels;
-    this.loanActivityChartData.datasets[0].data = data;
-    this.chart?.update();
-  }
-
-  viewBook(book: BookModel): void {
-    // فراخوانی متد پابلیک کامپوننت کتاب
-    this.bookManager.openBookModal(BookFormOperation.VIEW, book);
-  }
-
-  viewPerson(person: PersonModel): void {
-    // فراخوانی متد پابلیک کامپوننت اعضا
-    this.personManager.openPersonModal(PersonFormOperation.VIEW, person);
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+    const httpError = error as { error?: { message?: string }; message?: string; status?: number };
+    if (httpError?.status === 403) {
+      return 'دسترسی به اطلاعات داشبورد مجاز نیست.';
+    }
+    return (
+      httpError?.error?.message ||
+      httpError?.message ||
+      'خطا در بارگذاری اطلاعات داشبورد. لطفاً دوباره تلاش کنید.'
+    );
   }
 }

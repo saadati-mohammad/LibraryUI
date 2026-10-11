@@ -1,0 +1,34 @@
+:host {
+  display: inline-block;
+}
+
+.stored-image {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stored-image-img {
+  display: block;
+  object-fit: cover;
+  border-radius: var(--app-border-radius-small, 4px);
+  border: 1px solid var(--app-light-border-color);
+  background-color: var(--app-light-bg-tertiary);
+}
+
+.stored-image-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--app-border-radius-small, 4px);
+  border: 1px dashed var(--app-light-border-color-stronger);
+  background-color: var(--app-light-bg-tertiary);
+  /* #5b6472 on #f1f4f7 is ~5.3:1 — AA for non-text content. */
+  color: #5b6472;
+}
+
+.stored-image-placeholder mat-icon {
+  font-size: 1.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+}

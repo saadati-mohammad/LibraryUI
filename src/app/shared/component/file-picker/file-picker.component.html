@@ -1,0 +1,113 @@
+<div class="file-picker">
+  <span class="file-picker-label" [id]="inputId() + '-label'">
+    {{ label() }}
+    @if (required()) {
+      <span class="required-star" aria-hidden="true">*</span>
+      <span class="sr-only">(الزامی)</span>
+    }
+  </span>
+
+  <input
+    #fileInput
+    type="file"
+    class="native-input"
+    [id]="inputId()"
+    [attr.data-testid]="testId()"
+    [attr.accept]="accept()"
+    [attr.aria-describedby]="describedBy() || (hint() ? inputId() + '-hint' : null)"
+    [attr.aria-invalid]="error() ? 'true' : null"
+    [attr.aria-errormessage]="error() ? inputId() + '-error' : null"
+    [required]="required()"
+    [disabled]="!interactive()"
+    (change)="onInputChange($event)"
+  />
+
+  <div
+    class="drop-zone"
+    [class.is-dragging]="isDragging()"
+    [class.has-file]="selectedFile() !== null"
+    [class.has-error]="error() !== null"
+    [class.is-disabled]="!interactive()"
+    [class.is-focused]="isFocused()"
+    role="button"
+    [attr.tabindex]="interactive() ? 0 : -1"
+    [attr.aria-disabled]="interactive() ? null : 'true'"
+    [attr.aria-labelledby]="inputId() + '-label'"
+    (click)="openPicker()"
+    (keydown)="onZoneKeydown($event)"
+    (focus)="isFocused.set(true)"
+    (blur)="isFocused.set(false)"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+  >
+    <mat-icon class="drop-zone-icon" aria-hidden="true">
+      {{ selectedFile() ? 'task_alt' : 'cloud_upload' }}
+    </mat-icon>
+
+    <div class="drop-zone-text">
+      @if (selectedFile(); as file) {
+        <span class="file-name">{{ file.name }}</span>
+        <span class="file-meta">{{ selectedSize() }}</span>
+      } @else {
+        <span class="file-name">{{ buttonLabel() }}</span>
+        <span class="file-meta">فایل را بکشید و رها کنید یا برای انتخاب کلیک کنید</span>
+      }
+    </div>
+  </div>
+
+  <div class="file-picker-actions">
+    <button
+      type="button"
+      mat-stroked-button
+      class="pick-button"
+      [disabled]="!interactive()"
+      [attr.aria-describedby]="inputId() + '-label'"
+      (click)="openPicker()"
+    >
+      <mat-icon aria-hidden="true">folder_open</mat-icon>
+      {{ selectedFile() ? 'تغییر فایل' : buttonLabel() }}
+    </button>
+
+    @if (selectedFile()) {
+      <button
+        type="button"
+        mat-icon-button
+        class="clear-button"
+        matTooltip="حذف فایل انتخاب‌شده"
+        [attr.aria-label]="'حذف فایل انتخاب‌شده ' + (selectedFile()?.name ?? '')"
+        [disabled]="!interactive()"
+        (click)="clear()"
+      >
+        <mat-icon aria-hidden="true">delete_outline</mat-icon>
+      </button>
+    }
+  </div>
+
+  @if (preview()) {
+    <div class="preview-box">
+      @if (resolvedPreview(); as url) {
+        <img [src]="url" [alt]="'پیش‌نمایش ' + label()" class="preview-image" />
+      } @else {
+        <div class="preview-placeholder" [attr.aria-hidden]="true">
+          <mat-icon>image</mat-icon>
+        </div>
+      }
+    </div>
+  }
+
+  @if (hint()) {
+    <p class="file-picker-hint" [id]="inputId() + '-hint'">{{ hint() }}</p>
+  }
+
+  @if (error(); as message) {
+    <p class="file-picker-error" [id]="inputId() + '-error'" role="alert">{{ message }}</p>
+  }
+
+  <!-- Announced politely so the selection is perceivable without sight of the control. -->
+  <p class="sr-only" aria-live="polite">
+    @if (selectedFile(); as file) {
+      فایل انتخاب‌شده: {{ file.name }}، حجم {{ selectedSize() }}
+    }
+  </p>
+</div>

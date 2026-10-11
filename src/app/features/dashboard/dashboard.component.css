@@ -1,25 +1,163 @@
-/* src/app/features/dashboard/dashboard.component.css */
+/* داشبورد مدیریتی — استایل‌های تکمیلی (بقیه با Tailwind) */
 
-/*
-  با توجه به اینکه طراحی کاملا با Tailwind CSS انجام شده،
-  این فایل در حال حاضر خالی است. در صورت نیاز به استایل‌های
-  سفارشی که با Tailwind امکان‌پذیر نیستند، می‌توان آن‌ها را در اینجا اضافه کرد.
-  مثلا استایل سفارشی برای اسکرول بار:
-*/
-.overflow-y-auto::-webkit-scrollbar {
-  width: 8px;
+.refresh-button {
+  align-self: flex-start;
 }
 
-.overflow-y-auto::-webkit-scrollbar-track {
-  background-color: #f1f5f9; /* bg-slate-100 */
+/* ----------------------------------------- */
+/* --- Skeleton loading --- */
+/* ----------------------------------------- */
+.skeleton-line {
+  height: 0.75rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06) 25%,
+    rgba(0, 0, 0, 0.12) 37%,
+    rgba(0, 0, 0, 0.06) 63%
+  );
+  background-size: 400% 100%;
+  animation: dashboard-shimmer 1.4s ease-in-out infinite;
 }
 
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background-color: #a8a29e; /* bg-stone-400 */
-  border-radius: 10px;
-  border: 2px solid #f1f5f9; /* bg-slate-100 */
+.skeleton-line + .skeleton-line {
+  margin-top: 0.75rem;
 }
 
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background-color: #78716c; /* bg-stone-500 */
+.skeleton-line-sm {
+  width: 55%;
+}
+
+.skeleton-line-lg {
+  height: 1.75rem;
+  width: 35%;
+}
+
+.skeleton-chart {
+  height: 16rem;
+  margin-top: 1rem;
+  border-radius: var(--app-border-radius-main);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06) 25%,
+    rgba(0, 0, 0, 0.12) 37%,
+    rgba(0, 0, 0, 0.06) 63%
+  );
+  background-size: 400% 100%;
+  animation: dashboard-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes dashboard-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line,
+  .skeleton-chart {
+    animation: none;
+  }
+}
+
+/* ----------------------------------------- */
+/* --- Empty chart / list --- */
+/* ----------------------------------------- */
+.empty-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 12rem;
+  text-align: center;
+  color: var(--app-light-text-secondary);
+}
+
+.empty-chart mat-icon {
+  font-size: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #8a94a6;
+}
+
+.empty-chart p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ----------------------------------------- */
+/* --- Recent loans table --- */
+/* ----------------------------------------- */
+.recent-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.recent-table th,
+.recent-table td {
+  padding: 0.75rem 1rem;
+  text-align: right;
+  border-bottom: 1px solid var(--app-light-border-color);
+  font-size: 0.875rem;
+  color: var(--app-light-text-secondary);
+}
+
+.recent-table th {
+  /* #374151 on white is ~10:1 — comfortably AA, unlike the previous gray-500. */
+  color: #374151;
+  font-weight: 600;
+  background-color: var(--app-light-bg-tertiary);
+}
+
+.recent-table td.emphasize {
+  color: var(--app-light-text-primary);
+  font-weight: 500;
+}
+
+.recent-table tbody tr:hover {
+  background-color: rgba(var(--app-light-accent-primary-rgb), 0.04);
+}
+
+/* Status badges. `app-list`'s badge styles are view-encapsulated to that component, so
+   the dashboard renders its own using the same global design tokens. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: var(--app-border-radius-small, 8px);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-active {
+  background-color: var(--app-light-status-active-bg);
+  color: var(--app-light-status-active-color);
+}
+
+.status-returned {
+  background-color: var(--app-light-status-returned-bg);
+  color: var(--app-light-status-returned-color);
+}
+
+.status-overdue {
+  background-color: var(--app-light-status-overdue-bg);
+  color: var(--app-light-status-overdue-color);
+}
+
+/* Visually hidden but available to assistive tech. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

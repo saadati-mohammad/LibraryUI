@@ -1,86 +1,129 @@
-import {Component, inject, OnInit, PLATFORM_ID} from '@angular/core';
-import {CommonModule} from '@angular/common';
-import {MatButtonModule} from '@angular/material/button';
-import {MatIconModule} from '@angular/material/icon';
-import {ListComponent, TableColumn} from '../../shared/component/list/list.component';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
-import { BookService } from '../../core/service/book.service';
-import { ModalComponent } from "../../shared/component/modal/modal.component";
+import { isPlatformBrowser } from '@angular/common';
+import { Component, DestroyRef, inject, OnInit, PLATFORM_ID, signal, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { BookLoanModel, BookLoanFilterModel, CreateLoanRequest } from '../../core/model/bookLoanModel';
+import { debounceTime, distinctUntilChanged, Observable, Subject, switchMap } from 'rxjs';
+import { BookLoanFilterModel, BookLoanModel, CreateLoanRequest, LoanStatus } from '../../core/model/bookLoanModel';
 import { BookModel } from '../../core/model/bookModel';
 import { PersonModel } from '../../core/model/personModel';
 import { BookLoanService } from '../../core/service/book-loan.service';
+import { BookService } from '../../core/service/book.service';
 import { PersonService } from '../../core/service/person.service';
+import { ListComponent, TableColumn } from '../../shared/component/list/list.component';
+import { ModalComponent } from '../../shared/component/modal/modal.component';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
+import { PagedFilterPage } from '../../shared/component/paged-filter-page';
 
+/** Bounded autocomplete page size — never fetch a thousand rows to fill a picker. */
+const SEARCH_PAGE_SIZE = 25;
+
+/** Debounce for the type-ahead searches (ms). */
+const SEARCH_DEBOUNCE_MS = 300;
+
+/**
+ * Validator for a `<mat-autocomplete>`-backed control.
+ *
+ * `mat-autocomplete` writes the raw *string* into the control while the user types, so a
+ * free-typed name would otherwise be posted as `personId`. Requiring a number forces a
+ * real option selection.
+ */
+function requireSelectedId(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null =>
+    typeof control.value === 'number' ? null : { selectionRequired: true };
+}
 
 @Component({
   selector: 'app-loan',
   standalone: true,
-  imports: [ /* All necessary Angular Material and custom modules */
-    ReactiveFormsModule, CommonModule, MatFormFieldModule, MatSelectModule, MatInputModule,
-    MatIconModule, MatButtonModule, MatTooltipModule, MatMenuModule, MatProgressSpinnerModule,
-    MatExpansionModule, MatCheckboxModule, MatCardModule, MatSnackBarModule, ListComponent, ModalComponent
-  ],
+  imports: [
+    ReactiveFormsModule,
+    MatAutocompleteModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatMenuModule,
+    MatProgressSpinnerModule,
+    MatExpansionModule,
+    MatCheckboxModule,
+    MatCardModule,
+    MatSnackBarModule,
+    ListComponent,
+    ModalComponent
+],
   templateUrl: './loan.component.html',
-  styleUrls: ['./loan.component.css']
+  changeDetection: ChangeDetectionStrategy.Eager,
+  styleUrls: ['./loan.component.css'],
 })
-export class LoanComponent implements OnInit {
-
+export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnInit {
   tableTitle = 'لیست امانت‌ها';
   columns: TableColumn[] = [];
-  data: BookLoanModel[] = [];
 
   // Modal & Form state
   isLoanModalVisible = false;
   loanForm: FormGroup;
   isSubmitting = false;
 
-  // For populating modal dropdowns
-  allActivePersons: PersonModel[] = [];
-  allAvailableBooks: BookModel[] = [];
+  // Bounded type-ahead option lists for the create form.
+  readonly personOptions = signal<PersonModel[]>([]);
+  readonly bookOptions = signal<BookModel[]>([]);
+  readonly isSearchingPersons = signal(false);
+  readonly isSearchingBooks = signal(false);
+
+  /** Status filter options — typed so the control value cannot mix `null` and strings. */
+  readonly statusOptions: { value: LoanStatus | null; label: string }[] = [
+    { value: null, label: 'همه' },
+    { value: 'ON_LOAN', label: 'در امانت' },
+    { value: 'OVERDUE', label: 'دیرکرد' },
+    { value: 'RETURNED', label: 'بازگشتی' },
+  ];
 
   // Pagination & Loading state
-  isLoadingTable = false;
-  totalElements = 0;
-  currentPage = 0;
-  pageSize = 10;
-  pageSizeOptions = [5, 10, 25, 50];
+  /** Persian message of the last failed list request (previously swallowed silently). */
+  loadError: string | null = null;
 
   // Filtering
   filtersForm: FormGroup;
 
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly personSearch$ = new Subject<string>();
+  private readonly bookSearch$ = new Subject<string>();
+
   private fb = inject(FormBuilder);
   private loanService = inject(BookLoanService);
-  private personService = inject(PersonService); // To get persons for dropdown
-  private bookService = inject(BookService);   // To get books for dropdown
+  private personService = inject(PersonService);
+  private bookService = inject(BookService);
   private snackBar = inject(MatSnackBar);
   private confirmation = inject(ConfirmationService);
   private platformId = inject(PLATFORM_ID);
 
   constructor() {
+    super();
     this.loanForm = this.fb.group({
-      personId: [null, Validators.required],
-      bookId: [null, Validators.required],
-      notes: ['']
+      personId: [null, [Validators.required, requireSelectedId()]],
+      bookId: [null, [Validators.required, requireSelectedId()]],
+      notes: [''],
     });
 
     this.filtersForm = this.fb.group({
       personNationalId: [''],
       bookIsbn: [''],
-      status: [null]
+      status: [null as LoanStatus | null],
     });
   }
 
@@ -88,10 +131,24 @@ export class LoanComponent implements OnInit {
     this.setupTableColumns();
     this.loadLoans();
 
-    this.filtersForm.valueChanges.pipe(
-      debounceTime(700),
-      distinctUntilChanged()
-    ).subscribe(() => this.applyFilters());
+    // `takeUntilDestroyed` replaces the subscription that previously leaked for the whole
+    // lifetime of the SPA after the route was left.
+    this.watchFilters(this.filtersForm);
+
+    this.wireSearch(this.personSearch$, this.personOptions, this.isSearchingPersons, (term) =>
+      this.personService.getPersonList(
+        { active: true, ...(term ? { firstName: term } : {}) },
+        0,
+        SEARCH_PAGE_SIZE,
+      ),
+    );
+    this.wireSearch(this.bookSearch$, this.bookOptions, this.isSearchingBooks, (term) =>
+      this.bookService.getBookList(
+        { active: true, ...(term ? { title: term } : {}) },
+        0,
+        SEARCH_PAGE_SIZE,
+      ),
+    );
   }
 
   setupTableColumns(): void {
@@ -110,26 +167,32 @@ export class LoanComponent implements OnInit {
 
   loadLoans(): void {
     this.isLoadingTable = true;
+    this.loadError = null;
     const filters: BookLoanFilterModel = this.filtersForm.value;
-    this.loanService.getLoanList(filters, this.currentPage, this.pageSize).subscribe({
-      next: (response) => {
-        this.data = response.content;
-        this.totalElements = response.totalElements;
-        this.isLoadingTable = false;
-      },
-      error: () => this.isLoadingTable = false
-    });
+
+    this.loanService.getLoanList(filters, this.currentPage, this.pageSize)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          this.data = response.content;
+          this.totalElements = response.totalElements;
+          this.isLoadingTable = false;
+        },
+        error: (error: unknown) => {
+          // Previously this handler only flipped the loading flag, so a failed request was
+          // indistinguishable from "no loans" for the operator.
+          this.data = [];
+          this.totalElements = 0;
+          this.loadError = this.describeError(error);
+          this.isLoadingTable = false;
+        },
+      });
   }
 
-  handlePageEvent(event: PageEvent): void {
-    this.currentPage = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.loadLoans();
-  }
+  protected override reloadPage(): void { this.loadLoans(); }
 
   applyFilters(): void {
-    this.currentPage = 0;
-    this.loadLoans();
+    this.resetPageAndReload();
   }
 
   resetFilters(): void {
@@ -138,36 +201,61 @@ export class LoanComponent implements OnInit {
   }
 
   openLoanModal(): void {
-    this.loanForm.reset();
+    this.loanForm.reset({ personId: null, bookId: null, notes: '' });
     this.isLoanModalVisible = true;
-    // Load data for dropdowns
-    this.personService.getPersonList({ active: true }, 0, 1000).subscribe(res => this.allActivePersons = res.content);
-    // Note: A better approach would be an endpoint to get only available books
-    this.bookService.getBookList({ active: true }, 0, 1000).subscribe(res => this.allAvailableBooks = res.content);
+    // Seed both pickers with a bounded first page; the user types to narrow further.
+    this.personSearch$.next('');
+    this.bookSearch$.next('');
   }
 
   onLoanModalClose(): void {
     this.isLoanModalVisible = false;
   }
 
+  onPersonSearch(term: string): void {
+    this.personSearch$.next(term ?? '');
+  }
+
+  onBookSearch(term: string): void {
+    this.bookSearch$.next(term ?? '');
+  }
+
+  formatPerson = (value: number | string | null): string => {
+    if (typeof value !== 'number') {
+      return '';
+    }
+    const person = this.personOptions().find((candidate) => candidate.id === value);
+    return person ? `${person.firstName ?? ''} ${person.lastName ?? ''}`.trim() : '';
+  };
+
+  formatBook = (value: number | string | null): string => {
+    if (typeof value !== 'number') {
+      return '';
+    }
+    const book = this.bookOptions().find((candidate) => candidate.id === value);
+    return book ? `${book.title ?? ''}${book.author ? ` — ${book.author}` : ''}` : '';
+  };
+
   onLoanSubmit(): void {
-    if (this.loanForm.invalid) return;
+    if (this.loanForm.invalid) {
+      this.loanForm.markAllAsTouched();
+      return;
+    }
 
     this.isSubmitting = true;
-    const request: CreateLoanRequest = this.loanForm.value;
+    const request: CreateLoanRequest = this.loanForm.getRawValue() as CreateLoanRequest;
 
-    this.loanService.createLoan(request).subscribe({
+    this.loanService.createLoan(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.snackBar.open('امانت با موفقیت ثبت شد.', 'بستن', { duration: 3000, direction: 'rtl' });
+        this.notify('امانت با موفقیت ثبت شد.');
         this.isSubmitting = false;
         this.isLoanModalVisible = false;
         this.loadLoans();
       },
-      error: (err) => {
-        const errorMessage = err.error?.message || 'خطا در ثبت امانت. ممکن است کتاب در دسترس نباشد.';
-        this.snackBar.open(errorMessage, 'بستن', { duration: 5000, direction: 'rtl' });
+      error: (err: unknown) => {
+        this.notify(this.describeError(err, 'خطا در ثبت امانت. ممکن است کتاب در دسترس نباشد.'));
         this.isSubmitting = false;
-      }
+      },
     });
   }
 
@@ -180,15 +268,14 @@ export class LoanComponent implements OnInit {
     if (!confirmed) {
       return;
     }
-    this.loanService.returnLoan(loan.id).subscribe({
+    this.loanService.returnLoan(loan.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.snackBar.open('کتاب با موفقیت بازگردانده شد.', 'بستن', { duration: 3000, direction: 'rtl' });
+        this.notify('کتاب با موفقیت بازگردانده شد.');
         this.loadLoans();
       },
-      error: (err) => {
-        const errorMessage = err.error?.message || 'خطا در ثبت بازگشت کتاب.';
-        this.snackBar.open(errorMessage, 'بستن', { duration: 5000, direction: 'rtl' });
-      }
+      error: (err: unknown) => {
+        this.notify(this.describeError(err, 'خطا در ثبت بازگشت کتاب.'));
+      },
     });
   }
 
@@ -209,5 +296,57 @@ export class LoanComponent implements OnInit {
       case 'OVERDUE': return 'دیرکرد';
       default: return status;
     }
+  }
+
+  // --- Internals ------------------------------------------------------------
+
+  /**
+   * Wires one type-ahead: debounce, switch to the bounded request (cancelling the previous
+   * one), and tear the whole chain down with the component.
+   */
+  private wireSearch<T>(
+    trigger: Subject<string>,
+    target: { set(value: T[]): void },
+    loading: { set(value: boolean): void },
+    fetch: (term: string) => Observable<{ content: T[] }>,
+  ): void {
+    trigger
+      .pipe(
+        debounceTime(SEARCH_DEBOUNCE_MS),
+        distinctUntilChanged(),
+        switchMap((term) => {
+          loading.set(true);
+          return fetch(term.trim());
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (response) => {
+          target.set(response.content ?? []);
+          loading.set(false);
+        },
+        error: () => {
+          target.set([]);
+          loading.set(false);
+        },
+      });
+  }
+
+  private notify(message: string, action = 'بستن'): void {
+    if (isPlatformBrowser(this.platformId)) {
+      this.snackBar.open(message, action, { duration: 5000, direction: 'rtl' });
+    }
+  }
+
+  /** Surfaces the backend's error envelope, including the new 409 business conflicts. */
+  private describeError(error: unknown, fallback = 'خطای غیرمنتظره. لطفاً دوباره تلاش کنید.'): string {
+    const httpError = error as { error?: { message?: string }; message?: string; status?: number };
+    if (httpError?.status === 409) {
+      return httpError.error?.message || 'این عملیات با وضعیت فعلی کتاب یا عضو در تضاد است.';
+    }
+    if (httpError?.status === 403) {
+      return httpError.error?.message || 'شما اجازه انجام این عملیات را ندارید.';
+    }
+    return httpError?.error?.message || httpError?.message || fallback;
   }
 }

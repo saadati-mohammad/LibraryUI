@@ -17,8 +17,14 @@ export interface BookModel {
   edition?: string | null;
   active: boolean;
   // File while editing in the form, or a string (URL / binary text) when it comes back
-  // from the API.
+  // from the API. Note: the API deliberately does NOT serialize the cover bytes, so this
+  // is normally absent on responses — use `hasCover` + `GET /api/book/{id}/cover` instead.
   bookCoverFile?: File | string | null;
+  /**
+   * Server flag: the book has a stored cover retrievable from
+   * `GET /api/book/{id}/cover`. Gates the (authenticated) image request.
+   */
+  hasCover?: boolean;
   copyCount?: number | null;
   librarySection?: string | null;
   shelfCode?: string | null;

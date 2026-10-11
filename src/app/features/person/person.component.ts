@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
+import { Component, inject, Input, OnDestroy, OnInit, PLATFORM_ID, ChangeDetectionStrategy } from '@angular/core';
 import { TableColumn, ListComponent } from '../../shared/component/list/list.component';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
@@ -10,23 +10,36 @@ import { ModalComponent } from '../../shared/component/modal/modal.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatMenuModule } from '@angular/material/menu';
-import { PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subscription, debounceTime, distinctUntilChanged, tap } from 'rxjs';
+import { Subject, Subscription, takeUntil } from 'rxjs';
 import { PersonModel, PersonFilterModel } from '../../core/model/personModel';
 import { PersonService } from '../../core/service/person.service';
+import { ImageLoaderService } from '../../core/service/image-loader.service';
 import { PaginatedResponse } from '../../core/model/paginated-response.model';
-import { base64ToFile, downloadUrl } from '../../shared/util/file.util';
+import { notFutureDate } from '../../core/util/date.util';
+import { downloadUrl, EXCEL_FILE_RULES, IMAGE_FILE_RULES, storedImageToFile } from '../../shared/util/file.util';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
+import { DateInputComponent } from '../../shared/component/date-input/date-input.component';
+import { FilePickerComponent } from '../../shared/component/file-picker/file-picker.component';
+import { PagedFilterPage } from '../../shared/component/paged-filter-page';
 
 export enum FormOperation {
   ADD = 'ADD',
   UPDATE = 'UPDATE',
   VIEW = 'VIEW' // اضافه کردن حالت مشاهده
+}
+
+/** ISO date of today — the upper bound of the birth-date field. */
+function todayIso(): string {
+  const now = new Date();
+  const month = `${now.getMonth() + 1}`.padStart(2, '0');
+  const day = `${now.getDate()}`.padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
 }
 
 @Component({
@@ -36,64 +49,76 @@ export enum FormOperation {
     ReactiveFormsModule, CommonModule, MatFormFieldModule, MatSelectModule,
     MatInputModule, MatIconModule, MatButtonModule, MatTooltipModule,
     MatMenuModule, MatProgressSpinnerModule, MatExpansionModule, MatCheckboxModule,
-    MatCardModule, MatSnackBarModule, ListComponent, ModalComponent
+    MatSlideToggleModule, MatCardModule, MatSnackBarModule, ListComponent, ModalComponent,
+    DateInputComponent, FilePickerComponent,
   ],
   templateUrl: './person.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./person.component.css'],
 })
-export class PersonComponent implements OnInit, OnDestroy {
+export class PersonComponent extends PagedFilterPage<PersonModel> implements OnInit, OnDestroy {
   @Input() isSlaveMode = false;
 
   tableTitle = 'لیست اعضا';
   columns: TableColumn[] = [];
-  data: PersonModel[] = [];
 
   isPersonModalVisible = false;
   personForm: FormGroup;
-  selectedFile: File | null = null;
-  selectedFileName: string | null = null;
   isSubmitting = false;
+  /** Persian message emitted by the picture picker (type/size rejection). */
   fileError: string | null = null;
   currentPictureUrl: string | null = null;
-  shouldRemovePicture = false;
+
+  /** Upper bound for the birth-date control. */
+  readonly today = todayIso();
+  readonly imageRules = IMAGE_FILE_RULES;
+  readonly excelRules = EXCEL_FILE_RULES;
 
   currentFormOperation: FormOperation = FormOperation.ADD;
   private currentEditingPersonId: number | null = null;
+  /** Whether the record being edited has a stored picture (`hasPicture`). */
+  hasStoredPicture = false;
+  /** Set only when the operator cleared the picker of a member who had a picture. */
+  private pictureRemovalArmed = false;
+  private pictureRemovalSubscription?: Subscription;
 
-  isLoadingTable = false;
-  totalElements = 0;
-  currentPage = 0;
-  pageSize = 10;
-  pageSizeOptions: number[] = [5, 10, 25, 50, 100];
+  override pageSizeOptions: number[] = [5, 10, 25, 50, 100];
 
   personFiltersForm: FormGroup;
-  private filterSubscription!: Subscription;
   filterPanelOpenState = false;
 
   isExcelImportModalVisible = false;
-  excelFile: File | null = null;
-  excelFileName: string | null = null;
   isImporting = false;
   importError: string | null = null;
+  readonly excelImportForm: FormGroup;
+
+  private destroy$ = new Subject<void>();
 
   private fb = inject(FormBuilder);
   private personService = inject(PersonService);
+  private imageLoader = inject(ImageLoaderService);
   private snackBar = inject(MatSnackBar);
   private confirmation = inject(ConfirmationService);
   private platformId = inject(PLATFORM_ID);
 
   constructor() {
+    super();
     this.personForm = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      nationalId: ['', Validators.required],
+      nationalId: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
       phone: [''],
-      birthDate: [null],
+      birthDate: [null, [notFutureDate]],
       membershipType: [''],
       address: [''],
       notes: [''],
       active: [true, Validators.required],
+      /**
+       * Held in the form so `<app-file-picker formControlName="profilePicture">` can clear
+       * it (`null` = "delete the stored picture"). Stripped from the JSON before submit.
+       */
+      profilePicture: [null as File | null],
     });
 
     this.personFiltersForm = this.fb.group({
@@ -103,7 +128,13 @@ export class PersonComponent implements OnInit, OnDestroy {
       phone: [''],
       nationalId: [''],
       membershipType: [''],
-      active: [null], // null: all, true: active, false: inactive
+      // Defaults to "فعال": a soft-deleted member disappears from the list as operators
+      // expect, while "همه" and "غیرفعال" stay one click away.
+      active: [true],
+    });
+
+    this.excelImportForm = this.fb.group({
+      excelFile: [null as File | null],
     });
   }
 
@@ -111,19 +142,15 @@ export class PersonComponent implements OnInit, OnDestroy {
     this.setupTableColumns();
     this.loadPersons();
 
-    this.filterSubscription = this.personFiltersForm.valueChanges.pipe(
-      debounceTime(700),
-      distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
-      tap(() => this.currentPage = 0),
-    ).subscribe(() => {
-      this.loadPersons();
-    });
+    this.watchFilters(this.personFiltersForm);
   }
 
   ngOnDestroy(): void {
-    if (this.filterSubscription) {
-      this.filterSubscription.unsubscribe();
-    }
+    this.pictureRemovalSubscription?.unsubscribe();
+    // Release the object URLs for every picture this page loaded.
+    [...this.imageLoader.pictures.keys()].forEach((id) => this.imageLoader.forget('picture', id));
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   setupTableColumns(): void {
@@ -132,7 +159,13 @@ export class PersonComponent implements OnInit, OnDestroy {
         columnDef: 'profilePicture',
         header: 'عکس',
         isImageColumn: true,
-        imageSrc: (element: PersonModel) => typeof element.profilePicture === 'string' ? element.profilePicture : null,
+        // The DTO never carried the bytes; the picture is served by
+        // GET /api/person/{id}/picture and cached by `ImageLoaderService`. `hasPicture`
+        // gates the request so a member without a photo costs no round trip.
+        imageSrc: (element: PersonModel) =>
+          element.hasPicture && element.id !== undefined
+            ? this.imageLoader.getCached('picture', element.id)
+            : null,
         defaultImage: './assets/pics/default-pic.png', // تصویر پیش‌فرض مخصوص پروفایل
         cell: (element: PersonModel) => `پروفایل ${element.firstName} ${element.lastName}` // برای متن alt
       },
@@ -149,51 +182,59 @@ export class PersonComponent implements OnInit, OnDestroy {
     this.isLoadingTable = true;
     const filters: PersonFilterModel = this.personFiltersForm.value;
 
-    this.personService.getPersonList(filters, this.currentPage, this.pageSize, 'id,desc').subscribe({
-      next: (response: PaginatedResponse<PersonModel>) => {
-        this.data = response.content;
-        this.totalElements = response.totalElements;
-        this.isLoadingTable = false;
-      },
-      error: (err) => {
-        console.error('Error loading persons:', err);
-        if (isPlatformBrowser(this.platformId)) {
-          this.snackBar.open('خطا در بارگذاری لیست اعضا.', 'بستن', { duration: 5000, direction: 'rtl' });
+    this.personService.getPersonList(filters, this.currentPage, this.pageSize, 'id,desc')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response: PaginatedResponse<PersonModel>) => {
+          this.data = response.content;
+          this.totalElements = response.totalElements;
+          this.isLoadingTable = false;
+          // Pictures are not part of the DTO: fetch the ones this page actually has.
+          this.imageLoader.preloadPictures(
+            this.data.filter((person) => person.hasPicture && person.id !== undefined).map((person) => person.id as number),
+          );
+        },
+        error: (err) => {
+          console.error('Error loading persons:', err);
+          if (isPlatformBrowser(this.platformId)) {
+            this.snackBar.open('خطا در بارگذاری لیست اعضا.', 'بستن', { duration: 5000, direction: 'rtl' });
+          }
+          this.isLoadingTable = false;
         }
-        this.isLoadingTable = false;
-      }
-    });
+      });
   }
 
-  handlePageEvent(event: PageEvent): void {
-    this.currentPage = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.loadPersons();
-  }
+  protected override reloadPage(): void { this.loadPersons(); }
 
   applyFilters(): void {
-    this.currentPage = 0;
-    this.loadPersons();
+    this.resetPageAndReload();
     this.filterPanelOpenState = false;
   }
 
   resetFilters(): void {
-    this.personFiltersForm.reset({ active: null });
-    this.currentPage = 0;
-    this.loadPersons();
+    this.personFiltersForm.reset({ active: true });
+    this.resetPageAndReload();
   }
 
   openPersonModal(operation: FormOperation, person?: PersonModel): void {
     this.personForm.enable();
     this.currentFormOperation = operation;
-    this.personForm.reset({ active: true });
+    this.personForm.reset({ active: true, profilePicture: null });
     this.resetFileState();
 
     if ((operation === FormOperation.UPDATE || operation === FormOperation.VIEW) && person) {
       this.currentEditingPersonId = person.id ?? null;
       const { profilePicture, ...personDetails } = person;
       this.personForm.patchValue(personDetails);
-      this.selectedFile = profilePicture instanceof File ? profilePicture : this.convertBinaryToFile(profilePicture ?? null, 'profile.jpg', 'image/jpeg');
+      // Pre-fill the picker only when the API handed back a real File or decodable base64.
+      // A plain URL cannot be rebuilt into a File, and treating that failure as "cleared"
+      // is exactly the bug that silently deleted members' pictures.
+      this.personForm.patchValue({ profilePicture: this.pictureToFile(profilePicture) });
+
+      // The authoritative "this record has a picture" signal is the DTO flag (the bytes
+      // are deliberately not serialised).
+      this.hasStoredPicture = person.hasPicture === true || profilePicture != null;
+
       if (profilePicture) {
         try {
           // اگر رشته است
@@ -227,11 +268,46 @@ export class PersonComponent implements OnInit, OnDestroy {
         this.personForm.disable();
       }
     }
+
+    // Track removal from the form control: armed only when the operator cleared the picker
+    // of a member who HAS a stored picture. Merely opening the modal never arms a deletion.
+    this.pictureRemovalArmed = false;
+    this.pictureRemovalSubscription?.unsubscribe();
+    this.pictureRemovalSubscription = this.personForm
+      .get('profilePicture')!
+      .valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe((value) => {
+        this.pictureRemovalArmed = this.hasStoredPicture && value === null;
+      });
+
     this.isPersonModalVisible = true;
   }
 
-  convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mimeType: string): File | null {
-    return base64ToFile(binaryData, fileName, mimeType);
+  /**
+   * URL for the stored-picture preview in the modal: the fetched object URL, or a legacy
+   * inline URL/base64 value. Hidden while a removal is pending or a new file is selected
+   * (the picker previews that one itself).
+   */
+  get picturePreviewUrl(): string | null {
+    if (this.pictureRemovalArmed || this.personForm?.get('profilePicture')?.value instanceof File) {
+      return null;
+    }
+    const id = this.currentEditingPersonId;
+    const fromLoader = id !== null && this.hasStoredPicture
+      ? this.imageLoader.getCached('picture', id)
+      : null;
+    return fromLoader ?? this.currentPictureUrl;
+  }
+
+  /**
+   * Rebuilds the editable `File` for a stored picture, or null when there is none.
+   *
+   * A `File` is returned as-is; a `data:` URL / bare base64 blob is decoded; a plain URL
+   * yields null. Null here means "nothing to pre-fill", **not** "delete the picture" —
+   * removal is only ever armed by an explicit clear (see {@link shouldRemovePicture}).
+   */
+  private pictureToFile(picture: PersonModel['profilePicture']): File | null {
+    return storedImageToFile(picture, 'profile.jpg');
   }
 
   onPersonModalClose(): void {
@@ -241,62 +317,90 @@ export class PersonComponent implements OnInit, OnDestroy {
   onPersonSubmit(): void {
     if (this.personForm.invalid) {
       this.personForm.markAllAsTouched();
+      if (isPlatformBrowser(this.platformId)) {
+        this.snackBar.open('لطفاً تمامی فیلدهای ضروری را به درستی پر کنید.', 'بستن', { duration: 3000, direction: 'rtl' });
+      }
       return;
     }
 
     this.isSubmitting = true;
-    const personData: PersonModel = this.personForm.value;
+
+    // Strip the file control from the JSON DTO; the binary (or its deletion) travels in
+    // the multipart part / the entity's explicit `profilePicture: null`.
+    const rawFormValue = this.personForm.getRawValue() as PersonModel & { profilePicture: File | null };
+    const { profilePicture, ...personFields } = rawFormValue;
+    const personData: PersonModel = {
+      ...personFields,
+      // `''` is not a valid LocalDate; the API expects null/absent for "no date".
+      birthDate: personFields.birthDate || null,
+    };
+
+    let pictureToSend: File | null | undefined = undefined;
+    if (this.shouldRemovePicture) {
+      pictureToSend = null;
+    } else if (profilePicture instanceof File) {
+      pictureToSend = profilePicture;
+    }
+
     const serviceCall = this.currentFormOperation === FormOperation.ADD
-      ? this.personService.addPerson(personData, this.selectedFile ?? undefined)
-      : this.personService.updatePerson(this.currentEditingPersonId!, personData, this.shouldRemovePicture ? null : (this.selectedFile ?? undefined));
+      ? this.personService.addPerson(personData, pictureToSend ?? undefined)
+      : this.personService.updatePerson(this.currentEditingPersonId!, personData, pictureToSend);
 
     const successMessage = this.currentFormOperation === FormOperation.ADD ? 'عضو با موفقیت اضافه شد!' : 'عضو با موفقیت بروزرسانی شد!';
 
-    serviceCall.subscribe({
+    serviceCall.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         if (isPlatformBrowser(this.platformId)) {
           this.snackBar.open(successMessage, 'بستن', { duration: 3000, direction: 'rtl' });
         }
+        // The stored bytes changed (or were deleted): drop the cached object URL so the
+        // list re-reads instead of showing a stale picture.
+        this.imageLoader.forget('picture', this.currentEditingPersonId);
         this.isSubmitting = false;
         this.isPersonModalVisible = false;
         this.loadPersons();
       },
       error: (error) => {
         console.error('Error submitting person:', error);
+        const backendError = error?.error?.message || error?.error?.title || error?.message || 'خطا در ثبت اطلاعات.';
         if (isPlatformBrowser(this.platformId)) {
-          this.snackBar.open('خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.', 'بستن', { duration: 5000, direction: 'rtl' });
+          this.snackBar.open(`خطا: ${backendError} لطفاً دوباره تلاش کنید.`, 'بستن', { duration: 5000, direction: 'rtl' });
         }
         this.isSubmitting = false;
       }
     });
   }
 
-  onFileChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      // ولیدیشن‌های فایل مشابه بخش کتاب
-      this.selectedFile = file;
-      this.selectedFileName = file.name;
-      this.fileError = null;
-      this.shouldRemovePicture = false;
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => { this.currentPictureUrl = e.target?.result as string; };
-      reader.readAsDataURL(file);
-    }
+  /** Mirrors the picker's validation message (the picker does the type/size check). */
+  onPictureValidationError(message: string | null): void {
+    this.fileError = message;
   }
 
-  removeSelectedPicture(): void {
-    this.resetFileState();
-    this.shouldRemovePicture = true;
+  /** A newly selected picture cancels any pending removal. */
+  onPictureFileChange(): void {
+    this.fileError = null;
+  }
+
+  /**
+   * True only while the operator has actually cleared the picture of a member who had
+   * one.
+   *
+   * This used to be a plain flag that `openPersonModal` set through `resetFileState()`,
+   * so **opening the edit modal and saving silently deleted the member's picture**. It is
+   * now derived from the form control, so merely opening the modal can never arm removal.
+   */
+  get shouldRemovePicture(): boolean {
+    return (
+      this.currentFormOperation === FormOperation.UPDATE &&
+      this.currentEditingPersonId !== null &&
+      this.pictureRemovalArmed
+    );
   }
 
   private resetFileState(): void {
-    this.selectedFile = null;
-    this.selectedFileName = null;
     this.currentPictureUrl = null;
     this.fileError = null;
-    this.shouldRemovePicture = true;
+    this.hasStoredPicture = false;
   }
 
   async deactivatePerson(person: PersonModel): Promise<void> {
@@ -309,13 +413,14 @@ export class PersonComponent implements OnInit, OnDestroy {
     if (!confirmed) {
       return;
     }
-    this.personService.deactivatePerson(person.id).subscribe({
+    this.personService.deactivatePerson(person.id).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.snackBar.open('عضو با موفقیت غیرفعال شد.', 'بستن', { duration: 3000, direction: 'rtl' });
+        this.snackBar.open(`عضو "${person.firstName} ${person.lastName}" با موفقیت غیرفعال شد.`, 'بستن', { duration: 3000, direction: 'rtl' });
         this.loadPersons();
       },
       error: (err) => {
-        this.snackBar.open('خطا در غیرفعال سازی عضو.', 'بستن', { duration: 5000, direction: 'rtl' });
+        const backendError = err?.error?.message || 'خطا در غیرفعال سازی عضو.';
+        this.snackBar.open(backendError, 'بستن', { duration: 5000, direction: 'rtl' });
         console.error(err);
       }
     });
@@ -324,8 +429,7 @@ export class PersonComponent implements OnInit, OnDestroy {
   // --- Excel Import Methods ---
   openExcelImportModal(): void {
     this.isExcelImportModalVisible = true;
-    this.excelFile = null;
-    this.excelFileName = null;
+    this.excelImportForm.reset({ excelFile: null });
     this.importError = null;
     this.isImporting = false;
   }
@@ -334,22 +438,23 @@ export class PersonComponent implements OnInit, OnDestroy {
     this.isExcelImportModalVisible = false;
   }
 
-  onExcelFileChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      this.excelFile = input.files[0];
-      this.excelFileName = this.excelFile.name;
-      this.importError = null;
-    }
+  /** Excel picker validation message (wrong extension or too large). */
+  onExcelValidationError(message: string | null): void {
+    this.importError = message;
   }
 
   onExcelImportSubmit(): void {
-    if (!this.excelFile) return;
+    const excelFile = this.excelImportForm.get('excelFile')?.value as File | null;
+    if (!excelFile) {
+      this.importError = 'لطفاً ابتدا یک فایل را انتخاب کنید.';
+      return;
+    }
     this.isImporting = true;
-    this.personService.importPersonsFromExcel(this.excelFile).subscribe({
+    this.personService.importPersonsFromExcel(excelFile).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.isImporting = false;
         this.isExcelImportModalVisible = false;
+        this.excelImportForm.reset({ excelFile: null });
         if (isPlatformBrowser(this.platformId)) {
           this.snackBar.open('فایل اکسل اعضا با موفقیت بارگذاری شد.', 'بستن', { duration: 5000, direction: 'rtl' });
         }

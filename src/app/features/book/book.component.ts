@@ -1,6 +1,6 @@
 import { CommonModule, isPlatformBrowser } from "@angular/common";
-import { Component, inject, Input, OnDestroy, OnInit, PLATFORM_ID } from "@angular/core";
-import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
+import { Component, inject, Input, OnDestroy, OnInit, PLATFORM_ID, ChangeDetectionStrategy } from "@angular/core";
+import { AbstractControl, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
 import { MatButtonModule } from "@angular/material/button";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatIconModule } from "@angular/material/icon";
@@ -8,25 +8,46 @@ import { MatInputModule } from "@angular/material/input";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatSelectModule } from "@angular/material/select";
 import { MatTooltipModule } from "@angular/material/tooltip";
-import { debounceTime, distinctUntilChanged, Observable, Subject, Subscription, tap } from "rxjs";
+import { Observable, Subject, Subscription, takeUntil } from "rxjs";
 import { BookFilterModel, BookModel } from "../../core/model/bookModel";
 import { BookService } from "../../core/service/book.service";
 import { PaginatedResponse } from "../../core/model/paginated-response.model";
+import { notFutureDate } from "../../core/util/date.util";
 import { ListComponent, TableColumn } from "../../shared/component/list/list.component";
 import { ModalComponent } from "../../shared/component/modal/modal.component";
-import { PageEvent } from "@angular/material/paginator";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from "@angular/material/snack-bar";
 import { MatCardModule } from "@angular/material/card";
-import { base64ToFile, downloadUrl } from "../../shared/util/file.util";
+import { ImageLoaderService } from "../../core/service/image-loader.service";
+import { downloadUrl, EXCEL_FILE_RULES, IMAGE_FILE_RULES, storedImageToFile } from "../../shared/util/file.util";
 import { ConfirmationService } from "../../shared/service/confirmation.service";
+import { DateInputComponent } from "../../shared/component/date-input/date-input.component";
+import { FilePickerComponent } from "../../shared/component/file-picker/file-picker.component";
+import { BookMetadata, BookMetadataService } from "../../core/service/book-metadata.service";
+import { isValidIsbn, isbn13To10, normalizeIsbn } from "../../core/util/isbn.util";
+import { PagedFilterPage } from '../../shared/component/paged-filter-page';
 
 export enum FormOperation {
   ADD = 'ADD',
   UPDATE = 'UPDATE',
   VIEW = 'VIEW' // اضافه کردن حالت مشاهده
+}
+
+/** ISO date of today — the upper bound of the publication-date field. */
+function todayIso(): string {
+  const now = new Date();
+  const month = `${now.getMonth() + 1}`.padStart(2, '0');
+  const day = `${now.getDate()}`.padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function isbnRequired(control: AbstractControl): { isbnRequired: true } | null {
+  const isbn10 = String(control.get('isbn10')?.value ?? '').trim();
+  const isbn13 = String(control.get('isbn13')?.value ?? '').trim();
+  return isbn10 || isbn13 ? null : { isbnRequired: true };
 }
 
 @Component({
@@ -45,67 +66,80 @@ export enum FormOperation {
     MatProgressSpinnerModule,
     MatExpansionModule,
     MatCheckboxModule,
+    MatSlideToggleModule,
     MatCardModule,
     MatSnackBarModule,
     ListComponent,
-    ModalComponent
+    ModalComponent,
+    DateInputComponent,
+    FilePickerComponent,
   ],
   templateUrl: './book.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./book.component.css']
 })
-export class BookComponent implements OnInit, OnDestroy {
+export class BookComponent extends PagedFilterPage<BookModel> implements OnInit, OnDestroy {
   @Input() isSlaveMode = false;
 
   tableTitle = 'لیست کتاب‌ها';
   columns: TableColumn[] = [];
-  data: BookModel[] = [];
 
   isBookModalVisible = false;
   bookForm: FormGroup;
-  selectedFile: File | null = null;
-  selectedFileName: string | null = null;
   isSubmitting = false;
+  /** Persian message emitted by the cover picker (type/size rejection). */
   fileError: string | null = null;
+  /**
+   * Legacy inline cover value from a response (URL or base64). Normally null now: the API
+   * no longer serialises the bytes and the image comes from the loader instead.
+   */
   currentCoverUrl: string | null = null;
-  shouldRemoveCover = false;
+  /** Whether the record being edited has a stored cover (`hasCover`). */
+  hasStoredCover = false;
+  /** Set only when the operator cleared the picker of a record that had a cover. */
+  private coverRemovalArmed = false;
+  private coverRemovalSubscription?: Subscription;
+
+  /** Upper bounds for the two date controls (publication ≤ today). */
+  readonly today = todayIso();
+  readonly imageRules = IMAGE_FILE_RULES;
+  readonly excelRules = EXCEL_FILE_RULES;
 
   currentFormOperation: FormOperation = FormOperation.ADD;
   private currentEditingBookId: number | null = null;
 
-  isLoadingTable = false;
-  totalElements = 0;
-  currentPage = 0;
-  pageSize = 10;
-  pageSizeOptions: number[] = [5, 10, 25, 50, 100];
+  override pageSizeOptions: number[] = [5, 10, 25, 50, 100];
 
   bookFiltersForm: FormGroup;
-  private filterSubscription!: Subscription;
   filterPanelOpenState = false;
-  // Filtering
-  showFilters = false;
-  private filterSubject = new Subject<BookFilterModel>();
 
   private destroy$ = new Subject<void>();
 
   // مربوط به بارگذاری اکسل
   isExcelImportModalVisible = false;
-  excelFile: File | null = null;
-  excelFileName: string | null = null;
   isImporting = false;
   importError: string | null = null;
-  inputElement?: HTMLInputElement;
   excelFilePath = 'book-import-template.xlsx'; // مسیر فایل اکسل
 
 
   private fb = inject(FormBuilder);
   private bookService = inject(BookService);
+  private imageLoader = inject(ImageLoaderService);
   private snackBar = inject(MatSnackBar);
   private confirmation = inject(ConfirmationService);
+  private readonly metadata = inject(BookMetadataService);
   private platformId = inject(PLATFORM_ID);
 
+  barcodeValue = '';
+  scanStatus: string | null = null;
+  isLookingUpMetadata = false;
+  metadataCandidates: BookMetadata[] = [];
+  private readonly completedScans = new Set<string>();
+
   constructor() {
+    super();
     this.bookForm = this.fb.group({
-      isbn10: [null, Validators.required],
+      isbn10: [null],
       title: [null, Validators.required],
       author: [null, Validators.required],
       translator: [null],
@@ -116,18 +150,24 @@ export class BookComponent implements OnInit, OnDestroy {
       congressClassification: [null],
       subject: [null, Validators.required],
       summary: [''],
-      publicationDate: [null],
-      pageCount: [null, [Validators.min(1), Validators.pattern('^[0-9]*$')]],
+      publicationDate: [null, [notFutureDate]],
+      pageCount: [null, [Validators.min(1), Validators.max(100000)]],
       language: [null],
       edition: [null],
       active: [true, Validators.required],
-      copyCount: [null, [Validators.min(0), Validators.pattern('^[0-9]*$')]],
+      copyCount: [null, [Validators.min(0), Validators.max(100000)]],
       librarySection: [null],
       shelfCode: [null],
       rowNumbers: [null],
       columnNumber: [null],
       positionNote: [''],
-    });
+      /**
+       * Cover is held in the form so `<app-file-picker formControlName="bookCoverFile">`
+       * can clear it (`null`) — the tri-state signal that tells the API to delete the
+       * stored cover. It is stripped from the JSON payload before submit.
+       */
+      bookCoverFile: [null as File | null],
+    }, { validators: isbnRequired });
 
     // --- BEGIN MODIFICATION: Expanded Filter Form ---
     this.bookFiltersForm = this.fb.group({
@@ -142,12 +182,14 @@ export class BookComponent implements OnInit, OnDestroy {
       congressClassification: [''],
       subject: [''],
       summary: [''],
-      publicationDate: [''], // برای تاریخ بهتر است از date range picker یا دو فیلد جدا استفاده شود
-      pageCount: [null, [Validators.min(1), Validators.pattern('^[0-9]*$')]],
+      publicationDate: [null],
+      pageCount: [null, [Validators.min(1)]],
       language: [''],
       edition: [''],
-      active: [null], // null: all, true: active, false: inactive
-      copyCount: [null, [Validators.min(0), Validators.pattern('^[0-9]*$')]],
+      // Defaults to "فعال" so a soft-deleted (active=false) book disappears from the list
+      // as operators expect; "همه"/"غیرفعال" remain one click away.
+      active: [true],
+      copyCount: [null, [Validators.min(0)]],
       librarySection: [''],
       shelfCode: [''],
       rowNumbers: [''],
@@ -161,21 +203,13 @@ export class BookComponent implements OnInit, OnDestroy {
     this.setupTableColumns();
     this.loadBooks();
 
-    this.filterSubscription = this.bookFiltersForm.valueChanges.pipe(
-      debounceTime(700),
-      distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
-      tap(() => {
-        this.currentPage = 0;
-      }),
-    ).subscribe(() => {
-      this.loadBooks();
-    });
+    this.watchFilters(this.bookFiltersForm);
   }
 
   ngOnDestroy(): void {
-    if (this.filterSubscription) {
-      this.filterSubscription.unsubscribe();
-    }
+    this.coverRemovalSubscription?.unsubscribe();
+    // Release the object URLs for every cover this page loaded.
+    [...this.imageLoader.covers.keys()].forEach((id) => this.imageLoader.forget('cover', id));
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -186,13 +220,19 @@ export class BookComponent implements OnInit, OnDestroy {
         columnDef: 'bookCover',
         header: 'جلد',
         isImageColumn: true,
-        imageSrc: (element: BookModel) => typeof element.bookCoverFile === 'string' ? element.bookCoverFile : null,
+        // The DTO never carried the bytes; the cover is served by GET /api/book/{id}/cover
+        // and cached by `ImageLoaderService`. `hasCover` gates the request, so a book with
+        // no cover renders the placeholder without a wasted round trip.
+        imageSrc: (element: BookModel) =>
+          element.hasCover && element.id !== undefined
+            ? this.imageLoader.getCached('cover', element.id)
+            : null,
         defaultImage: './assets/pics/default-pic.png', // تصویر پیش‌فرض مخصوص کتاب
         cell: (element: BookModel) => `جلد کتاب ${element.title}` // برای متن alt
       },
       { columnDef: 'title', header: 'عنوان کتاب', cell: (element: BookModel) => `${element.title}`, cellClass: () => 'emphasize' },
       { columnDef: 'author', header: 'نویسنده', cell: (element: BookModel) => `${element.author}`, cellClass: () => 'emphasize' },
-      { columnDef: 'translator', header: 'مترجم', cell: (element: BookModel) => `${element.translator}`, cellClass: () => 'emphasize' },
+      { columnDef: 'translator', header: 'مترجم', cell: (element: BookModel) => `${element.translator || '---'}`, cellClass: () => 'emphasize' },
       { columnDef: 'subject', header: 'موضوع', cell: (element: BookModel) => `${element.subject || '---'}` },
       { columnDef: 'isbn10', header: 'شابک ۱۰', cell: (element: BookModel) => `${element.isbn10 || '---'}` },
       { columnDef: 'deweyDecimal', header: 'رده دیویی', cell: (element: BookModel) => `${element.deweyDecimal || '---'}` },
@@ -210,13 +250,21 @@ export class BookComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.bookService.getBookList(cleanFilters, this.currentPage, this.pageSize, 'id,desc').subscribe({
+    this.bookService.getBookList(cleanFilters, this.currentPage, this.pageSize, 'id,desc')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
       next: (response: PaginatedResponse<BookModel>) => {
         this.data = response.content.map(book => ({
           ...book,
         }));
         this.totalElements = response.totalElements;
         this.isLoadingTable = false;
+        // Covers are not part of the DTO: fetch the ones this page actually has. The
+        // request goes through HttpClient, so the bearer token is attached (a plain
+        // <img src="/api/..."> would 401).
+        this.imageLoader.preloadCovers(
+          this.data.filter((book) => book.hasCover && book.id !== undefined).map((book) => book.id as number),
+        );
       },
       error: (err) => {
         console.error('Error loading books:', err);
@@ -230,15 +278,10 @@ export class BookComponent implements OnInit, OnDestroy {
     });
   }
 
-  handlePageEvent(event: PageEvent): void {
-    this.currentPage = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.loadBooks();
-  }
+  protected override reloadPage(): void { this.loadBooks(); }
 
   applyFilters(): void {
-    this.currentPage = 0;
-    this.loadBooks();
+    this.resetPageAndReload();
     this.filterPanelOpenState = false;
   }
 
@@ -246,11 +289,10 @@ export class BookComponent implements OnInit, OnDestroy {
     this.bookFiltersForm.reset({
       title: '', author: '', translator: '', publisher: '', isbn10: '', isbn13: '',
       description: '', deweyDecimal: '', congressClassification: '', subject: '', summary: '',
-      pageCount: null, language: '', edition: '', active: null, copyCount: null,
+      publicationDate: null, pageCount: null, language: '', edition: '', active: true, copyCount: null,
       librarySection: '', shelfCode: '', rowNumbers: '', columnNumber: '', positionNote: ''
     });
-    this.currentPage = 0;
-    this.loadBooks();
+    this.resetPageAndReload();
     this.filterPanelOpenState = false;
   }
 
@@ -258,13 +300,15 @@ export class BookComponent implements OnInit, OnDestroy {
   openBookModal(operation: FormOperation, book?: BookModel): void {
     this.bookForm.enable();
     this.currentFormOperation = operation;
-    this.bookForm.reset({ active: true });
-    this.selectedFile = null;
-    this.selectedFileName = null;
+    this.bookForm.reset({ active: true, bookCoverFile: null });
     this.fileError = null;
     this.currentEditingBookId = null;
     this.currentCoverUrl = null;
-    this.shouldRemoveCover = false;
+    this.hasStoredCover = false;
+    this.barcodeValue = '';
+    this.scanStatus = null;
+    this.metadataCandidates = [];
+    this.completedScans.clear();
 
     if ((operation === FormOperation.UPDATE || operation === FormOperation.VIEW) && book) {
       this.currentEditingBookId = book.id ?? null;
@@ -272,7 +316,16 @@ export class BookComponent implements OnInit, OnDestroy {
       const bookDetailsToPatch: Partial<BookModel> = { ...book };
       delete bookDetailsToPatch.bookCoverFile;
       this.bookForm.patchValue(bookDetailsToPatch);
-      this.selectedFile = book.bookCoverFile instanceof File ? book.bookCoverFile : this.convertBinaryToFile(book.bookCoverFile ?? null, 'profile.jpg', 'image/jpeg');
+      // The cover control is pre-filled only when the API handed back an actual File or a
+      // base64 payload that can be reconstructed into one. A plain URL cannot: rebuilding
+      // a File from it fails, which would leave the control `null` and make merely opening
+      // the edit modal look like "the operator cleared the cover".
+      const existingFile = this.coverToFile(book.bookCoverFile);
+      this.bookForm.patchValue({ bookCoverFile: existingFile });
+
+      // The authoritative "this record has an image" signal is the DTO flag; the fetch is
+      // what actually makes it visible (the bytes are never part of the response body).
+      this.hasStoredCover = book.hasCover === true || book.bookCoverFile != null;
 
       if (book.bookCoverFile) {
         try {
@@ -307,11 +360,103 @@ export class BookComponent implements OnInit, OnDestroy {
         this.bookForm.disable();
       }
     }
+
+    // Track removal from the form control: the operator cleared the picker of a record
+    // that HAS a stored cover. Merely opening the modal never arms a deletion.
+    this.coverRemovalArmed = false;
+    this.coverRemovalSubscription?.unsubscribe();
+    this.coverRemovalSubscription = this.bookForm
+      .get('bookCoverFile')!
+      .valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe((value) => {
+        this.coverRemovalArmed = this.hasStoredCover && value === null;
+      });
+
     this.isBookModalVisible = true;
+    if (operation === FormOperation.ADD && isPlatformBrowser(this.platformId)) {
+      setTimeout(() => document.getElementById('bookBarcodeScan')?.focus(), 0);
+    }
   }
 
-convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mimeType: string): File | null {
-    return base64ToFile(binaryData, fileName, mimeType);
+  /** Handles only the focused scanner field, so normal keyboard input remains untouched. */
+  lookupScannedIsbn(): void {
+    const isbn = normalizeIsbn(this.barcodeValue);
+    if (!isbn) { this.scanStatus = 'اسکن خالی است؛ شابک را وارد کنید.'; return; }
+    if (!isValidIsbn(isbn)) { this.scanStatus = 'بارکد شابک معتبر نیست. رقم کنترلی را بررسی یا اطلاعات را دستی وارد کنید.'; return; }
+    this.barcodeValue = '';
+    if (this.completedScans.has(isbn) || this.isLookingUpMetadata) {
+      this.scanStatus = 'این شابک قبلاً بررسی شده است.';
+      return;
+    }
+    this.isLookingUpMetadata = true;
+    this.scanStatus = 'در حال جست‌وجوی اطلاعات کتاب…';
+    this.metadata.lookup(isbn).subscribe({
+      next: (candidates) => {
+        this.completedScans.add(isbn);
+        this.metadataCandidates = candidates;
+        if (candidates.length === 1 && candidates[0]) this.applyMetadata(candidates[0]);
+        else this.scanStatus = `${candidates.length} ویرایش پیدا شد؛ مورد درست را انتخاب کنید.`;
+        this.isLookingUpMetadata = false;
+      },
+      error: (error: unknown) => {
+        if (error instanceof Error && 'status' in error && (error as { status?: number }).status === 404) {
+          this.scanStatus = 'اطلاعاتی پیدا نشد؛ می‌توانید فیلدها را دستی تکمیل کنید.';
+        } else {
+          this.scanStatus = 'جست‌وجوی اطلاعات انجام نشد. شابک را نگه دارید و اطلاعات را دستی وارد کنید.';
+        }
+        this.isLookingUpMetadata = false;
+      }
+    });
+  }
+
+  applyMetadata(metadata: BookMetadata): void {
+    const isbn10 = metadata.isbn10 || (metadata.isbn13 ? isbn13To10(metadata.isbn13) : null);
+    this.bookForm.patchValue({
+      ...(metadata.title ? { title: metadata.title } : {}),
+      ...(metadata.author ? { author: metadata.author } : {}),
+      ...(metadata.publisher ? { publisher: metadata.publisher } : {}),
+      ...(isbn10 ? { isbn10 } : {}),
+      ...(metadata.isbn13 ? { isbn13: normalizeIsbn(metadata.isbn13) } : {}),
+      ...(metadata.pageCount ? { pageCount: metadata.pageCount } : {}),
+      ...(metadata.language ? { language: metadata.language } : {}),
+      ...(metadata.subject ? { subject: metadata.subject } : {}),
+    });
+    this.metadataCandidates = [];
+    this.scanStatus = 'اطلاعات انتخاب‌شده در فرم قرار گرفت. پیش از ذخیره، فیلدها را بررسی و اصلاح کنید.';
+  }
+
+  /**
+   * URL shown as the stored-cover preview in the modal: the fetched object URL, or a
+   * legacy inline URL/base64 value. Hidden while a removal is pending.
+   */
+  get coverPreviewUrl(): string | null {
+    if (this.coverRemovalArmed || this.bookForm?.get('bookCoverFile')?.value instanceof File) {
+      return null;
+    }    const id = this.currentEditingBookId;
+    const fromLoader = id !== null && this.hasStoredCover
+      ? this.imageLoader.getCached('cover', id)
+      : null;
+    return fromLoader ?? this.currentCoverUrl;
+  }
+
+  /**
+   * True when the operator cleared the cover of a book that already had one — the only
+   * moment a removal may be signalled.
+   */
+  get shouldRemoveCover(): boolean {
+    return this.coverRemovalArmed;
+  }
+
+
+  /**
+   * Rebuilds the editable `File` for a stored cover, or null when there is none to rebuild.
+   *
+   * A `File` is returned as-is; a `data:` URL / bare base64 blob is decoded; a plain URL
+   * yields **null**, because it cannot become a `File`. Null here means "nothing to
+   * pre-fill" — never "the operator cleared it" (that reading silently deleted covers).
+   */
+  private coverToFile(cover: BookModel['bookCoverFile']): File | null {
+    return storedImageToFile(cover, 'book-cover.jpg');
   }
 
   onBookModalClose(): void {
@@ -328,30 +473,43 @@ convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mim
     }
 
     this.isSubmitting = true;
-    const bookDataFromForm: BookModel = this.bookForm.value;
+
+    // Strip the file control from the JSON DTO: `book` must stay a plain BookModel, and
+    // the binary travels in the multipart part.
+    const rawFormValue = this.bookForm.getRawValue() as BookModel & { bookCoverFile: File | null };
+    const { bookCoverFile, ...bookFields } = rawFormValue;
+    const bookDataFromForm: BookModel = {
+      ...bookFields,
+      // `''` is not a valid LocalDate; the API expects null/absent for "no date".
+      publicationDate: bookFields.publicationDate || null,
+    };
+
     let serviceCall: Observable<BookModel>;
     let successMessage: string;
 
     let fileToSend: File | null | undefined = undefined;
     if (this.shouldRemoveCover) {
       fileToSend = null;
-    } else if (this.selectedFile) {
-      fileToSend = this.selectedFile;
+    } else if (bookCoverFile instanceof File) {
+      fileToSend = bookCoverFile;
     }
 
     if (this.currentFormOperation === FormOperation.UPDATE && this.currentEditingBookId) {
       serviceCall = this.bookService.updateBook(this.currentEditingBookId, bookDataFromForm, fileToSend);
       successMessage = 'کتاب با موفقیت بروزرسانی شد!';
     } else {
-      serviceCall = this.bookService.addBook(bookDataFromForm, this.selectedFile ?? undefined);
+      serviceCall = this.bookService.addBook(bookDataFromForm, fileToSend ?? undefined);
       successMessage = 'کتاب با موفقیت اضافه شد!';
     }
 
-    serviceCall.subscribe({
+    serviceCall.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         if (isPlatformBrowser(this.platformId)) {
           this.snackBar.open(successMessage, 'بستن', { duration: 3000, direction: 'rtl' });
         }
+        // The stored bytes changed (or were deleted): drop the cached object URL so the
+        // list re-reads them instead of showing a stale image.
+        this.imageLoader.forget('cover', this.currentEditingBookId);
         this.isSubmitting = false;
         this.isBookModalVisible = false;
         this.loadBooks();
@@ -367,48 +525,20 @@ convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mim
     });
   }
 
-  onFileChange(event: Event): void {
-    const inputElement = event.target as HTMLInputElement;
-    if (inputElement.files && inputElement.files.length > 0) {
-      const file = inputElement.files[0];
-      if (file.size > 2 * 1024 * 1024) {
-        this.fileError = 'حجم فایل نباید بیشتر از ۲ مگابایت باشد.';
-        this.selectedFileName = 'فایل نامعتبر';
-        this.selectedFile = null;
-        if (isPlatformBrowser(this.platformId)) inputElement.value = '';
-        return;
-      }
-      if (!file.type.startsWith('image/')) {
-        this.fileError = 'فقط فایل‌های تصویری مجاز هستند.';
-        this.selectedFileName = 'فایل نامعتبر';
-        this.selectedFile = null;
-        if (isPlatformBrowser(this.platformId)) inputElement.value = '';
-        return;
-      }
-
-      this.selectedFile = file;
-      this.selectedFileName = file.name;
-      this.fileError = null;
-      this.shouldRemoveCover = false;
-
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => { this.currentCoverUrl = e.target?.result as string; };
-      reader.readAsDataURL(file);
-
-    } else {
-      this.selectedFile = null;
-      this.selectedFileName = null;
-      this.fileError = null;
-    }
-    if (isPlatformBrowser(this.platformId)) inputElement.value = '';
+  /**
+   * Receives the picker's validation message. The picker rejects bad type/size itself and
+   * keeps any previously valid file, so the component only mirrors the message.
+   */
+  onCoverValidationError(message: string | null): void {
+    this.fileError = message;
   }
 
-  removeSelectedCover(): void {
-    this.selectedFile = null;
-    this.selectedFileName = null;
-    this.currentCoverUrl = null;
+  /**
+   * Mirrors picker state changes. The picker owns the preview of a newly selected file;
+   * this only clears any stale validation message.
+   */
+  onCoverFileChange(): void {
     this.fileError = null;
-    this.shouldRemoveCover = true;
   }
 
   async deleteBook(book: BookModel): Promise<void> {
@@ -430,11 +560,13 @@ convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mim
 
   private performDelete(book: BookModel): void {
     if (!book.id) return;
-    this.bookService.deleteBook(book.id).subscribe({
+    this.bookService.deleteBook(book.id).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         if (isPlatformBrowser(this.platformId)) {
           this.snackBar.open(`کتاب "${book.title}" با موفقیت حذف شد.`, 'بستن', { duration: 3000, direction: 'rtl' });
         }
+        // Deactivated server-side (soft delete): release its cached cover too.
+        this.imageLoader.forget('cover', book.id);
         if (this.data.length === 1 && this.currentPage > 0) {
           this.currentPage--;
         }
@@ -453,11 +585,18 @@ convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mim
     return FormOperation;
   }
 
+  readonly excelImportForm = this.fb.group({
+    excelFile: [null as File | null],
+  });
+
+  get hasExcelImportFile(): boolean {
+    return this.excelImportForm.controls.excelFile.value instanceof File;
+  }
+
   openExcelImportModal(): void {
     this.isExcelImportModalVisible = true;
     // Reset state
-    this.excelFile = null;
-    this.excelFileName = null;
+    this.excelImportForm.reset({ excelFile: null });
     this.importError = null;
     this.isImporting = false;
   }
@@ -466,40 +605,25 @@ convertBinaryToFile(binaryData: string | null | undefined, fileName: string, mim
     this.isExcelImportModalVisible = false;
   }
 
-  onExcelFileChange(event: Event): void {
-    const inputElement = event.target as HTMLInputElement;
-    this.inputElement = event.target as HTMLInputElement;
-    if (inputElement.files && inputElement.files.length > 0) {
-      const file = inputElement.files[0];
-      const validExtension = '.xlsx';
-      if (!file.name.toLowerCase().endsWith(validExtension)) {
-        this.importError = `فرمت فایل نامعتبر است. لطفاً یک فایل با فرمت ${validExtension} انتخاب کنید.`;
-        this.excelFile = null;
-        this.excelFileName = null;
-        inputElement.value = ''; // Reset input
-        return;
-      }
-
-      this.excelFile = file;
-      this.excelFileName = file.name;
-      this.importError = null;
-    }
+  /** Excel picker validation message (wrong extension or too large). */
+  onExcelValidationError(message: string | null): void {
+    this.importError = message;
   }
 
   onExcelImportSubmit(): void {
-    if (!this.excelFile) {
+    const excelFile = this.excelImportForm.get('excelFile')?.value as File | null;
+    if (!excelFile) {
       this.importError = 'لطفاً ابتدا یک فایل را انتخاب کنید.';
       return;
     }
     this.isImporting = true;
     this.importError = null;
 
-    this.bookService.importBooksFromExcel(this.excelFile).subscribe({
+    this.bookService.importBooksFromExcel(excelFile).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.isImporting = false;
         this.isExcelImportModalVisible = false;
-        this.excelFile = null;
-        this.inputElement!.value = ''; // Reset input element
+        this.excelImportForm.reset({ excelFile: null });
         if (isPlatformBrowser(this.platformId)) {
           this.snackBar.open('فایل اکسل با موفقیت بارگذاری و پردازش شد.', 'بستن', { duration: 5000, direction: 'rtl' });
         }

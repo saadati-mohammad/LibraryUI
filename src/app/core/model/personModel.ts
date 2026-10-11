@@ -13,7 +13,14 @@ export interface PersonModel {
   address?: string | null;
   notes?: string | null;
   // File while editing in the form, or a string (URL / binary text) from the API.
+  // Note: the API deliberately does NOT serialize the picture bytes, so this is normally
+  // absent on responses — use `hasPicture` + `GET /api/person/{id}/picture` instead.
   profilePicture?: File | string | null;
+  /**
+   * Server flag: the member has a stored photo retrievable from
+   * `GET /api/person/{id}/picture`. Gates the (authenticated) image request.
+   */
+  hasPicture?: boolean;
   active: boolean;
 }
 

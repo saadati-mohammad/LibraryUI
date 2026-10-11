@@ -1,1 +1,237 @@
-<p>reservation works!</p>
+<!-- صفحه مدیریت رزروها -->
+<div class="container mx-auto px-4 py-6 rtl">
+  <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <!-- هدر صفحه -->
+    <div class="px-6 py-5 border-b border-gray-200 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-indigo-900">
+          مدیریت <span class="text-indigo-600">رزروها</span>
+        </h1>
+        <p class="mt-1 text-sm text-gray-600">
+          فهرست رزروهای فعال و امکان ثبت رزرو جدید برای اعضا.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-100 font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+          matTooltip="بارگذاری مجدد فهرست رزروها"
+          aria-label="بارگذاری مجدد فهرست رزروها"
+          [disabled]="isLoading"
+          (click)="loadReservations()"
+          >
+          <mat-icon aria-hidden="true">refresh</mat-icon>
+          بازخوانی
+        </button>
+
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200"
+          (click)="openReservationModal()"
+          >
+          <mat-icon aria-hidden="true">add</mat-icon>
+          رزرو جدید
+        </button>
+      </div>
+    </div>
+
+    <!-- خطای بارگذاری با امکان تلاش مجدد -->
+    @if (loadError) {
+      <div class="px-6 pt-4">
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-red-300 bg-red-50 px-4 py-3"
+          role="alert"
+          >
+          <p class="text-sm text-red-800">
+            <mat-icon class="align-middle text-red-700" aria-hidden="true">error_outline</mat-icon>
+            خطا در بارگذاری رزروها: {{ loadError }}
+          </p>
+          <button
+            type="button"
+            mat-stroked-button
+            color="warn"
+            (click)="loadReservations()"
+            >
+            تلاش مجدد
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- بدنه: فهرست رزروها -->
+    <div class="px-6 py-4">
+      <app-list
+        [tableTitle]="tableTitle"
+        [columns]="columns"
+        [data]="reservations"
+        [actionsTemplate]="reservationActionsTemplate"
+        [isLoading]="isLoading"
+        [emptyIcon]="'event_available'"
+        [emptyMessage]="'رزرو فعالی وجود ندارد.'"
+        [emptyHint]="'برای ثبت اولین رزرو، روی دکمه «رزرو جدید» کلیک کنید.'"
+      ></app-list>
+    </div>
+  </div>
+</div>
+
+<!-- قالب ستون عملیات -->
+<ng-template #reservationActionsTemplate let-reservationRow>
+  <button
+    type="button"
+    class="text-green-700 hover:text-green-900 transition-colors duration-200 mx-1"
+    [matTooltip]="'تحویل کتاب ' + (reservationRow.bookTitle || '')"
+    [attr.aria-label]="'تحویل رزرو کتاب ' + (reservationRow.bookTitle || '') + ' به ' + personName(reservationRow)"
+    (click)="fulfillReservation(reservationRow)"
+    >
+    <mat-icon aria-hidden="true">assignment_turned_in</mat-icon>
+  </button>
+  <button
+    type="button"
+    class="text-red-700 hover:text-red-900 transition-colors duration-200 mx-1"
+    [matTooltip]="'لغو رزرو کتاب ' + (reservationRow.bookTitle || '')"
+    [attr.aria-label]="'لغو رزرو کتاب ' + (reservationRow.bookTitle || '') + ' برای ' + personName(reservationRow)"
+    (click)="cancelReservation(reservationRow)"
+    >
+    <mat-icon aria-hidden="true">cancel</mat-icon>
+  </button>
+</ng-template>
+
+<!-- مودال ثبت رزرو جدید -->
+<app-modal
+  [(isVisible)]="isReservationModalVisible"
+  title="ثبت"
+  titleAccent="رزرو جدید"
+  submitButtonText="ثبت رزرو"
+  submitButtonIcon="save"
+  (submitted)="onSubmit()"
+  (cancelled)="onReservationModalClose()"
+  [disableSubmit]="reservationForm.invalid || isSubmitting"
+  [isLoading]="isSubmitting"
+  maxWidth="640px"
+  >
+  <div modal-body>
+    <p class="text-gray-700 mb-4">
+      عضو و کتاب مورد نظر را جستجو و انتخاب کنید. تاریخ انقضای پیش‌فرض {{ defaultExpiryDays }} روز بعد است.
+    </p>
+
+    <form [formGroup]="reservationForm" id="reservationFormInternal" class="space-y-4">
+      <!-- انتخاب عضو با جستجوی نوع‌به‌نوع -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>نام عضو</mat-label>
+        <input
+          type="text"
+          matInput
+          id="reservationPersonInput"
+          formControlName="personId"
+          autocomplete="off"
+          placeholder="جستجوی نام عضو..."
+          [matAutocomplete]="personAuto"
+          [attr.aria-describedby]="reservationForm.get('personId')?.invalid && reservationForm.get('personId')?.touched ? 'reservationPersonError' : null"
+          [attr.aria-invalid]="reservationForm.get('personId')?.invalid && reservationForm.get('personId')?.touched ? 'true' : null"
+          (input)="onPersonSearch($any($event.target).value)"
+          />
+        <mat-icon matSuffix aria-hidden="true">person_search</mat-icon>
+        @if (isSearchingPersons()) {
+          <mat-hint>در حال جستجو…</mat-hint>
+        }
+      </mat-form-field>
+      <mat-autocomplete
+        #personAuto="matAutocomplete"
+        [displayWith]="formatPerson"
+        (optionSelected)="onPersonSelected($event.option.value)"
+        >
+        @for (person of personOptions(); track person.id) {
+          <mat-option [value]="person.id">
+            {{ person.firstName }} {{ person.lastName }} — {{ person.nationalId }}
+          </mat-option>
+        }
+        @if (personOptions().length === 0) {
+          <mat-option disabled>عضوی یافت نشد.</mat-option>
+        }
+      </mat-autocomplete>
+      @if (reservationForm.get('personId')?.invalid && reservationForm.get('personId')?.touched) {
+        <p
+          id="reservationPersonError"
+          class="field-error"
+          role="alert"
+          >
+          انتخاب یک عضو از فهرست الزامی است.
+        </p>
+      }
+
+      <!-- انتخاب کتاب با جستجوی نوع‌به‌نوع -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>عنوان کتاب</mat-label>
+        <input
+          type="text"
+          matInput
+          id="reservationBookInput"
+          formControlName="bookId"
+          autocomplete="off"
+          placeholder="جستجوی عنوان کتاب..."
+          [matAutocomplete]="bookAuto"
+          [attr.aria-describedby]="reservationForm.get('bookId')?.invalid && reservationForm.get('bookId')?.touched ? 'reservationBookError' : null"
+          [attr.aria-invalid]="reservationForm.get('bookId')?.invalid && reservationForm.get('bookId')?.touched ? 'true' : null"
+          (input)="onBookSearch($any($event.target).value)"
+          />
+        <mat-icon matSuffix aria-hidden="true">menu_book</mat-icon>
+        @if (isSearchingBooks()) {
+          <mat-hint>در حال جستجو…</mat-hint>
+        }
+      </mat-form-field>
+      <mat-autocomplete
+        #bookAuto="matAutocomplete"
+        [displayWith]="formatBook"
+        (optionSelected)="onBookSelected($event.option.value)"
+        >
+        @for (book of bookOptions(); track book.id) {
+          <mat-option [value]="book.id">
+            {{ book.title }}@if (book.author) {
+            <span> — {{ book.author }}</span>
+          }
+        </mat-option>
+      }
+      @if (bookOptions().length === 0) {
+        <mat-option disabled>کتابی یافت نشد.</mat-option>
+      }
+    </mat-autocomplete>
+    @if (reservationForm.get('bookId')?.invalid && reservationForm.get('bookId')?.touched) {
+      <p
+        id="reservationBookError"
+        class="field-error"
+        role="alert"
+        >
+        انتخاب یک کتاب از فهرست الزامی است.
+      </p>
+    }
+
+    <!-- تاریخ انقضا -->
+    <div>
+      <label for="reservationExpiryDate" class="block text-sm font-medium text-gray-700 mb-1">
+        تاریخ انقضا <span class="text-red-700" aria-hidden="true">*</span>
+      </label>
+      <input
+        type="date"
+        id="reservationExpiryDate"
+        formControlName="expiryDate"
+        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        [min]="today"
+        [max]="maxExpiry"
+        required
+        [attr.aria-invalid]="reservationForm.get('expiryDate')?.invalid && reservationForm.get('expiryDate')?.touched ? 'true' : null"
+        [attr.aria-describedby]="reservationForm.get('expiryDate')?.invalid && reservationForm.get('expiryDate')?.touched ? 'reservationExpiryError' : null"
+        />
+      @if (reservationForm.get('expiryDate')?.invalid && reservationForm.get('expiryDate')?.touched) {
+        <p
+          id="reservationExpiryError"
+          class="field-error"
+          role="alert"
+          >
+          تاریخ انقضا باید امروز یا بعد از آن باشد.
+        </p>
+      }
+    </div>
+  </form>
+</div>
+</app-modal>
