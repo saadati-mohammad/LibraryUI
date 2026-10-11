@@ -1,5 +1,7 @@
 @if (showHeader()) {
-  <app-header></app-header>
+  @defer (when showHeader()) {
+    <app-header></app-header>
+  }
 }
 <main id="main-content">
   <router-outlet></router-outlet>

@@ -11,6 +11,23 @@ body {
   height: 100%;
 }
 
+/* Keep rem-based controls and type physically readable when browser zoom is reduced
+   for projection. At normal-sized viewports this remains the familiar 16px base. */
+html {
+  font-size: max(16px, 2.1vh);
+}
+
+body {
+  font-size: 1rem;
+}
+
+/* Tailwind's `container` caps at desktop breakpoints, which leaves a tiny island of UI
+   when a projector uses browser zoom-out. Scale the cap with the readable type size. */
+.container {
+  width: min(96%, 100rem);
+  max-width: min(96%, 100rem);
+}
+
 body {
   margin: 0;
 }
