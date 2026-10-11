@@ -1,128 +1,170 @@
-# LibraryUI
+# سامانه مدیریت کتابخانه | LibraryUI
 
-Angular 22 front end for the Library management system. Talks to the `libraryBk`
-Spring Boot backend over authenticated REST APIs.
+![Angular](https://img.shields.io/badge/Angular-22-DD0031?logo=angular&logoColor=white)
+![Node](https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white)
+[![CI](https://github.com/saadati-mohammad/LibraryUI/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/saadati-mohammad/LibraryUI/actions/workflows/ci.yml)
 
-## Tech stack
+رابط فارسی و راست‌چین سامانه مدیریت کتابخانه؛ برای جست‌وجوی عمومی کتاب‌ها، مدیریت اعضا و کارکنان، امانت و رزرو، ورود اطلاعات کتاب و اسکن بارکد. این مخزن فقط فرانت‌اند Angular است و برای اجرای کامل به [بک‌اند Spring Boot](https://github.com/saadati-mohammad/libraryBk) نیاز دارد.
 
-| Concern | Choice |
-| --- | --- |
-| Framework | Angular 22.2 (standalone components) |
-| UI | Angular Material + Tailwind CSS |
-| Charts | Chart.js via ng2-charts |
-| Tests | Vitest unit tests; Playwright desktop/mobile browser tests |
-| Mobile scanning | Installable Angular PWA, camera ISBN scanning, and keyboard-wedge scanners |
-| Staff access | Admin-only staff account and role management |
-| Build | Angular CLI (`ng`) |
+> **شروع سریع:** بک‌اند را روی پورت `8079` اجرا کنید، سپس در این پروژه `npm ci` و `npm start` را بزنید و `http://localhost:4200` را باز کنید.
 
-## Prerequisites
+## فهرست
 
-- Node.js 22.22.3+ or 24.15.0+ (Angular 22 supported versions)
-- npm 10+
+- [قابلیت‌ها و راهنمای استفاده](#قابلیت‌ها-و-راهنمای-استفاده)
+- [ورود و انواع حساب](#ورود-و-انواع-حساب)
+- [افزودن کتاب و اسکن بارکد](#افزودن-کتاب-و-اسکن-بارکد)
+- [تقویم و زبان تاریخ](#تقویم-و-زبان-تاریخ)
+- [نصب و اجرای توسعه](#نصب-و-اجرای-توسعه)
+- [ساخت و استقرار](#ساخت-و-استقرار)
+- [آزمون و کنترل کیفیت](#آزمون-و-کنترل-کیفیت)
+- [ساختار پروژه](#ساختار-پروژه)
+- [رفع اشکال](#رفع-اشکال)
+- [محدودیت‌ها و نکات امنیتی](#محدودیت‌ها-و-نکات-امنیتی)
 
-## Development server
+## قابلیت‌ها و راهنمای استفاده
 
-```bash
-npm ci        # install exact dependencies from the lockfile
-npm start     # ng serve
+| نشانی | چه کاری انجام می‌دهد | دسترسی |
+| --- | --- | --- |
+| `/`، `/catalog` | مرور و جست‌وجوی کاتالوگ عمومی | همه |
+| `/categories`، `/books/:id` | دسته‌بندی‌ها و جزئیات کتاب | همه |
+| `/login`، `/register` | ورود و ثبت‌نام عضو (ثبت‌نام تابع تنظیم بک‌اند است) | همه |
+| `/account` | مشاهده حساب، امانت‌ها و رزروهای خود | عضو واردشده |
+| `/dashboard` | نمای کلی وضعیت کتابخانه | کارکنان |
+| `/book` | مدیریت کتاب، ورود دستی/جست‌وجوی اطلاعات و اسکن بارکد | کارکنان |
+| `/person` | مدیریت اعضا و وضعیت فعال آن‌ها | کارکنان |
+| `/loan` | ثبت و پیگیری امانت و بازگشت کتاب | کارکنان |
+| `/reservation` | پیگیری رزروها و نمایش تقویم شمسی | کارکنان |
+| `/staff-accounts` | مدیریت حساب و نقش کارکنان | مدیر سامانه |
+| `/forgot-password` | درخواست پیوند بازنشانی گذرواژه | همه |
+| `/phone-scan` | صفحه اسکن موبایل و PWA | دارنده پیوند جفت‌سازی |
+
+**روال پیشنهادی کتابدار:** وارد شوید، از «کتاب‌ها» کتاب را با اسکن ISBN یا ورود دستی ثبت کنید، عضو را در بخش اعضا بسازید، سپس از بخش امانت/رزرو عملیات را انجام دهید. غیرفعال‌کردن کتاب یا عضو آن را از فهرست فعال کنار می‌گذارد و برای حفظ تاریخچه، رکورد باقی می‌ماند.
+
+در صفحه کتاب و اعضا، دکمه «بارگذاری از اکسل» فایل‌های `.xlsx` را می‌پذیرد و الگوی نمونه از همان پنجره قابل دریافت است. پیش از واردسازی، ستون‌ها و ردیف‌های فایل را با الگو تطبیق دهید و از دیتابیس نسخه پشتیبان داشته باشید؛ واردسازی فایل بزرگ را ابتدا روی محیط آزمایشی امتحان کنید.
+
+## ورود و انواع حساب
+
+- **مدیر سامانه:** همه عملیات کارکنان و مدیریت حساب‌های کارکنان را انجام می‌دهد.
+- **کتابدار:** عملیات جاری کتابخانه مانند کتاب، عضو، امانت و رزرو را انجام می‌دهد.
+- **عضو:** کاتالوگ را می‌بیند و در صفحه حساب، اطلاعات و امانت‌ها/رزروهای خودش را دنبال می‌کند.
+- رمز ورود در مرورگر رمزنگاری یا رمزگشایی نمی‌شود؛ JWT برای درخواست‌ها استفاده می‌شود و API دسترسی هر درخواست را کنترل می‌کند.
+- در اجرای توسعه محلی، حساب پیش‌فرض بک‌اند `admin` / `admin` است. **این فقط برای محیط توسعه است؛ در محیط واقعی گذرواژه قوی و کلید JWT اختصاصی تنظیم کنید.** در محیط واقعی اولین مدیر با `APP_ADMIN_USERNAME`, `APP_ADMIN_PASSWORD` و ایمیل بازیابی ساخته می‌شود.
+- صفحه «حساب‌های کارکنان» امکان ساخت/ویرایش مدیر و کتابدار، تعیین ایمیل بازیابی، تغییر نقش و غیرفعال‌سازی/فعال‌سازی مجدد را می‌دهد. حساب غیرفعال حتی با توکن قبلی اجازه ادامه کار ندارد؛ دست‌کم یک مدیر فعال باید باقی بماند.
+- برای فراموشی رمز، کاربر ایمیلش را در `/forgot-password` وارد می‌کند و پیوند ایمیل‌شده را در `/reset-password` باز می‌کند. پیوند یک‌بارمصرف و ۲۰ دقیقه‌ای است؛ سرویس ایمیل باید در بک‌اند تنظیم شده باشد. رمز جدید حداقل ۱۲ نویسه است.
+
+## افزودن کتاب و اسکن بارکد
+
+در صفحه کتاب، اطلاعات را دستی وارد کنید یا ISBN/عنوان/نویسنده را جست‌وجو کنید. نتایج از Open Library و Google Books دریافت می‌شوند؛ اطلاعات پیدا‌شده را قبل از ذخیره بررسی کنید. این منابع جامع همه کتاب‌های جهان نیستند و کتاب فارسی/محلیِ پیدا نشده را می‌توان دستی ثبت کرد.
+
+### بارکدخوان USB، بلوتوث یا Wi-Fi
+
+بسیاری از بارکدخوان‌های فروشگاهی به‌صورت **HID / keyboard wedge** کار می‌کنند: مانند صفحه‌کلید ISBN را در کادر اسکن فعال تایپ می‌کنند و معمولاً در پایان Enter می‌فرستند. کادر اسکن را انتخاب کنید و بارکدخوان را مثل صفحه‌کلید به رایانه وصل کنید. برای اسکن پشت‌سرهم، پس از دریافت هر ISBN فرم آماده اسکن بعدی می‌ماند؛ در صورت نیاز به اصلاح جزئیات، فرم ورود دستی را باز کنید. نیازی به درایور یا اتصال اختصاصی به مرورگر نیست.
+
+اگر دستگاه به‌جای شبیه‌سازی صفحه‌کلید از پروتکل سریال/اختصاصی استفاده کند، اتصال مستقیم آن پشتیبانی عمومی ندارد و باید برای مدل همان دستگاه یکپارچه‌سازی جداگانه انجام شود.
+
+### استفاده از گوشی به‌عنوان اسکنر
+
+1. در فرم افزودن کتاب، گزینه جفت‌سازی/اسکن موبایل را انتخاب کنید و QR را با گوشی باز کنید.
+2. گوشی و رایانه باید به همان وب‌سایت/شبکه‌ای دسترسی داشته باشند. اگر روی رایانه `localhost` باز کرده‌اید، گوشی نمی‌تواند همان `localhost` را ببیند؛ از نشانی LAN رایانه استفاده کنید و origin آن را در CORS و `PUBLIC_APP_URL` بک‌اند مجاز کنید.
+3. برای دوربین، وب‌سایت باید روی **HTTPS** باشد (به‌جز استثناهای توسعه روی خود دستگاه). اجازه دوربین را در مرورگر بدهید. صفحه `/phone-scan` یک PWA قابل نصب است؛ از گزینه نصب مرورگر یا «افزودن به صفحه اصلی» استفاده کنید.
+4. دوربین ISBN را می‌خواند و نتیجه را به فرم رایانه می‌فرستد. همچنین می‌توان ISBN را در گوشی دستی تایپ کرد یا بارکدخوان HID را به خود گوشی وصل کرد.
+
+جلسه جفت‌سازی محرمانه و موقت است، پس از ۱۰ دقیقه منقضی می‌شود و با راه‌اندازی مجدد API از بین می‌رود؛ QR/پیوند را با دیگران به اشتراک نگذارید. بلوتوث/USB/Wi-Fi در این جریان از راه سازگاری دستگاه با کیبورد یا دوربین مرورگر استفاده می‌شود، نه اتصال اختصاصی به هر مدل.
+
+## تقویم و زبان تاریخ
+
+رابط راست‌چین و فارسی است. نمایش تقویم رزروها با FullCalendar و locale فارسی انجام می‌شود و تاریخ‌های فرم با ورودی شمسی ارائه می‌شوند. تاریخ‌های تبادل‌شده با API در قالب استاندارد سرویس باقی می‌مانند و در رابط فارسی نمایش داده می‌شوند.
+
+## نصب و اجرای توسعه
+
+### پیش‌نیازها
+
+- Node.js نسخه `22.22.3+` یا `24.15.0+` و npm نسخه ۱۰ یا بالاتر.
+- JDK 21 برای اجرای بک‌اند؛ راهنمای آن در [مخزن بک‌اند](https://github.com/saadati-mohammad/libraryBk).
+
+### Windows PowerShell
+
+```powershell
+# ترمینال اول: در پوشه libraryBk
+.\mvnw.cmd spring-boot:run
+
+# ترمینال دوم: در پوشه LibraryUI
+npm ci
+npm start
 ```
 
-Open `http://localhost:4200/`. The app reloads on source changes and proxies `/api` and
-`/ws-chat` to the backend on port `8079` (configured in `proxy.conf.json`). Start the backend
-with the development profile; local development defaults to `admin` / `admin` only in that
-profile.
+سپس `http://localhost:4200` را باز کنید. Angular مسیرهای `/api` و `/ws-chat` را طبق `proxy.conf.json` به API روی پورت `8079` می‌فرستد. سرور فرانت‌اند به‌تنهایی داده واقعی ندارد. برای پاک‌کردن داده‌های H2 حافظه‌ای توسعه، بک‌اند را متوقف/دوباره اجرا کنید؛ داده مهم را در آن نگه ندارید.
 
-## Building
+### Linux / macOS
+
+```bash
+# در libraryBk
+./mvnw spring-boot:run
+
+# در LibraryUI، ترمینال دوم
+npm ci
+npm start
+```
+
+## ساخت و استقرار
 
 ```bash
 npm run build
 ```
 
-Artifacts are written to `dist/library-ui`. The production build uses
-`environment.prod.ts` (relative `/api` and `/ws-chat` paths, intended to sit behind a
-reverse proxy).
+خروجی در `dist/library-ui` ساخته می‌شود. نسخه production از `environment.prod.ts` و مسیرهای نسبی `/api` و `/ws-chat` استفاده می‌کند؛ آن را پشت reverse proxy یا وب‌سروری قرار دهید که API و WebSocket را به بک‌اند هدایت کند. فرانت‌اند و بک‌اند باید origin/CORS سازگار داشته باشند. تنظیم secrets و دیتابیس production در راهنمای [بک‌اند](https://github.com/saadati-mohammad/libraryBk#راه‌اندازی-و-تنظیمات) آمده است.
 
-## Testing
+در استقرار عمومی، HTTPS را برای ورود امن و دسترسی دوربین لازم بدانید، CORS را به originهای واقعی محدود کنید و ثبت‌نام عمومی را فقط در صورت نیاز فعال کنید. جزئیات متغیرهای محیطی در فایل `.env.example` مخزن بک‌اند است.
+
+## آزمون و کنترل کیفیت
 
 ```bash
-npm run typecheck
-npm run lint
-npm run test:ci
-npm run build
-npm run e2e -- --workers=1
+npm run typecheck       # بررسی TypeScript برنامه و آزمون‌های مرورگر
+npm run lint            # ESLint
+npm run test:ci         # آزمون واحد Vitest در حالت CI
+npm run build           # ساخت production
+npm run e2e -- --workers=1  # آزمون مرورگر کامل با بک‌اند در پورت 8079
 ```
 
-Component tests use a shared provider helper at
-`src/app/testing/test-providers.ts` which supplies `HttpClient`, the router, and
-animations. Add `providers: provideTestProviders()` to any new component spec that
-injects an HTTP-backed service. Playwright runs desktop Chromium and a Pixel 5 profile;
-the backend must be available on port `8079`. Browser tests share its H2 database, so run
-them with one worker.
+Playwright مرورگر واقعی Chromium را در دسکتاپ و نمای موبایل اجرا می‌کند. آزمون E2E به بک‌اند روشن با H2 و حساب توسعه `admin` / `admin` نیاز دارد و برای جلوگیری از تداخل روی یک دیتابیس مشترک با یک worker اجرا می‌شود. تنظیم Playwright هنگام اجرا سرور Angular را بالا می‌آورد. CI نیز lint، typecheck، آزمون‌های واحد، build، audit وابستگی‌ها و آزمون مرورگر full-stack را اجرا می‌کند.
 
-## Project layout
+## ساختار پروژه
 
-```
+```text
 src/app/
-  core/           services (API clients), models, interfaces
-  features/       routed feature components (book, person, loan, chat, ...)
-  shared/         reusable UI components (list, modal, header, footer)
-  layout/         app shell (base layout)
-  testing/        test-only helpers
+  core/       مدل‌ها، سرویس‌های API، interceptor و guardهای دسترسی
+  features/   صفحات کتاب، عضو، امانت، رزرو، کاتالوگ، حساب و اسکنر
+  shared/     اجزای مشترک مانند فهرست، ورودی تاریخ، انتخاب فایل و dialog
+  layout/     پوسته و چیدمان اصلی
+  testing/    فراهم‌کننده‌های مشترک تست
+e2e/          سناریوهای Playwright
+docs/         ارزیابی‌ها، ماتریس قابلیت‌ها، اسکن بارکد و کنترل انتشار
 ```
 
-## Authentication
+برای مستندات فنی و ارزیابی‌های رابط، به [`docs/engineering/`](docs/engineering/) مراجعه کنید. مشخصات API و راه‌اندازی سرور در [README بک‌اند](https://github.com/saadati-mohammad/libraryBk) است.
 
-The app requires a signed-in session. `AuthService` (`core/service/auth.service.ts`) calls
-`POST /api/auth/login`, stores the JWT in `localStorage`, and exposes `isAuthenticated()` and
-`getToken()`. A functional `authInterceptor` attaches the bearer token to API requests and
-signs the user out on `401`; `authGuard` redirects unauthenticated navigation to `/login`.
-The chat client passes the same token on the STOMP CONNECT frame.
+## رفع اشکال
 
-For local development the default dev credentials are `admin` / `admin` (see the backend
-`application-development.properties`).
+| مشکل | بررسی/راه‌حل |
+| --- | --- |
+| صفحه باز می‌شود اما API خطا می‌دهد | بک‌اند را بررسی کنید؛ باید روی `8079` آماده باشد. در لاگ API و سپس `proxy.conf.json` را بررسی کنید. |
+| ورود ناموفق است | اطلاعات محیط توسعه را بررسی کنید؛ رمز مدیر اولیه فقط هنگام خالی‌بودن جدول حساب‌ها seed می‌شود. تغییر env به‌تنهایی رمز حساب موجود را عوض نمی‌کند. |
+| عضو نمی‌تواند ثبت‌نام کند | ثبت‌نام باید در پیکربندی بک‌اند فعال باشد؛ در غیر این صورت مدیر باید عضو را بسازد. |
+| ایمیل بازنشانی نمی‌آید | SMTP، `MAIL_*`، `PUBLIC_APP_URL` و ایمیل ثبت‌شده را در بک‌اند بررسی کنید؛ پوشه Spam را هم ببینید. |
+| گوشی صفحه رایانه را پیدا نمی‌کند | از IP/نام میزبان LAN به‌جای `localhost` استفاده کنید؛ شبکه، HTTPS و CORS را بررسی کنید. |
+| دوربین در گوشی فعال نیست | صفحه باید HTTPS باشد و مجوز Camera به origin داده شود؛ در غیر این صورت از ورودی دستی یا HID استفاده کنید. |
+| جست‌وجوی کتاب نتیجه ندارد | داده بیرونی محدود/وابسته به شبکه است؛ عنوان یا ISBN دیگر را امتحان کنید یا دستی ثبت کنید. |
+| بعد از restart داده‌ها ناپدید شدند | دیتابیس پیش‌فرض توسعه H2 حافظه‌ای است؛ برای نگهداری واقعی از MySQL پایدار استفاده کنید. |
 
-## End-to-end tests
+## محدودیت‌ها و نکات امنیتی
 
-Playwright browser tests live in `e2e/` and drive the real UI against a running backend:
+- کاتالوگ‌های خارجی تضمین پوشش همه کتاب‌های جهان یا تمام عناوین ایرانی را نمی‌دهند؛ ثبت دستی همیشه در دسترس است.
+- دوربین موبایل نیازمند HTTPS و مرورگر سازگار است. اتصال دستگاه HID با ارسال صفحه‌کلیدی کار می‌کند؛ پروتکل اختصاصی هر سازنده، بدون پیاده‌سازی جداگانه قابل تضمین نیست.
+- QR اسکنر دسترسی موقت به یک جلسه مشخص می‌دهد. آن را محرمانه نگه دارید و پس از استفاده جلسه را ببندید.
+- رمز حساب فقط به‌صورت hash یک‌طرفه در بک‌اند نگه‌داری می‌شود. از رمز مشترک/ساده استفاده نکنید و secretهای سرور را در فرانت‌اند یا Git قرار ندهید.
+- غیرفعال‌سازی کتاب و عضو به‌جای حذف رکورد انجام می‌شود تا سابقه امانت حفظ شود. حذف فایل‌های پیوست/موارد موقت تابع سیاست نگهداری جداگانه بک‌اند است.
+- داشبورد فعلی خلاصه وضعیت است؛ ابزار گزارش‌گیری/خروجی جامع، ردیابی جداگانه هر نسخه فیزیکی کتاب با بارکد مستقل، و صفحه گفت‌وگوی اعضا در رابط فعلی وجود ندارد. API پیام و فایل در بک‌اند به‌تنهایی به معنی وجود صفحه چت کاربری نیست.
 
-```bash
-# Backend must be running on :8079 with APP_ADMIN_PASSWORD=admin
-npx playwright test --project=chromium
-npx playwright test --project=mobile
-```
+## فناوری‌ها
 
-The config (`playwright.config.ts`) starts the Angular dev server automatically.
-
-## Linting / formatting
-
-ESLint (via `ng lint`) is configured and enforced in CI. Strict application and browser-test
-type checks use `npm run typecheck`.
-
-## Public catalog and member accounts
-
-The public pages use read-only `/api/public/**` projections. Registration creates a member
-account and the account area reads that member's own profile, loans, and reservations. The
-staff catalog dialog supports manual entry, ISBN lookup, and title/author search through the
-Open Library and Google Books catalogs. Provider results are best-effort and do not represent
-an exhaustive index of every published book; staff should review metadata before saving.
-
-USB, Bluetooth, and Wi-Fi barcode readers that expose themselves as a keyboard (HID/keyboard
-wedge) work by typing the ISBN into the focused scan field and pressing Enter. For phones,
-the book-entry dialog can create a short-lived pairing session and QR link to `/phone-scan`.
-That route is an installable PWA with camera scanning (on HTTPS), manual ISBN input, and
-support for a scanner connected to the phone as a keyboard. Pairing is temporary and the
-desktop and phone must be able to reach the same application origin. Scanner models that
-use a proprietary serial or network protocol instead of keyboard emulation need a
-model-specific integration.
-
-See `docs/engineering/` for the feature matrix, responsive and security audits, barcode
-workflow, and production release gates. Public self-registration remains controlled by the
-backend deployment policy. Password recovery is available at `/forgot-password`; members
-use their registered email and staff use the recovery email maintained by an administrator.
-The emailed link opens `/reset-password`, expires after 20 minutes, and can only be used once.
-SMTP and `PUBLIC_APP_URL` must be configured in the backend before the feature can deliver mail.
-
-Administrators can manage librarian and administrator accounts at `/staff-accounts`. New
-staff passwords must contain at least 12 characters and a unique recovery email. Deactivation is reversible and
-preserves the account record; the API rechecks current roles and account status on every
-request, so role changes or deactivation also take effect for already-issued tokens.
+Angular 22 standalone، Angular Material، Tailwind CSS، Chart.js، FullCalendar با locale فارسی، Vitest و Playwright.
