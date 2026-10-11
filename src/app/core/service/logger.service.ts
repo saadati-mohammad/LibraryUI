@@ -4,10 +4,9 @@ import { Injectable, isDevMode } from '@angular/core';
  * Thin logging facade.
  *
  * Debug/info logs are suppressed in production builds (isDevMode() is false after
- * `ng build --configuration production`), so diagnostic chatter such as
- * "Processing WebSocket message: ..." and full message payloads never reach the
- * browser console of real users. Warnings and errors are always emitted because they
- * are actionable in production.
+ * `ng build --configuration production`), so diagnostic chatter and full request/response
+ * payloads never reach the browser console of real users. Warnings and errors are always
+ * emitted because they are actionable in production.
  */
 @Injectable({
   providedIn: 'root'

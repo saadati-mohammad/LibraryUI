@@ -1,26 +1,71 @@
+<header>
 <mat-toolbar class="app-header">
   <div class="header-content">
-    <nav class="nav-links-container">
-      <a *ngFor="let link of navLinks"
-         mat-button
-         [routerLink]="link.path"
-         routerLinkActive="active-nav-link">
-        <mat-icon>{{ link.icon }}</mat-icon>
-        <span>{{ link.label }}</span>
-      </a>
+    <!-- منوی موبایل: در عرض‌های کوچک جای نوار افقی را می‌گیرد -->
+    <button
+      mat-icon-button
+      class="mobile-menu-button"
+      [matMenuTriggerFor]="mobileMenu"
+      aria-label="منوی اصلی"
+      matTooltip="منوی اصلی"
+    >
+      <mat-icon aria-hidden="true">menu</mat-icon>
+    </button>
+    <mat-menu #mobileMenu="matMenu">
+      @for (link of navLinks; track link.path) {
+        <a mat-menu-item [routerLink]="link.path" routerLinkActive="active-menu-item">
+          <mat-icon aria-hidden="true">{{ link.icon }}</mat-icon>
+          <span>{{ link.label }}</span>
+        </a>
+      }
+    </mat-menu>
+
+    <!-- ناوبری دسکتاپ -->
+    <nav class="nav-links-container" aria-label="ناوبری اصلی">
+      @for (link of navLinks; track link.path) {
+        <a
+          mat-button
+          [routerLink]="link.path"
+          routerLinkActive="active-nav-link"
+          ariaCurrentWhenActive="page"
+        >
+          <mat-icon aria-hidden="true">{{ link.icon }}</mat-icon>
+          <span>{{ link.label }}</span>
+        </a>
+      }
     </nav>
 
     <span class="spacer"></span>
 
+    <!-- کاربر وارد‌شده + نقش -->
+    <div class="user-info">
+      <span class="user-name">{{ userName() }}</span>
+      <span class="user-role">{{ roleLabel() }}</span>
+    </div>
+
+    <!-- تغییر پوسته -->
+    <button
+      mat-icon-button
+      class="theme-toggle"
+      (click)="toggleTheme()"
+      [attr.aria-label]="themeToggleLabel()"
+      [matTooltip]="themeToggleLabel()"
+      [attr.aria-pressed]="isDark()"
+    >
+      <mat-icon aria-hidden="true">{{ isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+    </button>
+
     <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="منوی کاربر">
-      <mat-icon>account_circle</mat-icon>
+      <mat-icon aria-hidden="true">account_circle</mat-icon>
     </button>
     <mat-menu #userMenu="matMenu">
-      <div class="menu-user-name">{{ userName() }}</div>
+      <div class="menu-user-name" role="presentation">{{ userName() }}</div>
+      <div class="menu-user-role" role="presentation">{{ roleLabel() }}</div>
       <button mat-menu-item (click)="logout()">
-        <mat-icon>logout</mat-icon>
+        <mat-icon aria-hidden="true">logout</mat-icon>
         <span>خروج</span>
       </button>
     </mat-menu>
   </div>
 </mat-toolbar>
+</header>

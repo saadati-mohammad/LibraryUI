@@ -1,4 +1,6 @@
-<app-header></app-header>
+@if (showHeader()) {
+  <app-header></app-header>
+}
 <main id="main-content">
   <router-outlet></router-outlet>
 </main>

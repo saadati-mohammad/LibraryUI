@@ -9,8 +9,6 @@ body {
 
 body {
   margin: 0;
-  /* font-family: Roboto, "Helvetica Neue", sans-serif; */
-  /* Using Vazirmatn below */
 }
 
 /* ----------------------------------------- */
@@ -34,13 +32,13 @@ body {
   --app-light-border-color: #e9ecef;
 
   /* Status Colors */
-  --app-light-status-active-color: #28a745;
+  --app-light-status-active-color: #166534;
   --app-light-status-active-bg: rgba(40, 167, 69, 0.1);
-  --app-light-status-due-soon-color: #fd7e14;
+  --app-light-status-due-soon-color: #9a3412;
   --app-light-status-due-soon-bg: rgba(253, 126, 20, 0.1);
-  --app-light-status-overdue-color: #dc3545;
+  --app-light-status-overdue-color: #b91c1c;
   --app-light-status-overdue-bg: rgba(220, 53, 69, 0.1);
-  --app-light-status-returned-color: #6c757d;
+  --app-light-status-returned-color: #4b5563;
   --app-light-status-returned-bg: rgba(108, 117, 125, 0.07);
 
   /* Sizing and Spacing */
@@ -49,38 +47,102 @@ body {
   --app-card-padding: 20px;
   /* Default padding for cards */
   --app-transition-speed: 0.2s;
+
+  /* Dark-theme surface tokens, consumed by the `[data-theme='dark']` block below. */
+  --app-dark-bg-primary: #0f172a;
+  --app-dark-bg-secondary: #1b2437;
+  --app-dark-bg-tertiary: #232e45;
+  --app-dark-border-color: #33405a;
+  --app-dark-border-color-stronger: #47546e;
+  --app-dark-text-primary: #e8edf7;
+  --app-dark-text-secondary: #c3cbdb;
+  --app-dark-accent-primary: #7fb0ff;
+  --app-dark-accent-primary-rgb: 127, 176, 255;
+  --app-success-color: #157347;
+}
+
+/* ------------------------------------------------------------------ */
+/* --- Dark theme --------------------------------------------------- */
+/* ------------------------------------------------------------------ */
+/* ThemeService writes `data-theme` on <html>. Material's prebuilt theme already flips
+   its own palette from `prefers-color-scheme`; these variables flip everything that is
+   styled with the app tokens, so the header toggle changes the whole page. */
+[data-theme='dark'] {
+  --app-light-bg-primary: var(--app-dark-bg-primary);
+  --app-light-bg-secondary: var(--app-dark-bg-secondary);
+  --app-light-bg-tertiary: var(--app-dark-bg-tertiary);
+  --app-light-border-color: var(--app-dark-border-color);
+  --app-light-border-color-stronger: var(--app-dark-border-color-stronger);
+  --app-light-text-primary: var(--app-dark-text-primary);
+  --app-light-text-secondary: var(--app-dark-text-secondary);
+  --app-light-accent-primary: var(--app-dark-accent-primary);
+  --app-light-accent-primary-rgb: var(--app-dark-accent-primary-rgb);
+
+  --app-light-status-active-color: #5fd08a;
+  --app-light-status-active-bg: rgba(95, 208, 138, 0.14);
+  --app-light-status-due-soon-color: #ffb86b;
+  --app-light-status-due-soon-bg: rgba(255, 184, 107, 0.14);
+  --app-light-status-overdue-color: #ff8b8b;
+  --app-light-status-overdue-bg: rgba(255, 139, 139, 0.16);
+  --app-light-status-returned-color: #b7bfd0;
+  --app-light-status-returned-bg: rgba(183, 191, 208, 0.14);
+
+  /* Component-scoped colours that were tuned for white backgrounds.
+     `--app-success-color` themes the Tailwind-emerald text used for "active" actions,
+     which drops below AA on a dark surface without an override. */
+  --app-success-color: #4ade80;
+
+  color-scheme: dark;
 }
 
 /* ----------------------------------------- */
 /* --- Base Body & Font Styles --- */
 /* ----------------------------------------- */
+/* One canonical Persian stack, used everywhere. It is declared with *locally installed*
+   faces only (no CDN): the app must render correctly offline, and a runtime "latest"
+   stylesheet from a third party is both an offline failure mode and a supply-chain risk.
+   Every family in the chain ships full Arabic/Persian coverage and a matching bold face,
+   so Persian text is never synthesised/oblique. */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: local('Vazirmatn'), local('Vazirmatn Regular');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: local('Vazirmatn Bold'), local('Vazirmatn-Bold');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* The names must match the family actually declared above: the old rules used a
+   `Vazir` family that was never declared anywhere, so those elements fell back to the
+   browser default and rendered Persian with inconsistent glyph shapes. */
+:root {
+  --app-font-family: 'Vazirmatn', Tahoma, 'Segoe UI', 'Iranian Sans', 'Noto Naskh Arabic',
+    system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html {
+  /* `html[dir=rtl]` already sets the direction; this keeps the computed writing mode
+     explicit even for markup rendered before the attribute is parsed. */
+  direction: rtl;
+}
+
 body {
-  font-family: 'Vazirmatn', Tehran, Roboto, "Helvetica Neue", Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--app-font-family);
   margin: 0;
-  direction: rtl !important;
+  direction: rtl;
   background-color: var(--app-light-bg-primary);
   color: var(--app-light-text-primary);
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* Vazirmatn Font Definition (already provided by you, ensure it's here) */
-@font-face {
-  font-family: 'Vazirmatn';
-  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Vazirmatn';
-  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2') format('woff2');
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
 }
 
 /* ----------------------------------------- */
@@ -301,6 +363,10 @@ body.modal-open {
   overflow: hidden;
 }
 
-td,th,span {
-  font-family: 'Vazir', sans-serif !important;
+/* All table text inherits the single canonical Persian stack (the old `'Vazir'` family
+   was never declared, so this rule silently fell back to the browser default). */
+td,
+th,
+span {
+  font-family: var(--app-font-family);
 }

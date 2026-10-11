@@ -1,4 +1,4 @@
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser } from '@angular/common';
 import {
   Component,
   Input,
@@ -12,7 +12,8 @@ import {
   AfterViewInit,
   Renderer2,
   inject,
-  PLATFORM_ID
+  PLATFORM_ID,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,8 +23,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 @Component({
   selector: 'app-modal',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './modal.component.css'
 })
 export class ModalComponent implements OnChanges, AfterViewInit {
@@ -41,8 +43,11 @@ export class ModalComponent implements OnChanges, AfterViewInit {
   @Input() maxWidth = '700px'; // امکان تنظیم حداکثر عرض مودال
 
   @Output() isVisibleChange = new EventEmitter<boolean>();
-  @Output() submit = new EventEmitter<void>();
-  @Output() cancel = new EventEmitter<void>();
+  // Named `submitted`/`cancelled`, not `submit`/`cancel`: those are native DOM event names,
+  // so `(submit)`/`(cancel)` bindings on <app-modal> would be ambiguous (and are rejected by
+  // the Angular ESLint `no-output-native` rule).
+  @Output() submitted = new EventEmitter<void>();
+  @Output() cancelled = new EventEmitter<void>();
 
   @ViewChild('modalContent') modalContent!: ElementRef;
   private firstFocusableElement: HTMLElement | null = null;
@@ -119,12 +124,12 @@ export class ModalComponent implements OnChanges, AfterViewInit {
     if (this.isLoading) return; // Don't close if loading
     this.isVisible = false;
     this.isVisibleChange.emit(false);
-    this.cancel.emit();
+    this.cancelled.emit();
   }
 
   onSubmit(): void {
     if (this.disableSubmit || this.isLoading) return;
-    this.submit.emit();
+    this.submitted.emit();
   }
 
   // بستن مودال با کلیک روی پس‌زمینه
