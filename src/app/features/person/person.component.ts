@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnDestroy, OnInit, PLATFORM_ID, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, inject, Input, OnDestroy, OnInit, PLATFORM_ID, ChangeDetectionStrategy } from '@angular/core';
 import { TableColumn, ListComponent } from '../../shared/component/list/list.component';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
@@ -16,7 +16,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subject, Subscription, takeUntil } from 'rxjs';
+import { Subscription } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PersonModel, PersonFilterModel } from '../../core/model/personModel';
 import { PersonService } from '../../core/service/person.service';
 import { ImageLoaderService } from '../../core/service/image-loader.service';
@@ -92,7 +93,7 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
   importError: string | null = null;
   readonly excelImportForm: FormGroup;
 
-  private destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
 
   private fb = inject(FormBuilder);
   private personService = inject(PersonService);
@@ -149,8 +150,6 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
     this.pictureRemovalSubscription?.unsubscribe();
     // Release the object URLs for every picture this page loaded.
     [...this.imageLoader.pictures.keys()].forEach((id) => this.imageLoader.forget('picture', id));
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   setupTableColumns(): void {
@@ -183,7 +182,7 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
     const filters: PersonFilterModel = this.personFiltersForm.value;
 
     this.personService.getPersonList(filters, this.currentPage, this.pageSize, 'id,desc')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response: PaginatedResponse<PersonModel>) => {
           this.data = response.content;
@@ -275,7 +274,7 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
     this.pictureRemovalSubscription?.unsubscribe();
     this.pictureRemovalSubscription = this.personForm
       .get('profilePicture')!
-      .valueChanges.pipe(takeUntil(this.destroy$))
+      .valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => {
         this.pictureRemovalArmed = this.hasStoredPicture && value === null;
       });
@@ -348,7 +347,7 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
 
     const successMessage = this.currentFormOperation === FormOperation.ADD ? 'عضو با موفقیت اضافه شد!' : 'عضو با موفقیت بروزرسانی شد!';
 
-    serviceCall.pipe(takeUntil(this.destroy$)).subscribe({
+    serviceCall.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         if (isPlatformBrowser(this.platformId)) {
           this.snackBar.open(successMessage, 'بستن', { duration: 3000, direction: 'rtl' });
@@ -413,7 +412,7 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
     if (!confirmed) {
       return;
     }
-    this.personService.deactivatePerson(person.id).pipe(takeUntil(this.destroy$)).subscribe({
+    this.personService.deactivatePerson(person.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.snackBar.open(`عضو "${person.firstName} ${person.lastName}" با موفقیت غیرفعال شد.`, 'بستن', { duration: 3000, direction: 'rtl' });
         this.loadPersons();
@@ -450,7 +449,7 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
       return;
     }
     this.isImporting = true;
-    this.personService.importPersonsFromExcel(excelFile).pipe(takeUntil(this.destroy$)).subscribe({
+    this.personService.importPersonsFromExcel(excelFile).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.isImporting = false;
         this.isExcelImportModalVisible = false;
