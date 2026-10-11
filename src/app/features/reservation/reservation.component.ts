@@ -2,7 +2,7 @@ import { isPlatformBrowser } from '@angular/common';
 import {
   Component,
   inject,
-  OnDestroy,
+  DestroyRef,
   OnInit,
   PLATFORM_ID,
   signal,
@@ -26,7 +26,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { debounceTime, distinctUntilChanged, Observable, Subject, switchMap, takeUntil } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Observable, Subject, switchMap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BookModel } from '../../core/model/bookModel';
 import { PersonModel } from '../../core/model/personModel';
 import {
@@ -43,12 +44,21 @@ import { notPastDate, parseIsoDate } from '../../core/util/date.util';
 import { ListComponent, TableColumn } from '../../shared/component/list/list.component';
 import { ModalComponent } from '../../shared/component/modal/modal.component';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
+import { FullCalendarComponent, FullCalendarModule } from '@fullcalendar/angular';
+import { viewChild } from '@angular/core';
+import type { CalendarOptions, DayCellInfo, EventInput } from 'fullcalendar';
+import dayGridPlugin from 'fullcalendar/daygrid';
+import classicTheme from 'fullcalendar/themes/classic';
+import faLocale from 'fullcalendar/locales/fa';
+import { toGregorian, toJalaali } from 'jalaali-js';
+import { DateInputComponent } from '../../shared/component/date-input/date-input.component';
 
 /** Bounded autocomplete page size — never fetch a thousand rows to fill a picker. */
 const SEARCH_PAGE_SIZE = 25;
 
 /** Debounce for the type-ahead searches (ms). */
 const SEARCH_DEBOUNCE_MS = 300;
+const JALALI_MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
 /**
  * Validator for a `<mat-autocomplete>`-backed control: a typed-but-unconfirmed value
@@ -121,13 +131,21 @@ const RESERVATION_STATUS_CLASSES: Record<string, string> = {
     MatSnackBarModule,
     MatTooltipModule,
     ListComponent,
-    ModalComponent
+    ModalComponent,
+    FullCalendarModule,
+    DateInputComponent
 ],
   templateUrl: './reservation.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './reservation.component.css',
 })
-export class ReservationComponent implements OnInit, OnDestroy {
+export class ReservationComponent implements OnInit {
+  calendarVisible = false;
+  calendarTitle = '';
+  calendarOptions: CalendarOptions = {};
+  private readonly calendarComponent = viewChild(FullCalendarComponent);
+  private calendarYear = toJalaali(new Date()).jy;
+  private calendarMonth = toJalaali(new Date()).jm;
   tableTitle = 'رزروهای فعال';
   columns: TableColumn[] = [];
   reservations: ReservationModel[] = [];
@@ -150,7 +168,7 @@ export class ReservationComponent implements OnInit, OnDestroy {
   readonly maxExpiry = oneYearFromTodayIso();
   readonly defaultExpiryDays = DEFAULT_RESERVATION_DAYS;
 
-  private readonly destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
   private readonly personSearch$ = new Subject<string>();
   private readonly bookSearch$ = new Subject<string>();
 
@@ -174,6 +192,7 @@ export class ReservationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.setupTableColumns();
+    this.setupCalendar();
     this.loadReservations();
     this.wireSearch(this.personSearch$, this.personOptions, this.isSearchingPersons, (term) =>
       this.personService.getPersonList({ active: true, ...(term ? { firstName: term } : {}) }, 0, SEARCH_PAGE_SIZE),
@@ -182,11 +201,6 @@ export class ReservationComponent implements OnInit, OnDestroy {
     this.wireSearch(this.bookSearch$, this.bookOptions, this.isSearchingBooks, (term) =>
       this.bookService.getBookList({ active: true, ...(term ? { title: term } : {}) }, 0, SEARCH_PAGE_SIZE),
     );
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   /** Opens the create modal with a clean form and a today+14 expiry default. */
@@ -263,7 +277,7 @@ export class ReservationComponent implements OnInit, OnDestroy {
     this.isSubmitting = true;
     this.reservationService
       .createReservation(request)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.isSubmitting = false;
@@ -283,10 +297,11 @@ export class ReservationComponent implements OnInit, OnDestroy {
     this.loadError = null;
     this.reservationService
       .getActiveReservations()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (reservations) => {
           this.reservations = Array.isArray(reservations) ? reservations : [];
+          this.updateCalendarEvents();
           this.isLoading = false;
         },
         error: (error: unknown) => {
@@ -309,7 +324,7 @@ export class ReservationComponent implements OnInit, OnDestroy {
 
     this.reservationService
       .fulfillReservation(reservation.id)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.notify('رزرو با موفقیت تحویل شد.', 'بستن');
@@ -333,7 +348,7 @@ export class ReservationComponent implements OnInit, OnDestroy {
 
     this.reservationService
       .cancelReservation(reservation.id)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.notify('رزرو لغو شد.', 'بستن');
@@ -396,6 +411,69 @@ export class ReservationComponent implements OnInit, OnDestroy {
     ];
   }
 
+  toggleCalendar(): void {
+    this.calendarVisible = !this.calendarVisible;
+    if (this.calendarVisible) this.updateCalendarEvents();
+  }
+
+  moveCalendarMonth(delta: number): void {
+    this.calendarMonth += delta;
+    if (this.calendarMonth < 1) { this.calendarYear--; this.calendarMonth = 12; }
+    if (this.calendarMonth > 12) { this.calendarYear++; this.calendarMonth = 1; }
+    this.calendarTitle = `${JALALI_MONTHS[this.calendarMonth - 1]} ${new Intl.NumberFormat('fa-IR', { useGrouping: false }).format(this.calendarYear)}`;
+    this.calendarComponent()?.getApi().gotoDate(this.jalaliGridStart(this.calendarYear, this.calendarMonth));
+  }
+
+  private setupCalendar(): void {
+    const initialGridStart = this.jalaliGridStart(this.calendarYear, this.calendarMonth);
+    this.calendarTitle = `${JALALI_MONTHS[this.calendarMonth - 1]} ${new Intl.NumberFormat('fa-IR', { useGrouping: false }).format(this.calendarYear)}`;
+    this.calendarOptions = {
+      plugins: [dayGridPlugin, classicTheme],
+      initialView: 'jalaliMonth',
+      views: {
+        jalaliMonth: {
+          // Render six complete weeks, anchored to the Saturday before Jalali day 1.
+          // FullCalendar's built-in month view always expands to Gregorian month bounds.
+          type: 'dayGrid',
+          duration: { weeks: 6 },
+        },
+      },
+      initialDate: initialGridStart,
+      locale: faLocale,
+      direction: 'rtl',
+      firstDay: 6,
+      fixedWeekCount: false,
+      headerToolbar: false,
+      height: 'auto',
+      dayCellTopContent: (arg: DayCellInfo) => ({ html: new Intl.NumberFormat('fa-IR').format(toJalaali(arg.date).jd) }),
+      dayCellClass: (arg: DayCellInfo) => {
+        const jalaliDate = toJalaali(arg.date);
+        return jalaliDate.jy === this.calendarYear && jalaliDate.jm === this.calendarMonth
+          ? undefined
+          : 'jalali-other-month';
+      },
+      events: [],
+      eventDisplay: 'block',
+      eventTimeFormat: { hour: 'numeric', minute: '2-digit', meridiem: false },
+      noEventsContent: 'رزروی در این ماه ثبت نشده است',
+    };
+  }
+
+  private jalaliGridStart(year: number, month: number): string {
+    const firstDay = toGregorian(year, month, 1);
+    const date = new Date(firstDay.gy, firstDay.gm - 1, firstDay.gd);
+    date.setDate(date.getDate() - ((date.getDay() - 6 + 7) % 7));
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  private updateCalendarEvents(): void {
+    const events: EventInput[] = this.reservations.flatMap((reservation) => [
+      { id: `reservation-${reservation.id}`, title: `${reservation.bookTitle || 'کتاب'} · ${this.personName(reservation)}`, start: reservation.reservationDate, allDay: true, classNames: ['reservation-event'] },
+      { id: `expiry-${reservation.id}`, title: `انقضا: ${reservation.bookTitle || 'کتاب'}`, start: reservation.expiryDate, allDay: true, classNames: ['reservation-expiry-event'] },
+    ]);
+    this.calendarOptions = { ...this.calendarOptions, events };
+  }
+
   /**
    * Wires one type-ahead: debounce, switch to the (bounded) request, cancel the previous
    * request on a new keystroke, and drop out-of-order responses.
@@ -414,7 +492,7 @@ export class ReservationComponent implements OnInit, OnDestroy {
           loading.set(true);
           return fetch(term.trim());
         }),
-        takeUntil(this.destroy$),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
         next: (response) => {

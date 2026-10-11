@@ -8,6 +8,44 @@
   color: #b3261e;
 }
 
+.reservation-calendar { padding: 1.25rem 1.5rem 1.75rem; border-top: 1px solid var(--app-light-border-color-stronger); }
+.calendar-toolbar { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: .75rem; }
+.calendar-toolbar h2 { min-width: 12rem; margin: 0; text-align: center; font-size: 1.25rem; }
+.calendar-toolbar button { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; color: var(--app-light-text-primary); background: var(--app-light-bg-tertiary); border: 1px solid var(--app-light-border-color-stronger); border-radius: .5rem; cursor: pointer; }
+.calendar-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin: 0 0 1rem; color: var(--app-light-text-secondary); font-size: .875rem; }
+.calendar-legend span { display: inline-flex; align-items: center; gap: .4rem; }
+.calendar-legend i { width: .65rem; height: .65rem; border-radius: 50%; background: #2563eb; }
+.calendar-legend .expiry-dot { background: #c2410c; }
+:host ::ng-deep .fc { font-family: var(--app-font-family); color: var(--app-light-text-primary); }
+:host ::ng-deep .fc .fc-daygrid-day-number { padding: .35rem; color: var(--app-light-text-primary); text-decoration: none; }
+:host ::ng-deep .fc .fc-col-header-cell-cushion { padding: .5rem .2rem; color: var(--app-light-text-secondary); text-decoration: none; }
+:host ::ng-deep .fc .fc-daygrid-day-frame { min-height: 5.4rem; }
+:host ::ng-deep .fc .fc-daygrid-event { white-space: normal; }
+:host ::ng-deep .fc .reservation-event { background: #1d4ed8; border-color: #1d4ed8; color: white; }
+:host ::ng-deep .fc .reservation-expiry-event { background: #9a3412; border-color: #9a3412; color: white; }
+:host ::ng-deep .fc .fc-day-today { background: rgb(59 130 246 / .12) !important; }
+@media (max-width: 640px) {
+  .reservation-calendar { padding: 1rem .65rem; }
+  :host ::ng-deep .fc .fc-daygrid-day-frame { min-height: 4rem; }
+  :host ::ng-deep .fc .fc-daygrid-event { font-size: .7rem; }
+}
+[data-theme="dark"] :host ::ng-deep .fc { color: var(--app-dark-text-primary); }
+[data-theme="dark"] :host ::ng-deep .fc .fc-daygrid-day-number { color: var(--app-dark-text-primary); }
+[data-theme="dark"] :host ::ng-deep .fc .fc-col-header-cell-cushion { color: var(--app-dark-text-secondary); }
+[data-theme="dark"] :host ::ng-deep .fc .fc-scrollgrid, [data-theme="dark"] :host ::ng-deep .fc th,
+[data-theme="dark"] :host ::ng-deep .fc td { border-color: var(--app-dark-border-color-stronger); }
+[data-theme="dark"] :host ::ng-deep .fc .fc-daygrid-day { background: var(--app-dark-bg-secondary); }
+[data-theme="dark"] :host ::ng-deep .fc .fc-day-today { background: rgb(96 165 250 / .18) !important; }
+:host ::ng-deep full-calendar [role="grid"] { color: var(--app-light-text-primary); }
+:host ::ng-deep full-calendar [role="columnheader"] { padding: .55rem .25rem; color: var(--app-light-text-secondary); background: var(--app-light-bg-tertiary); border: 1px solid var(--app-light-border-color); text-align: center; }
+:host ::ng-deep full-calendar [role="gridcell"] { min-height: 5rem; padding: .35rem; color: var(--app-light-text-primary); background: var(--app-light-bg-secondary); border: 1px solid var(--app-light-border-color); }
+:host ::ng-deep full-calendar [role="gridcell"]:hover { background: var(--app-light-bg-tertiary); }
+:host ::ng-deep full-calendar .jalali-other-month { color: var(--app-light-text-secondary); background: var(--app-light-bg-tertiary); }
+:host-context([data-theme="dark"]) ::ng-deep full-calendar [role="grid"] { color: var(--app-dark-text-primary); }
+:host-context([data-theme="dark"]) ::ng-deep full-calendar [role="columnheader"] { color: var(--app-dark-text-secondary); background: var(--app-dark-bg-tertiary); border-color: var(--app-dark-border-color-stronger); }
+:host-context([data-theme="dark"]) ::ng-deep full-calendar [role="gridcell"] { color: var(--app-dark-text-primary); background: var(--app-dark-bg-secondary); border-color: var(--app-dark-border-color-stronger); }
+:host-context([data-theme="dark"]) ::ng-deep full-calendar .jalali-other-month { color: var(--app-dark-text-secondary); background: var(--app-dark-bg-tertiary); }
+
 /* پیام‌های خطای mat-form-field داخل این صفحه هم RTL و خوانا باشند */
 :host ::ng-deep .mat-mdc-form-field-error {
   font-size: 0.8125rem;

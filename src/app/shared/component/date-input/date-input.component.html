@@ -1,27 +1,36 @@
-<div class="date-input">
-  <input
-    #dateInput
-    type="date"
-    class="date-input-native"
-    [id]="inputId()"
-    [value]="value() ?? ''"
-    [attr.min]="min()"
-    [attr.max]="max()"
-    [attr.aria-describedby]="describedBy()"
-    [required]="required()"
-    [disabled]="!interactive()"
-    [attr.placeholder]="placeholder()"
-    (input)="onInput($event)"
-    (blur)="onBlur()"
-  />
-  <button
-    type="button"
-    class="date-input-trigger"
-    matTooltip="باز کردن تقویم"
-    [attr.aria-label]="'باز کردن تقویم برای ' + inputId()"
-    [disabled]="!interactive()"
-    (click)="openPicker()"
-  >
+<div class="date-input" dir="rtl" cdkOverlayOrigin #pickerOrigin="cdkOverlayOrigin">
+  <input #dateInput type="text" class="date-input-native" [id]="inputId()" [value]="text()"
+    [attr.aria-describedby]="describedBy()" [attr.aria-invalid]="required() && !value() ? 'true' : null"
+    [required]="required()" [disabled]="!interactive()" [placeholder]="placeholder()"
+    autocomplete="off" inputmode="numeric" (input)="onInput($event)" (blur)="onBlur()"
+    (keydown.escape)="open.set(false)" />
+  <button type="button" class="date-input-trigger" matTooltip="باز کردن تقویم شمسی"
+    [attr.aria-label]="'باز کردن تقویم شمسی برای ' + inputId()" [attr.aria-expanded]="open()"
+    [disabled]="!interactive()" (click)="togglePicker()">
     <mat-icon aria-hidden="true">calendar_month</mat-icon>
   </button>
+  <ng-template cdkConnectedOverlay [cdkConnectedOverlayOpen]="open()" [cdkConnectedOverlayOrigin]="pickerOrigin"
+    [cdkConnectedOverlayPositions]="pickerPositions" [cdkConnectedOverlayPush]="true"
+    [cdkConnectedOverlayViewportMargin]="8" [cdkConnectedOverlayHasBackdrop]="true"
+    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+    (backdropClick)="open.set(false)" cdkConnectedOverlayPanelClass="jalali-date-overlay">
+    <section class="jalali-picker" role="dialog" [attr.aria-label]="'تقویم ' + monthTitle()" dir="rtl">
+      <header class="jalali-picker-header">
+        <button type="button" aria-label="ماه بعد" (click)="changeMonth(1)"><mat-icon>chevron_right</mat-icon></button>
+        <strong>{{ monthTitle() }}</strong>
+        <button type="button" aria-label="ماه قبل" (click)="changeMonth(-1)"><mat-icon>chevron_left</mat-icon></button>
+      </header>
+      <div class="jalali-grid" role="grid">
+        @for (weekday of weekdays; track weekday) { <span class="weekday" role="columnheader">{{ weekday }}</span> }
+        @for (day of days(); track $index) {
+          @if (day.day === null) { <span class="day empty" aria-hidden="true"></span> }
+          @else {
+            <button type="button" class="day" role="gridcell" [disabled]="day.disabled"
+              [attr.aria-selected]="day.selected" [attr.aria-label]="formatNumber(day.day) + ' ' + monthTitle()"
+              [class.selected]="day.selected" (click)="selectDay(day)">{{ formatNumber(day.day) }}</button>
+          }
+        }
+      </div>
+    </section>
+  </ng-template>
 </div>

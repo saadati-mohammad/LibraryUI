@@ -1,57 +1,21 @@
-:host {
-  display: block;
-}
-
-.date-input {
-  display: flex;
-  align-items: stretch;
-  gap: 0.25rem;
-  width: 100%;
-}
-
-.date-input-native {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 0.5rem 0.75rem;
-  font: inherit;
-  color: var(--app-light-text-primary);
-  background-color: var(--app-light-bg-secondary);
-  border: 1px solid var(--app-light-border-color-stronger);
-  border-radius: var(--app-border-radius-small);
-  transition: border-color var(--app-transition-speed) ease-in-out,
-    box-shadow var(--app-transition-speed) ease-in-out;
-}
-
-.date-input-native:focus-visible {
-  outline: 0;
-  border-color: var(--app-light-accent-primary);
-  box-shadow: 0 0 0 0.2rem rgba(var(--app-light-accent-primary-rgb), 0.25);
-}
-
-.date-input-native:disabled {
-  background-color: var(--app-light-bg-tertiary);
-  opacity: 0.7;
-}
-
-.date-input-trigger {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  border: 1px solid var(--app-light-border-color-stronger);
-  border-radius: var(--app-border-radius-small);
-  background-color: var(--app-light-bg-tertiary);
-  color: var(--app-light-text-secondary);
-  cursor: pointer;
-}
-
-.date-input-trigger:hover:not(:disabled) {
-  border-color: var(--app-light-accent-primary);
-  color: var(--app-light-accent-primary);
-}
-
-.date-input-trigger:focus-visible {
-  outline: 2px solid var(--app-light-accent-primary);
-  outline-offset: 1px;
-}
+:host { display: block; }
+.date-input { position: relative; display: flex; align-items: stretch; gap: .25rem; width: 100%; }
+.date-input-native { flex: 1 1 auto; min-width: 0; padding: .5rem .75rem; font: inherit; color: var(--app-light-text-primary); background: var(--app-light-bg-secondary); border: 1px solid var(--app-light-border-color-stronger); border-radius: var(--app-border-radius-small); }
+.date-input-native:focus-visible { outline: 2px solid var(--app-light-accent-primary); outline-offset: 1px; }
+.date-input-native:disabled { background: var(--app-light-bg-tertiary); opacity: .7; }
+.date-input-trigger { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; border: 1px solid var(--app-light-border-color-stronger); border-radius: var(--app-border-radius-small); background: var(--app-light-bg-tertiary); color: var(--app-light-text-secondary); cursor: pointer; }
+.date-input-trigger:hover:not(:disabled) { border-color: var(--app-light-accent-primary); color: var(--app-light-accent-primary); }
+.date-input-trigger:focus-visible, .jalali-picker button:focus-visible { outline: 2px solid var(--app-light-accent-primary); outline-offset: 1px; }
+.jalali-picker { width: min(20rem, calc(100vw - 2rem)); padding: .75rem; color: var(--app-light-text-primary); background: var(--app-light-bg-secondary); border: 1px solid var(--app-light-border-color-stronger); border-radius: .75rem; box-shadow: 0 12px 32px rgb(0 0 0 / .2); }
+.jalali-picker-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+.jalali-picker-header button { display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; color: inherit; background: transparent; border: 0; border-radius: .4rem; cursor: pointer; }
+.jalali-picker-header button:hover { background: var(--app-light-bg-tertiary); }
+.jalali-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .2rem; text-align: center; }
+.weekday { padding: .35rem 0; color: var(--app-light-text-secondary); font-size: .78rem; font-weight: 600; }
+.day { display: grid; place-items: center; min-height: 2.25rem; padding: .15rem; color: inherit; background: transparent; border: 0; border-radius: 50%; cursor: pointer; }
+.day:hover:not(:disabled), .day.selected { color: #fff; background: var(--app-light-accent-primary); }
+.day:disabled { color: var(--app-light-text-secondary); opacity: .45; cursor: not-allowed; }
+[data-theme="dark"] .date-input-native, [data-theme="dark"] .jalali-picker { color: var(--app-dark-text-primary); background: var(--app-dark-bg-secondary); border-color: var(--app-dark-border-color-stronger); }
+[data-theme="dark"] .date-input-trigger { color: var(--app-dark-text-secondary); background: var(--app-dark-bg-tertiary); border-color: var(--app-dark-border-color-stronger); }
+[data-theme="dark"] .weekday { color: var(--app-dark-text-secondary); }
+[data-theme="dark"] .day:hover:not(:disabled), [data-theme="dark"] .day.selected { color: #fff; }
