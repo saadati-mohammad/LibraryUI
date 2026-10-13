@@ -668,8 +668,8 @@
 </app-modal>
 <!-- START: مودال بارگذاری گروهی کتاب‌ها از اکسل (کد جدید) -->
 <app-modal [(isVisible)]="isExcelImportModalVisible" title="بارگذاری گروهی" titleAccent="کتاب‌ها از فایل اکسل"
-  submitButtonText="شروع بارگذاری" submitButtonIcon="upload" (submitted)="onExcelImportSubmit()"
-  (cancelled)="onExcelImportModalClose()" [disableSubmit]="!hasExcelImportFile || isImporting" [isLoading]="isImporting"
+  [submitButtonText]="importPreview ? 'تأیید و واردسازی' : 'پیش‌نمایش فایل'" submitButtonIcon="upload" (submitted)="onExcelImportSubmit()"
+  (cancelled)="onExcelImportModalClose()" [disableSubmit]="!hasExcelImportFile || isImporting || (importPreview !== null && importPreview.eligible === 0)" [isLoading]="isImporting"
   maxWidth="600px">
   <div modal-body>
     <div class="space-y-4">
@@ -708,6 +708,7 @@
           [rules]="excelRules"
           [hint]="'فقط فایل با پسوند .xlsx و حداکثر ۱۰ مگابایت.'"
           (validationError)="onExcelValidationError($event)"
+          (fileChange)="onExcelFileChange()"
         ></app-file-picker>
 
         <!-- نمایش خطای فایل -->
@@ -715,6 +716,26 @@
           <div class="mt-2 text-sm text-red-700" role="alert">
             {{ importError }}
           </div>
+        }
+        @if (importPreview) {
+          <section class="mt-4 rounded-lg border border-indigo-300 bg-indigo-50 p-4 text-indigo-950" aria-label="پیش‌نمایش واردسازی کتاب‌ها" role="status">
+            <h3 class="font-semibold">پیش‌نمایش فایل · {{importPreview.totalRows ?? 0}} ردیف داده</h3>
+            <p class="mt-1 text-sm">{{importPreview.eligible ?? 0}} ردیف قابل واردسازی است؛ {{importPreview.skippedDuplicates ?? 0}} ردیف تکراری و {{importPreview.skippedInvalid ?? 0}} ردیف نامعتبر وارد نمی‌شود.</p>
+            @if (importPreview.duplicateRows?.length) {
+              <p class="mt-2 text-sm">ردیف‌های تکراری: {{importPreview.duplicateRows?.join('، ')}}</p>
+            }
+            @if (importPreview.invalidRows?.length) {
+              <details class="mt-2 text-sm">
+                <summary class="cursor-pointer font-semibold">نمایش دلیل خطاهای ردیف‌ها</summary>
+                <ul class="mt-2 list-inside list-disc">
+                  @for (issue of importPreview.invalidRows; track issue.row) {
+                    <li>ردیف {{issue.row}}: {{issue.reason}}</li>
+                  }
+                </ul>
+              </details>
+            }
+            <p class="mt-2 text-sm">برای واردسازی همین فایل، دکمهٔ «تأیید و واردسازی» را بزنید. برای اصلاح موارد نامعتبر، فایل را ویرایش و دوباره انتخاب کنید.</p>
+          </section>
         }
       </div>
     </div>

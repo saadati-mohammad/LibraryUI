@@ -12,7 +12,7 @@ import { Observable, Subscription, catchError, interval, of, switchMap } from "r
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { BookFilterModel, BookModel } from "../../core/model/bookModel";
 import { BookService } from "../../core/service/book.service";
-import { PaginatedResponse } from "../../core/model/paginated-response.model";
+import { ExcelImportResult, PaginatedResponse } from "../../core/model/paginated-response.model";
 import { ListComponent, TableColumn } from "../../shared/component/list/list.component";
 import { ModalComponent } from "../../shared/component/modal/modal.component";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
@@ -112,6 +112,8 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   isExcelImportModalVisible = false;
   isImporting = false;
   importError: string | null = null;
+  importPreview: ExcelImportResult | null = null;
+  private previewedImportFile: File | null = null;
   excelFilePath = 'book-import-template.xlsx'; // مسیر فایل اکسل
 
 
@@ -908,10 +910,20 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.excelImportForm.reset({ excelFile: null });
     this.importError = null;
     this.isImporting = false;
+    this.importPreview = null;
+    this.previewedImportFile = null;
   }
 
   onExcelImportModalClose(): void {
     this.isExcelImportModalVisible = false;
+    this.importPreview = null;
+    this.previewedImportFile = null;
+  }
+
+  onExcelFileChange(): void {
+    this.importPreview = null;
+    this.previewedImportFile = null;
+    this.importError = null;
   }
 
   /** Excel picker validation message (wrong extension or too large). */
@@ -928,11 +940,25 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.isImporting = true;
     this.importError = null;
 
+    if (!this.importPreview || this.previewedImportFile !== excelFile) {
+      this.bookService.previewBooksFromExcel(excelFile).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (preview) => {
+          this.isImporting = false;
+          this.importPreview = preview;
+          this.previewedImportFile = excelFile;
+        },
+        error: (err) => this.handleExcelImportError(err),
+      });
+      return;
+    }
+
     this.bookService.importBooksFromExcel(excelFile).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (result) => {
         this.isImporting = false;
         this.isExcelImportModalVisible = false;
         this.excelImportForm.reset({ excelFile: null });
+        this.importPreview = null;
+        this.previewedImportFile = null;
         const skipped = result.skippedDuplicates ?? 0;
         const duplicateRows = result.duplicateRows?.length
           ? ` ردیف‌های تکراری: ${result.duplicateRows.join('، ')}.`
@@ -946,15 +972,23 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
         this.loadBooks(); // Refresh the book list
       },
       error: (err) => {
-        this.isImporting = false;
-        console.error('Error importing from Excel:', err);
-        const errorMessage = err.error?.message || err.error || 'خطا در بارگذاری فایل. لطفاً فایل را بررسی کرده و دوباره تلاش کنید.';
-        this.importError = errorMessage;
-        if (isPlatformBrowser(this.platformId)) {
-          this.snackBar.open(`خطا: ${errorMessage}`, 'بستن', { duration: 7000, direction: 'rtl' });
-        }
+        this.handleExcelImportError(err);
       }
     });
+  }
+
+  private handleExcelImportError(err: unknown): void {
+    this.isImporting = false;
+    console.error('Excel import operation failed:', err);
+    const response = err && typeof err === 'object' ? err as { error?: unknown; message?: string } : {};
+    const apiMessage = response.error && typeof response.error === 'object'
+      ? (response.error as { message?: string }).message
+      : typeof response.error === 'string' ? response.error : undefined;
+    const errorMessage = apiMessage || response.message || 'خطا در پردازش فایل. لطفاً فایل را بررسی کرده و دوباره تلاش کنید.';
+    this.importError = errorMessage;
+    if (isPlatformBrowser(this.platformId)) {
+      this.snackBar.open(`خطا: ${errorMessage}`, 'بستن', { duration: 7000, direction: 'rtl' });
+    }
   }
 
   downloadExcelTemplate(): void {

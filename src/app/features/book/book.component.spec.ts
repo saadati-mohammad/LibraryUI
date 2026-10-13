@@ -38,7 +38,8 @@ describe('BookComponent', () => {
             addBook: vi.fn().mockName("BookService.addBook"),
             updateBook: vi.fn().mockName("BookService.updateBook"),
             deleteBook: vi.fn().mockName("BookService.deleteBook"),
-            importBooksFromExcel: vi.fn().mockName("BookService.importBooksFromExcel")
+            importBooksFromExcel: vi.fn().mockName("BookService.importBooksFromExcel"),
+            previewBooksFromExcel: vi.fn().mockName("BookService.previewBooksFromExcel")
         } as MockedObject<BookService>;
         books.getBookList.mockReturnValue(of({ content: [BOOK], totalPages: 1, totalElements: 1, size: 10, number: 0 }));
         books.updateBook.mockReturnValue(of(BOOK));
@@ -117,6 +118,10 @@ describe('BookComponent', () => {
     });
 
     it('reports skipped duplicate workbook rows after an import', () => {
+        books.previewBooksFromExcel.mockReturnValue(of({
+            success: true, preview: true, totalRows: 5, eligible: 3,
+            skippedDuplicates: 2, duplicateRows: [4, 8], message: 'preview',
+        }));
         books.importBooksFromExcel.mockReturnValue(of({
             success: true, imported: 3, skippedDuplicates: 2, duplicateRows: [4, 8], message: 'ok',
         }));
@@ -124,6 +129,9 @@ describe('BookComponent', () => {
         const open = vi.spyOn(snackBar, 'open');
         component.excelImportForm.controls.excelFile.setValue(new File(['xlsx'], 'books.xlsx'));
 
+        component.onExcelImportSubmit();
+        expect(vi.mocked(books.previewBooksFromExcel)).toHaveBeenCalledWith(expect.any(File));
+        expect(component.importPreview?.eligible).toBe(3);
         component.onExcelImportSubmit();
 
         expect(vi.mocked(books.importBooksFromExcel)).toHaveBeenCalledWith(expect.any(File));
