@@ -92,6 +92,9 @@ test('registered phone restores an unsent scan after reload and reconnects to a 
   });
 
   await page.goto(`/phone-scan#device=${deviceId}.${deviceToken}`);
+  await expect(page.locator('.status')).toContainText('این گوشی به‌عنوان اسکنر ثبت شد');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('library.phone-scanner.device')))
+    .toContain(`"id":${deviceId}`);
   await page.goto(`/phone-scan#pair=${sessionId}.${pairingToken}`);
   await page.locator('#phoneBarcode').fill('9780306406157');
   await page.locator('#phoneBarcode').press('Enter');

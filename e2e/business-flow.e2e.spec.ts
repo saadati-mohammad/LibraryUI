@@ -67,13 +67,21 @@ test.describe('Business flow: book CRUD', () => {
     await page.locator('#bookAuthorForm').fill('نویسنده آزمون');
     await page.locator('#bookSubjectForm').fill('موضوع آزمون');
     await page.locator('#bookIsbn10Form').fill('0-306-40615-2');
+    let createdBook: { id: number } | undefined;
+    await page.route('**/api/book', async route => {
+      if (route.request().method() !== 'POST') return route.continue();
+      const response = await route.fetch();
+      createdBook = await response.json() as { id: number };
+      await route.fulfill({ response });
+    });
     const createdPromise = page.waitForResponse((response) =>
       response.request().method() === 'POST' && response.url().includes('/api/book'),
     );
     await page.getByRole('button', { name: 'ذخیره کتاب' }).click();
     const created = await createdPromise;
     expect(created.status()).toBe(201);
-    const book = await created.json() as { id: number };
+    const book = createdBook;
+    if (!book) throw new Error('The created book response did not include an ID');
     expect(book.id).toBeTruthy();
     await expect(modal).toBeHidden();
 
