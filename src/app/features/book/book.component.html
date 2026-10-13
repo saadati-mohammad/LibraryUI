@@ -401,11 +401,14 @@
           <label for="bookIsbn10Form" class="block text-sm font-medium text-gray-700 mb-1">
             شابک (۱۰ رقمی)
           </label>
-          <input type="text" id="bookIsbn10Form" formControlName="isbn10" placeholder="مثال: 964-321-000-0"
+          <input type="text" id="bookIsbn10Form" formControlName="isbn10" placeholder="مثال: 0-306-40615-2"
             autocomplete="off" inputmode="numeric"
             class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            [attr.aria-invalid]="bookForm.hasError('isbnRequired') && bookForm.touched ? 'true' : null"
-            [attr.aria-describedby]="bookForm.hasError('isbnRequired') && bookForm.touched ? 'bookIsbn10Error' : null" />
+            [attr.aria-invalid]="bookForm.get('isbn10')?.hasError('isbnChecksum') || (bookForm.hasError('isbnRequired') && bookForm.touched) ? 'true' : null"
+            [attr.aria-describedby]="bookForm.get('isbn10')?.hasError('isbnChecksum') ? 'bookIsbn10Error' : bookForm.hasError('isbnRequired') && bookForm.touched ? 'bookIsbn10Error' : null" />
+          @if (bookForm.get('isbn10')?.hasError('isbnChecksum') && bookForm.get('isbn10')?.touched) {
+            <small id="bookIsbn10Error" class="text-red-700 text-sm mt-1 block" role="alert">شابک ۱۰ رقمی معتبر نیست؛ رقم کنترلی را بررسی کنید.</small>
+          }
           @if (bookForm.hasError('isbnRequired') && bookForm.touched) {
             <small id="bookIsbn10Error"
               class="text-red-700 text-sm mt-1 block" role="alert">
@@ -417,9 +420,14 @@
           <label for="bookIsbn13Form" class="block text-sm font-medium text-gray-700 mb-1">
             شابک (۱۳ رقمی)
           </label>
-          <input type="text" id="bookIsbn13Form" formControlName="isbn13" placeholder="مثال: 978-964-321-000-0"
+          <input type="text" id="bookIsbn13Form" formControlName="isbn13" placeholder="مثال: 978-0-306-40615-7"
             autocomplete="off" inputmode="numeric"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            [attr.aria-invalid]="bookForm.get('isbn13')?.hasError('isbnChecksum') ? 'true' : null"
+            [attr.aria-describedby]="bookForm.get('isbn13')?.hasError('isbnChecksum') ? 'bookIsbn13Error' : null" />
+          @if (bookForm.get('isbn13')?.hasError('isbnChecksum') && bookForm.get('isbn13')?.touched) {
+            <small id="bookIsbn13Error" class="text-red-700 text-sm mt-1 block" role="alert">شابک ۱۳ رقمی معتبر نیست؛ رقم کنترلی را بررسی کنید.</small>
+          }
         </div>
       </div>
 

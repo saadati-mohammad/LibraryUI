@@ -48,7 +48,7 @@ test.describe('Reservation workflow', () => {
       title: `کتاب رزرو ${unique}`,
       author: 'نویسنده آزمون',
       subject: 'آزمون',
-      isbn10: `8${unique.replaceAll('-', '').slice(-9)}`,
+      isbn10: '0306406152',
       active: true,
     }, token);
     const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
@@ -103,7 +103,7 @@ test.describe('Reservation workflow', () => {
     }, token);
     const book = await createEntity(request, '/api/book', 'book', {
       title: `کتاب لغو رزرو ${unique}`, author: 'نویسنده آزمون', subject: 'آزمون',
-      isbn10: `9${unique.replaceAll('-', '').slice(-9)}`, active: true,
+      isbn10: '0306406152', active: true,
     }, token);
     const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const response = await request.post(

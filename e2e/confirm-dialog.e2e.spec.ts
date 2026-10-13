@@ -57,7 +57,7 @@ test.describe('Shared confirmation dialog', () => {
       title: `امانت آزمون ${unique}`,
       author: 'نویسنده آزمون',
       subject: 'آزمون',
-      isbn10: `9${unique.replaceAll('-', '').slice(-9)}`,
+      isbn10: '0306406152',
       active: true,
     }, token);
     const loanResponse = await request.post('http://localhost:4200/api/loan', {
@@ -105,7 +105,7 @@ test.describe('Shared confirmation dialog', () => {
       title: `کتاب امانت فرم ${unique}`,
       author: 'نویسنده آزمون',
       subject: 'آزمون',
-      isbn10: `7${unique.replaceAll('-', '').slice(-9)}`,
+      isbn10: '0306406152',
       active: true,
     }, token);
 

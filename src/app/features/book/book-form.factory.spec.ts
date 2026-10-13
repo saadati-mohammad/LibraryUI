@@ -27,4 +27,12 @@ describe('BookFormFactory', () => {
     expect(filters.get('isbn13')).toBeDefined();
     expect(filters.get('publicationDate')).toBeDefined();
   });
+
+  it('rejects an invalid ISBN checksum and accepts Persian digit input', () => {
+    const form = factory.createEditorForm();
+    form.patchValue({ title: 'کتاب', author: 'نویسنده', subject: 'داستان', isbn13: '9780306406158' });
+    expect(form.get('isbn13')?.hasError('isbnChecksum')).toBe(true);
+    form.patchValue({ isbn13: '۹۷۸-۰۳۰۶۴۰۶۱۵۷' });
+    expect(form.get('isbn13')?.valid).toBe(true);
+  });
 });

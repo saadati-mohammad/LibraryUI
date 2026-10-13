@@ -13,7 +13,7 @@ test('member registers, reserves a real catalog title, manages the reservation, 
   await page.locator('#bookTitleForm').fill(title);
   await page.locator('#bookAuthorForm').fill('نویسنده عضو');
   await page.locator('#bookSubjectForm').fill('کتاب‌های اعضا');
-  await page.locator('#bookIsbn10Form').fill(`8${suffix.slice(-9)}`);
+  await page.locator('#bookIsbn10Form').fill('0-306-40615-2');
   await page.getByRole('button', { name: 'ذخیره کتاب' }).click();
   await expect(page.getByText(title, { exact: false }).first()).toBeVisible();
   await page.getByRole('button', { name: 'منوی کاربر' }).click();

@@ -31,7 +31,7 @@ test.describe('Business flow: book CRUD', () => {
     await page.locator('#bookTitleForm').fill(title);
     await page.locator('#bookAuthorForm').fill('نویسنده آزمون');
     await page.locator('#bookSubjectForm').fill('موضوع آزمون');
-    await page.locator('#bookIsbn10Form').fill('964-321-000-1');
+    await page.locator('#bookIsbn10Form').fill('0-306-40615-2');
 
     // Save.
     await page.getByRole('button', { name: 'ذخیره کتاب' }).click();
@@ -66,7 +66,7 @@ test.describe('Business flow: book CRUD', () => {
     await page.locator('#bookTitleForm').fill(title);
     await page.locator('#bookAuthorForm').fill('نویسنده آزمون');
     await page.locator('#bookSubjectForm').fill('موضوع آزمون');
-    await page.locator('#bookIsbn10Form').fill(`6${unique.slice(-9)}`);
+    await page.locator('#bookIsbn10Form').fill('0-306-40615-2');
     const createdPromise = page.waitForResponse((response) =>
       response.request().method() === 'POST' && response.url().includes('/api/book'),
     );

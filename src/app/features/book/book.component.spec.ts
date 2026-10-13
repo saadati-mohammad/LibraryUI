@@ -14,7 +14,7 @@ import { InputDeviceService } from '../../core/service/input-device.service';
 
 const BOOK: BookModel = {
     id: 21,
-    isbn10: '964-321-000-0',
+    isbn10: '0-306-40615-2',
     title: 'شازده کوچولو',
     author: 'اگزوپری',
     subject: 'داستان',
@@ -133,7 +133,7 @@ describe('BookComponent', () => {
     it('normalises an empty publication date to null for LocalDate', () => {
         component.openBookModal(component.FormOperationEnum.ADD);
         component.bookForm.patchValue({
-            isbn10: '964-321-000-1',
+            isbn10: '0-306-40615-2',
             title: 'ت',
             author: 'ن',
             subject: 'م',

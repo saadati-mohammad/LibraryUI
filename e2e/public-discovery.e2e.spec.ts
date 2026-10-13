@@ -13,7 +13,7 @@ test('visitor finds a persisted title from the public home and opens its public 
   await page.locator('#bookTitleForm').fill(title);
   await page.locator('#bookAuthorForm').fill('نویسنده مهمان');
   await page.locator('#bookSubjectForm').fill('آزمون فهرست عمومی');
-  await page.locator('#bookIsbn10Form').fill(`9${String(Date.now()).slice(-9)}`);
+  await page.locator('#bookIsbn10Form').fill('0-306-40615-2');
   await page.getByRole('button', { name: 'ذخیره کتاب' }).click();
   await expect(page.getByText(title, { exact: false }).first()).toBeVisible({ timeout: 15_000 });
 

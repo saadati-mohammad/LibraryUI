@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { notFutureDate } from '../../core/util/date.util';
+import { isValidIsbn, normalizeIsbn } from '../../core/util/isbn.util';
 
 /** ISO date of today — the upper bound for the publication-date control. */
 export function todayIso(): string {
@@ -15,13 +16,13 @@ export class BookFormFactory {
 
   createEditorForm(): FormGroup {
     return this.formBuilder.group({
-      isbn10: [null],
+      isbn10: [null, optionalIsbn],
       title: [null, Validators.required],
       author: [null, Validators.required],
       translator: [null],
       description: [''],
       publisher: [null],
-      isbn13: [null],
+      isbn13: [null, optionalIsbn],
       deweyDecimal: [null],
       congressClassification: [null],
       subject: [null, Validators.required],
@@ -75,4 +76,9 @@ function isbnRequired(control: AbstractControl): { isbnRequired: true } | null {
   const isbn10 = String(control.get('isbn10')?.value ?? '').trim();
   const isbn13 = String(control.get('isbn13')?.value ?? '').trim();
   return isbn10 || isbn13 ? null : { isbnRequired: true };
+}
+
+function optionalIsbn(control: AbstractControl): { isbnChecksum: true } | null {
+  const value = String(control.value ?? '').trim();
+  return value && !isValidIsbn(normalizeIsbn(value)) ? { isbnChecksum: true } : null;
 }
