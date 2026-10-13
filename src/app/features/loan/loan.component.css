@@ -19,3 +19,38 @@
 .status-overdue {
   background-color: #dc2626; /* red-600 */
 }
+
+.return-scan-panel {
+  color: #052e16;
+}
+
+.return-scan-label,
+.return-scan-status {
+  color: #052e16;
+}
+
+.return-scan-input {
+  color: #111827;
+  background-color: #fff;
+}
+
+:host-context([data-theme="dark"]) .return-scan-panel {
+  color: #ecfdf5;
+  background-color: #12372b;
+  border-color: #34745d;
+}
+
+:host-context([data-theme="dark"]) .return-scan-label,
+:host-context([data-theme="dark"]) .return-scan-status {
+  color: #ecfdf5;
+}
+
+:host-context([data-theme="dark"]) .return-scan-input {
+  color: #f8fafc;
+  background-color: #17212b;
+  border-color: #729b8b;
+}
+
+:host-context([data-theme="dark"]) .return-scan-input::placeholder {
+  color: #cbd5e1;
+}

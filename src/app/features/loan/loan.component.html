@@ -87,6 +87,16 @@
     }
 
     <div class="px-6 py-4">
+      @if (returnScannerAllowed) {
+        <div class="return-scan-panel mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <label for="loanReturnBarcode" class="return-scan-label mb-1 block text-sm font-semibold">بازگشت با اسکن شابک</label>
+          <input id="loanReturnBarcode" type="text" autocomplete="off" inputmode="none" [value]="returnScanValue"
+            (input)="returnScanValue = $any($event.target).value" (keydown.enter)="$event.preventDefault(); processReturnScan()"
+            placeholder="شابک کتاب را اسکن کنید و Enter بزنید"
+            class="return-scan-input w-full rounded-md border border-emerald-300 bg-white px-3 py-2 placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-700" />
+          <p class="return-scan-status mt-2 text-sm" role="status" aria-live="polite">{{returnScanStatus || 'پس از اسکن، سامانه امانت فعال را پیدا می‌کند و برای تأیید بازگشت از شما می‌پرسد.'}}</p>
+        </div>
+      }
       <app-list [tableTitle]="tableTitle" [columns]="columns" [data]="data" [showPaginator]="true"
         [pageSizeOptions]="pageSizeOptions" [actionsTemplate]="loanActionsTemplate" [isLoading]="isLoadingTable"
         [totalItems]="totalElements" [currentPage]="currentPage" [pageSize]="pageSize"

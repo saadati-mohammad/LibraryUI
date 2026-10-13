@@ -157,6 +157,14 @@ describe('LoanComponent', () => {
         expect(component.scanStatus).toContain('چند کتاب');
     });
 
+    it('finds the active loan by ISBN and asks for return confirmation', async () => {
+        loans.getLoanList.mockImplementation((filters) => of(page(filters?.status === 'ON_LOAN' ? [LOAN] : [], 25)));
+        component.processReturnScan('9780306406157');
+        expect(loans.getLoanList).toHaveBeenCalledWith({ bookIsbn: '9780306406157', status: 'ON_LOAN' }, 0, 25);
+        expect(loans.getLoanList).toHaveBeenCalledWith({ bookIsbn: '9780306406157', status: 'OVERDUE' }, 0, 25);
+        await vi.waitFor(() => expect(confirmation.confirm).toHaveBeenCalled());
+    });
+
     it('uses Persian national-ID digits to select the exact loan member', () => {
         component.openLoanModal();
         component.scanTarget = 'member';

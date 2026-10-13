@@ -15,7 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { debounceTime, distinctUntilChanged, Observable, Subject, switchMap } from 'rxjs';
+import { debounceTime, distinctUntilChanged, forkJoin, Observable, Subject, switchMap } from 'rxjs';
 import { BookLoanFilterModel, BookLoanModel, CreateLoanRequest, LoanStatus } from '../../core/model/bookLoanModel';
 import { BookModel } from '../../core/model/bookModel';
 import { PersonModel } from '../../core/model/personModel';
@@ -83,6 +83,9 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
   scanValue = '';
   scanStatus = '';
   scannerInputAllowed = true;
+  returnScannerAllowed = true;
+  returnScanValue = '';
+  returnScanStatus = '';
   scanTarget: 'book' | 'member' = 'book';
 
   // Bounded type-ahead option lists for the create form.
@@ -141,6 +144,12 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
     // `takeUntilDestroyed` replaces the subscription that previously leaked for the whole
     // lifetime of the SPA after the route was left.
     this.watchFilters(this.filtersForm);
+    this.inputDevices.effectivePolicy('loan-return').subscribe({
+      next: policy => { this.returnScannerAllowed = policy.allowedSources.some(source =>
+        source === 'KEYBOARD_WEDGE' || source.startsWith('DEVICE:'),
+      ); },
+      error: () => { this.returnScannerAllowed = true; },
+    });
 
     this.wireSearch(this.personSearch$, this.personOptions, this.isSearchingPersons, (term) =>
       this.personService.getPersonList(
@@ -284,6 +293,33 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
         },
         error: () => { this.scanStatus = 'جست‌وجوی عضو انجام نشد؛ اتصال شبکه را بررسی کنید یا عضو را دستی انتخاب کنید.'; },
       });
+  }
+
+  processReturnScan(value = this.returnScanValue): void {
+    const isbn = normalizeIsbn(value.trim());
+    this.returnScanValue = '';
+    this.returnScanStatus = '';
+    if (!isValidIsbn(isbn)) {
+      this.returnScanStatus = 'شابک معتبر نیست؛ برای بازگشت، شابک کتاب را اسکن کنید.';
+      return;
+    }
+    forkJoin([
+      this.loanService.getLoanList({ bookIsbn: isbn, status: 'ON_LOAN' }, 0, SEARCH_PAGE_SIZE),
+      this.loanService.getLoanList({ bookIsbn: isbn, status: 'OVERDUE' }, 0, SEARCH_PAGE_SIZE),
+    ]).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: ([onLoan, overdue]) => {
+        const activeLoans = [...onLoan.content, ...overdue.content];
+        if (activeLoans.length !== 1 || onLoan.totalElements + overdue.totalElements > 1) {
+          this.returnScanStatus = activeLoans.length || onLoan.totalElements + overdue.totalElements
+            ? 'برای این شابک چند امانت فعال پیدا شد؛ از فهرست، امانت درست را انتخاب کنید.'
+            : 'امانت فعالی با این شابک پیدا نشد.';
+          return;
+        }
+        this.returnScanStatus = `امانت «${activeLoans[0].bookTitle}» پیدا شد؛ تأیید بازگشت را بررسی کنید.`;
+        void this.returnBook(activeLoans[0]);
+      },
+      error: () => { this.returnScanStatus = 'جست‌وجوی امانت انجام نشد؛ اتصال شبکه را بررسی کنید یا از فهرست استفاده کنید.'; },
+    });
   }
 
   formatPerson = (value: number | string | null): string => {

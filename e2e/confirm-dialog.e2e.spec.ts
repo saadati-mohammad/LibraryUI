@@ -142,8 +142,8 @@ test.describe('Shared confirmation dialog', () => {
 
     const row = page.getByRole('row').filter({ hasText: String(book['title']) });
     await expect(row).toBeVisible();
-    const returnButton = row.getByRole('button', { name: new RegExp(`ثبت بازگشت کتاب.*${String(book['title'])}`) });
-    await returnButton.click();
+    await page.locator('#loanReturnBarcode').fill(String(book['isbn10']));
+    await page.locator('#loanReturnBarcode').press('Enter');
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     const returnedPromise = page.waitForResponse((response) =>
