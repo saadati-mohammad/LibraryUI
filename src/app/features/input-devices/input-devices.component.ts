@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { toDataURL } from 'qrcode';
 import { InputDevice, InputDeviceAuditEvent, InputConfigProperty, InputSourceType, ProvisionedInputDevice } from '../../core/model/input-device.model';
 import { InputDeviceService } from '../../core/service/input-device.service';
 
@@ -172,9 +173,8 @@ export class InputDevicesComponent implements OnInit {
     this.enrollmentQr.set(null);
     if (result.device.typeKey !== 'PHONE_CAMERA') return;
     try {
-      const QRCode = await import('qrcode');
       const enrollmentUrl = `${window.location.origin}/phone-scan#device=${result.device.id}.${result.token}`;
-      this.enrollmentQr.set(await QRCode.toDataURL(enrollmentUrl, { width: 220, margin: 1, errorCorrectionLevel: 'M' }));
+      this.enrollmentQr.set(await toDataURL(enrollmentUrl, { width: 220, margin: 1, errorCorrectionLevel: 'M' }));
     } catch { this.error.set('ساخت QR انجام نشد؛ پیوند ثبت گوشی در دسترس نیست.'); }
   }
   fieldLabel(key: string): string { return ({ prefix: 'پیشوند اسکن', suffix: 'پسوند اسکن', terminator: 'پایان‌دهنده', minimumLength: 'حداقل طول بارکد', cameraFacing: 'دوربین پیش‌فرض', torchEnabled: 'چراغ‌قوه' } as Record<string, string>)[key] ?? key; }
