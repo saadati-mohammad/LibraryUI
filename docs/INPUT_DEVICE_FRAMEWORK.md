@@ -1,6 +1,6 @@
 # Input Device Framework
 
-This backend framework is the stable contract for configurable form input sources. The admin UI manages registered sources, and registered camera phones are now authenticated when submitting scans into an active temporary desktop session. Form-level input policies are still not implemented.
+This framework connects configurable form input sources to desktop and mobile scanning. The admin UI manages registered sources and per-form policy; registered camera phones are authenticated when submitting scans into a temporary desktop session. Book registration reads its effective policy and preserves legacy scan entry points under the compatibility system default.
 
 ## Provider extension
 
@@ -28,10 +28,18 @@ Initial providers:
 
 H2 migration `V8` and MySQL migration `V7` create the device registry and append-only application audit table. All management routes require `ADMIN`; heartbeat is the only unauthenticated route and can only prove possession of its high-entropy device token. Existing expiring phone scanner sessions remain compatible.
 
+Input policies use additive H2 `V9` / MySQL `V8` migrations:
+
+- `GET /api/input-policies/{formKey}?station={station}` returns the caller's effective staff policy (staff roles only); `PUT` saves a personal override.
+- `GET/PUT /api/admin/input-policies/{formKey}` read/write an admin global policy. Add `ownerUsername` to read or target an existing staff user's policy.
+- Resolution: personal station, personal default station, global station, global default, compatibility default. The compatibility default allows `MANUAL`, `KEYBOARD_WEDGE`, and `PHONE_CAMERA`, with manual selected, preserving behavior until an admin restricts a form.
+- The admin page at `/input-devices` edits allowed inputs/defaults for book registration, loan checkout, returns, stocktake, or member lookup, optionally scoped to a station or staff username. Book registration currently consumes the effective policy to show/hide its camera and phone scanning controls. Other forms are listed for policy management, with their runtime wiring still outstanding.
+- Device source IDs are `DEVICE:{id}`; backend validation rejects unavailable, revoked, disabled, wrong-owner, or wrong-station devices. Personal policies cannot write for another account. Only ADMIN can write global or targeted policies.
+
 ## Boundaries still to implement
 
 - Surface phone registration/last-seen health in the admin UI; add physical camera permission/torch/scan testing on real phones.
-- Per-form/per-user/per-station source policy and fallback behavior.
+- Wire policy-driven input controls into the loan checkout, return, inventory and member lookup flows.
 - Per-form device selection and configuration beyond the existing book-entry choices (manual, HID, camera, and temporary phone session).
 - Device scan submission/queue endpoints and rate controls for any future persistent scan API.
 - Live USB/Bluetooth/Wi-Fi HID hardware tests, MySQL migration execution, HTTPS camera tests, and multi-instance storage/health behavior.

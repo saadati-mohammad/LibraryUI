@@ -13,6 +13,12 @@ test('admin manages staff accounts without deleting history', async ({ page }) =
     contentType: 'application/json',
     body: JSON.stringify({ content: [], totalPages: 0, totalElements: 0, number: 0, size: 10 }),
   }));
+  await page.route('**/api/input-policies/**', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ formKey: 'book-registration', station: '', allowedSources: ['MANUAL', 'KEYBOARD_WEDGE', 'PHONE_CAMERA'],
+      defaultSource: 'MANUAL', scope: 'system-default', updatedBy: null, updatedAt: null, version: 0 }),
+  }));
   const accounts: Array<Record<string, unknown>> = [];
   await page.route('**/api/admin/staff-accounts**', async route => {
     const request = route.request();

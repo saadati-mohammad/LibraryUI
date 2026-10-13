@@ -3,6 +3,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { InputDevice, InputSourceType } from '../../core/model/input-device.model';
 import { InputDeviceService } from '../../core/service/input-device.service';
+import type { InputFormPolicy } from '../../core/model/input-device.model';
 import { InputDevicesComponent } from './input-devices.component';
 
 const TYPES: InputSourceType[] = [{
@@ -13,6 +14,7 @@ const DEVICE: InputDevice = {
   id: 1, name: 'میز امانت', typeKey: 'KEYBOARD_WEDGE', ownerUsername: null, station: 'میز ۱', config: { terminator: 'ENTER' },
   capabilities: ['usb'], enabled: true, revoked: false, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', lastSeenAt: null, version: 0,
 };
+const POLICY: InputFormPolicy = { formKey: 'book-registration', station: '', allowedSources: ['MANUAL'], defaultSource: 'MANUAL', scope: 'global', updatedBy: 'admin', updatedAt: null, version: 0 };
 
 describe('InputDevicesComponent', () => {
   let fixture: ComponentFixture<InputDevicesComponent>;
@@ -27,6 +29,7 @@ describe('InputDevicesComponent', () => {
       disable: vi.fn().mockReturnValue(of(DEVICE)), revoke: vi.fn().mockReturnValue(of(DEVICE)),
       rotateToken: vi.fn().mockReturnValue(of({ device: DEVICE, token: 'rotated-secret' })),
       audit: vi.fn().mockReturnValue(of([])),
+      globalPolicy: vi.fn().mockReturnValue(of(POLICY)), saveGlobalPolicy: vi.fn().mockReturnValue(of(POLICY)),
     };
     await TestBed.configureTestingModule({
       imports: [InputDevicesComponent],
@@ -57,5 +60,17 @@ describe('InputDevicesComponent', () => {
     component.dismissToken();
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('one-time-secret');
+  });
+
+  it('loads and saves a per-form source policy with its selected station and default', () => {
+    component.policyStation.set('میز ۱');
+    component.policyAllowed.set(['MANUAL', 'KEYBOARD_WEDGE']);
+    component.policyDefault.set('KEYBOARD_WEDGE');
+    component.savePolicy();
+
+    expect(service['saveGlobalPolicy']).toHaveBeenCalledWith('book-registration', {
+      allowedSources: ['MANUAL', 'KEYBOARD_WEDGE'], defaultSource: 'KEYBOARD_WEDGE', station: 'میز ۱', ownerUsername: undefined,
+    });
+    expect(component.policyScope()).toBe('global');
   });
 });

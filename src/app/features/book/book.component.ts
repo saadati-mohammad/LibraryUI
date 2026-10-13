@@ -31,6 +31,8 @@ import { PhoneBarcodeRelayService, PhoneScannerSession } from "../../core/servic
 import { isValidIsbn, isbn13To10, normalizeIsbn } from "../../core/util/isbn.util";
 import { PagedFilterPage } from '../../shared/component/paged-filter-page';
 import { BookFormFactory, todayIso } from './book-form.factory';
+import { InputDeviceService } from '../../core/service/input-device.service';
+import type { InputFormPolicy } from '../../core/model/input-device.model';
 import type { IScannerControls } from '@zxing/browser';
 import type { DecodeHintType as DecodeHintKey } from '@zxing/library';
 
@@ -119,10 +121,12 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   private snackBar = inject(MatSnackBar);
   private confirmation = inject(ConfirmationService);
   private readonly metadata = inject(BookMetadataService);
+  private readonly inputDevices = inject(InputDeviceService);
   private readonly phoneBarcodeRelay = inject(PhoneBarcodeRelayService);
   private platformId = inject(PLATFORM_ID);
 
   barcodeValue = '';
+  inputPolicy: InputFormPolicy | null = null;
   catalogSearchQuery = '';
   scanStatus: string | null = null;
   isLookingUpMetadata = false;
@@ -150,8 +154,17 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   ngOnInit(): void {
     this.setupTableColumns();
     this.loadBooks();
+    this.inputDevices.effectivePolicy('book-registration').subscribe({
+      next: policy => { this.inputPolicy = policy; },
+      error: () => { this.inputPolicy = null; },
+    });
 
     this.watchFilters(this.bookFiltersForm);
+  }
+
+  isInputSourceAllowed(source: string): boolean {
+    const allowed = this.inputPolicy?.allowedSources;
+    return allowed ? allowed.includes(source) || allowed.some(item => item.startsWith('DEVICE:')) : true;
   }
 
   ngOnDestroy(): void {

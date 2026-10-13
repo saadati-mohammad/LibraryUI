@@ -42,3 +42,21 @@ export interface InputDeviceAuditEvent {
   remoteAddress: string | null;
   occurredAt: string;
 }
+
+export interface InputFormPolicy {
+  formKey: string;
+  station: string;
+  allowedSources: string[];
+  defaultSource: string;
+  scope: 'system-default' | 'global' | 'user';
+  updatedBy: string | null;
+  updatedAt: string | null;
+  version: number;
+}
+
+export interface SaveInputFormPolicy {
+  allowedSources: string[];
+  defaultSource: string;
+  station?: string;
+  ownerUsername?: string;
+}

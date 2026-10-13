@@ -6,6 +6,28 @@
   @if (token()) { <section class="token-box" aria-live="polite"><h2>توکن دستگاه — فقط همین یک‌بار نمایش داده می‌شود</h2><p>آن را امن نگه دارید. گوشی را روی همین شبکه باز کنید و QR را با آن اسکن کنید؛ سپس برای هر نوبت، QR اتصال را از فرم رایانه اسکن کنید.</p><code dir="ltr">{{token()}}</code>
     @if (enrollmentQr(); as qr) { <img class="enrollment-qr" [src]="qr" alt="QR امن برای ثبت این گوشی به‌عنوان اسکنر"> }
     <button class="primary" type="button" (click)="dismissToken()">ذخیره شد؛ بستن</button></section> }
+  <section class="panel" aria-labelledby="form-policy-title">
+    <h2 id="form-policy-title">روش‌های ورود برای هر فرم</h2>
+    <p class="capabilities">روش‌های مجاز و پیش‌فرض هر فرم را تعیین کنید. ورود دستی همیشه به‌عنوان راه برگشت امن باقی می‌ماند.</p>
+    <div class="policy-controls">
+      <label>فرم<select [ngModel]="policyFormKey()" (ngModelChange)="policyFormKey.set($event); loadPolicy()" [ngModelOptions]="{standalone:true}">
+        @for (form of policyForms; track form.key) { <option [value]="form.key">{{form.label}}</option> }
+      </select></label>
+      <label>ایستگاه، اختیاری<input [ngModel]="policyStation()" (ngModelChange)="policyStation.set($event)" [ngModelOptions]="{standalone:true}" maxlength="120" placeholder="همهٔ ایستگاه‌ها"></label>
+      <label>کارمند، اختیاری<input [ngModel]="policyOwner()" (ngModelChange)="policyOwner.set($event)" [ngModelOptions]="{standalone:true}" maxlength="80" placeholder="پیش‌فرض عمومی"></label>
+      <button class="secondary" type="button" (click)="loadPolicy()" [disabled]="policyLoading()">بارگذاری تنظیم</button>
+    </div>
+    @if (policyLoading()) { <p role="status">در حال دریافت تنظیم…</p> }
+    <fieldset class="policy-options"><legend>روش‌های مجاز · دامنه: {{policyScope() || '—'}}</legend>
+      @for (source of policySources; track source.key) {
+        <label class="policy-option"><input type="checkbox" [checked]="policyAllowed().includes(source.key)" (change)="togglePolicySource(source.key, $any($event.target).checked)"><span>{{source.label}}</span></label>
+      }
+    </fieldset>
+    <label class="policy-default">روش پیش‌فرض<select [ngModel]="policyDefault()" (ngModelChange)="policyDefault.set($event)" [ngModelOptions]="{standalone:true}">
+      @for (source of policySources; track source.key) { @if (policyAllowed().includes(source.key)) { <option [value]="source.key">{{source.label}}</option> } }
+    </select></label>
+    <div class="form-actions"><button class="primary" type="button" (click)="savePolicy()" [disabled]="policySaving() || policyLoading()">{{policySaving() ? 'در حال ذخیره…' : 'ذخیره سیاست فرم'}}</button></div>
+  </section>
   <section class="panel" aria-labelledby="device-form-title">
     <h2 id="device-form-title">{{editing() ? 'ویرایش دستگاه' : 'ثبت دستگاه ورودی'}}</h2>
     <form class="device-form" (ngSubmit)="save()" #deviceForm="ngForm">

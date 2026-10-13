@@ -10,6 +10,7 @@ import { BookService } from '../../core/service/book.service';
 import { BookModel } from '../../core/model/bookModel';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
 import { FilePickerComponent } from '../../shared/component/file-picker/file-picker.component';
+import { InputDeviceService } from '../../core/service/input-device.service';
 
 const BOOK: BookModel = {
     id: 21,
@@ -53,6 +54,10 @@ describe('BookComponent', () => {
                 provideHttpClient(withXhr()),
                 provideHttpClientTesting(),
                 { provide: BookService, useValue: books },
+                { provide: InputDeviceService, useValue: { effectivePolicy: vi.fn().mockReturnValue(of({
+                    formKey: 'book-registration', station: '', allowedSources: ['MANUAL', 'KEYBOARD_WEDGE'],
+                    defaultSource: 'MANUAL', scope: 'system-default', updatedBy: null, updatedAt: null, version: 0,
+                })) } },
                 { provide: ConfirmationService, useValue: confirmation },
             ],
         }).compileComponents();
@@ -68,6 +73,11 @@ describe('BookComponent', () => {
             active: boolean;
         };
         expect(filters.active).toBe(true);
+    });
+
+    it('uses the effective form input policy to control scanner entry points', () => {
+        expect(component.isInputSourceAllowed('KEYBOARD_WEDGE')).toBe(true);
+        expect(component.isInputSourceAllowed('PHONE_CAMERA')).toBe(false);
     });
 
     it('does not arm cover removal just by opening the edit modal', () => {
