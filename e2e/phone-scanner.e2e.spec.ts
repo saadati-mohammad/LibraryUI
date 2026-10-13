@@ -74,6 +74,41 @@ test('phone scanner retains a barcode after a network error and can retry it', a
   await expect(page.getByRole('status').last()).toContainText('به رایانه ارسال شد');
 });
 
+test('registered phone restores an unsent scan after reload and reconnects to a new desktop session', async ({ page }) => {
+  const deviceId = 84;
+  const deviceToken = 'persisted-phone-token-012345678901234567890123456789012345';
+  const secondSession = '4b241101-e2bb-4255-8caf-4136c566a963';
+  const secondPairingToken = 'second-pairing-token-012345678901234567890123456789012345';
+  let attempts = 0;
+  let successfulBody: Record<string, unknown> | undefined;
+  await page.route('**/api/phone-scanner/sessions/**', async route => {
+    attempts += 1;
+    if (attempts === 1) {
+      await route.fulfill({ status: 503, json: { message: 'offline' } });
+      return;
+    }
+    successfulBody = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ json: { sequence: 1, barcode: '9780306406157', receivedAt: new Date().toISOString() } });
+  });
+
+  await page.goto(`/phone-scan#device=${deviceId}.${deviceToken}`);
+  await page.goto(`/phone-scan#pair=${sessionId}.${pairingToken}`);
+  await page.locator('#phoneBarcode').fill('9780306406157');
+  await page.locator('#phoneBarcode').press('Enter');
+  await expect(page.getByRole('status').last()).toContainText('بارکد در صف حفظ شد');
+  await expect.poll(() => page.evaluate(id => localStorage.getItem(`library.phone-scanner.queue.${id}`), deviceId))
+    .toBe('["9780306406157"]');
+
+  await page.reload();
+  await page.goto(`/phone-scan#pair=${secondSession}.${secondPairingToken}`);
+  await expect(page.getByRole('status').filter({ hasText: '1 بارکد در صف ارسال است' })).toBeVisible();
+  await page.getByRole('button', { name: /ارسال دوبارهٔ صف/ }).click();
+  await expect.poll(() => successfulBody).toEqual({
+    pairingToken: secondPairingToken, barcode: '9780306406157', deviceId, deviceToken,
+  });
+  await expect.poll(() => page.evaluate(id => localStorage.getItem(`library.phone-scanner.queue.${id}`), deviceId)).toBe('[]');
+});
+
 test('registered phone retains its enrollment and authenticates continuous session scans', async ({ page }) => {
   const deviceToken = 'registered-phone-token-012345678901234567890123456789012345';
   let requestBody: Record<string, unknown> | undefined;

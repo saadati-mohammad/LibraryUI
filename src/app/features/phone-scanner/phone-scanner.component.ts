@@ -120,6 +120,7 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
     if (sessionId && pairingToken && /^[0-9a-f-]{36}$/i.test(sessionId) && pairingToken.length >= 40) {
       this.sessionId = sessionId;
       this.pairingToken = pairingToken;
+      this.restoreRegisteredQueue();
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
       this.changeDetector.detectChanges();
     }
@@ -209,6 +210,7 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
   forgetRegisteredDevice(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     try { localStorage.removeItem('library.phone-scanner.device'); } catch { /* Storage may be disabled by browser policy. */ }
+    this.clearRegisteredQueue();
     this.registeredDeviceId = null;
     this.registeredDeviceToken = '';
     this.statusMessage = 'ثبت این گوشی از این مرورگر پاک شد؛ برای ثبت دوباره QR مدیر را اسکن کنید.';
@@ -216,8 +218,7 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
 
   submitBarcode(rawValue = this.barcodeValue, refocusInput = true): void {
     if (!rawValue.trim() && this.pendingBarcodes.length > 0) {
-      const queued = this.pendingBarcodes.shift()!;
-      this.sendBarcode(queued, refocusInput, true);
+      this.sendBarcode(this.pendingBarcodes[0], refocusInput, true);
       return;
     }
     const barcode = normalizeIsbn(rawValue);
@@ -233,6 +234,7 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
         return;
       }
       this.pendingBarcodes.push(barcode);
+      this.persistRegisteredQueue();
       this.barcodeValue = '';
       this.statusMessage = `${this.pendingBarcodes.length} بارکد در صف ارسال است.`;
       this.changeDetector.detectChanges();
@@ -253,6 +255,12 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
       : this.relay.submitFromPhone(this.sessionId, this.pairingToken, barcode);
     submission.subscribe({
       next: scan => this.zone.run(() => {
+          if (retry && this.pendingBarcodes[0] === barcode) this.pendingBarcodes.shift();
+          else if (retry) {
+            const queuedIndex = this.pendingBarcodes.indexOf(barcode);
+            if (queuedIndex >= 0) this.pendingBarcodes.splice(queuedIndex, 1);
+          }
+          this.persistRegisteredQueue();
           this.lastSubmittedAt = Date.now();
           this.statusMessage = `بارکد ${scan.barcode} به رایانه ارسال شد.`;
           this.sending = false;
@@ -262,7 +270,8 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
           if (this.pendingBarcodes.length) setTimeout(() => this.submitBarcode('', false), 0);
         }),
       error: (error: { status?: number }) => this.zone.run(() => {
-          this.pendingBarcodes.unshift(barcode);
+          if (!this.pendingBarcodes.includes(barcode)) this.pendingBarcodes.unshift(barcode);
+          this.persistRegisteredQueue();
           if (error.status === 401) {
             this.registeredDeviceId = null;
             this.registeredDeviceToken = '';
@@ -276,5 +285,36 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
           this.changeDetector.detectChanges();
         }),
     });
+  }
+
+  private restoreRegisteredQueue(): void {
+    if (this.registeredDeviceId === null || this.pendingBarcodes.length) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.queueStorageKey()) ?? '[]') as unknown;
+      if (Array.isArray(saved)) {
+        this.pendingBarcodes.push(...saved
+          .filter((value): value is string => typeof value === 'string' && isValidIsbn(value))
+          .map(normalizeIsbn)
+          .filter((value, index, all) => all.indexOf(value) === index)
+          .slice(0, 50));
+      }
+    } catch { /* Storage can be disabled or contain invalid JSON; scanning stays available. */ }
+  }
+
+  private persistRegisteredQueue(): void {
+    if (this.registeredDeviceId === null) return;
+    try { localStorage.setItem(this.queueStorageKey(), JSON.stringify(this.pendingBarcodes)); }
+    catch { /* Storage quota/policy must not prevent the current scan session. */ }
+  }
+
+  private clearRegisteredQueue(): void {
+    if (this.registeredDeviceId === null) return;
+    try { localStorage.removeItem(this.queueStorageKey()); }
+    catch { /* Storage may be disabled by browser policy. */ }
+    this.pendingBarcodes.splice(0);
+  }
+
+  private queueStorageKey(): string {
+    return `library.phone-scanner.queue.${this.registeredDeviceId}`;
   }
 }
