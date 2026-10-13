@@ -4,7 +4,7 @@
   <form class="filters" (submit)="$event.preventDefault(); submitSearch(search.value)">
     <label class="search-field"><span class="visually-hidden">جست‌وجوی کتاب</span><input #search type="search" [value]="query()" placeholder="مثلاً: ادبیات، نویسنده یا عنوان"></label>
     <label class="select-field"><span>موضوع</span><select [value]="subject()" (change)="chooseSubject($any($event.target).value)"><option value="">همهٔ موضوع‌ها</option>@for (category of categories(); track category.name) { <option [value]="category.name">{{ category.name }}</option> }</select></label>
-    <label class="select-field"><span>مرتب‌سازی</span><select [value]="sort()" (change)="changeSort($any($event.target).value)"><option value="id,desc">تازه‌ثبت‌شده</option><option value="title,asc">عنوان: الف تا ی</option><option value="author,asc">نویسنده: الف تا ی</option><option value="publicationDate,desc">سال انتشار: جدیدتر</option></select></label>
+    <label class="select-field"><span>مرتب‌سازی</span><select [value]="sort()" (change)="changeSort($any($event.target).value)"><option value="relevance">مرتبط‌ترین</option><option value="id,desc">تازه‌ثبت‌شده</option><option value="title,asc">عنوان: الف تا ی</option><option value="author,asc">نویسنده: الف تا ی</option><option value="publicationDate,desc">سال انتشار: جدیدتر</option></select></label>
     <button type="submit">جست‌وجو</button>
   </form>
   <div class="results-heading"><h2>{{ subject() || (query() ? 'نتایج جست‌وجو' : 'همهٔ عنوان‌ها') }}</h2><span>{{ totalElements() }} عنوان</span></div>
