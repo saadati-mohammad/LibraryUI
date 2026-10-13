@@ -91,6 +91,7 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
   isExcelImportModalVisible = false;
   isImporting = false;
   importError: string | null = null;
+  importPreview: import('../../core/model/paginated-response.model').ExcelImportResult | null = null;
   readonly excelImportForm: FormGroup;
 
   private readonly destroyRef = inject(DestroyRef);
@@ -431,10 +432,12 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
     this.excelImportForm.reset({ excelFile: null });
     this.importError = null;
     this.isImporting = false;
+    this.importPreview = null;
   }
 
   onExcelImportModalClose(): void {
     this.isExcelImportModalVisible = false;
+    this.importPreview = null;
   }
 
   /** Excel picker validation message (wrong extension or too large). */
@@ -449,25 +452,38 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
       return;
     }
     this.isImporting = true;
-    this.personService.importPersonsFromExcel(excelFile).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
+    const request = this.importPreview
+      ? this.personService.importPersonsFromExcel(excelFile)
+      : this.personService.previewPersonsFromExcel(excelFile);
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
         this.isImporting = false;
+        if (!this.importPreview) {
+          this.importPreview = result;
+          return;
+        }
         this.isExcelImportModalVisible = false;
         this.excelImportForm.reset({ excelFile: null });
+        this.importPreview = null;
         if (isPlatformBrowser(this.platformId)) {
-          this.snackBar.open('فایل اکسل اعضا با موفقیت بارگذاری شد.', 'بستن', { duration: 5000, direction: 'rtl' });
+          const count = result.imported ?? 0;
+          this.snackBar.open(`${count} عضو وارد شد؛ ${result.skippedDuplicates ?? 0} تکراری و ${result.skippedInvalid ?? 0} نامعتبر رد شد.`, 'بستن', { duration: 6000, direction: 'rtl' });
         }
         this.loadPersons();
       },
       error: (err) => {
         this.isImporting = false;
-        // The backend now returns a JSON envelope, so `err.error` is an object.
-        const message = err.error?.message || 'خطا در بارگذاری فایل.';
+        const message = err.error?.message || 'پیش‌نمایش یا بارگذاری فایل ناموفق بود.';
         this.snackBar.open(message, 'بستن', { duration: 5000, direction: 'rtl' });
         this.importError = message;
         console.error(err);
       }
     });
+  }
+
+  onExcelFileChanged(): void {
+    this.importPreview = null;
+    this.importError = null;
   }
 
   downloadExcelTemplate(): void {

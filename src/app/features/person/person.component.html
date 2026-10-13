@@ -335,7 +335,7 @@
 
 <!-- مودال بارگذاری گروهی اعضا از اکسل -->
 <app-modal [(isVisible)]="isExcelImportModalVisible" title="بارگذاری گروهی" titleAccent="اعضا از فایل اکسل"
-  submitButtonText="شروع بارگذاری" submitButtonIcon="upload" (submitted)="onExcelImportSubmit()"
+  [submitButtonText]="importPreview ? 'تأیید و واردسازی' : 'پیش‌نمایش فایل'" submitButtonIcon="upload" (submitted)="onExcelImportSubmit()"
   (cancelled)="onExcelImportModalClose()"
   [disableSubmit]="!excelImportForm.get('excelFile')?.value || isImporting" [isLoading]="isImporting"
   maxWidth="600px">
@@ -361,7 +361,20 @@
           formControlName="excelFile" label="انتخاب فایل اکسل" buttonLabel="انتخاب فایل اکسل"
           accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" [rules]="excelRules"
           [hint]="'فقط فایل با پسوند .xlsx و حداکثر ۱۰ مگابایت.'"
-        (validationError)="onExcelValidationError($event)"></app-file-picker>
+          (validationError)="onExcelValidationError($event)" (fileChange)="onExcelFileChanged()"></app-file-picker>
+        @if (importPreview) {
+          <section class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-slate-800" aria-live="polite" data-testid="person-import-preview">
+            <h4 class="font-semibold">نتیجه پیش‌نمایش</h4>
+            <p class="mt-2">{{ importPreview.totalRows }} ردیف بررسی شد؛ {{ importPreview.eligible }} ردیف قابل واردسازی است.</p>
+            <p>{{ importPreview.skippedDuplicates }} ردیف تکراری و {{ importPreview.skippedInvalid }} ردیف نامعتبر رد می‌شود.</p>
+            @if (importPreview.duplicateRows?.length) { <p>ردیف‌های تکراری: {{ importPreview.duplicateRows?.join('، ') }}</p> }
+            @if (importPreview.invalidRows?.length) {
+              <ul class="mt-2 list-inside list-disc">
+                @for (issue of importPreview.invalidRows; track issue.row) { <li>ردیف {{ issue.row }}: {{ issue.reason }}</li> }
+              </ul>
+            }
+          </section>
+        }
         @if (importError) {
           <div class="mt-2 text-sm text-red-700" role="alert">
             {{ importError }}

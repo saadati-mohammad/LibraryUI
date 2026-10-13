@@ -44,12 +44,15 @@ describe('PersonComponent', () => {
             addPerson: vi.fn().mockName("PersonService.addPerson"),
             updatePerson: vi.fn().mockName("PersonService.updatePerson"),
             deactivatePerson: vi.fn().mockName("PersonService.deactivatePerson"),
-            importPersonsFromExcel: vi.fn().mockName("PersonService.importPersonsFromExcel")
+            importPersonsFromExcel: vi.fn().mockName("PersonService.importPersonsFromExcel"),
+            previewPersonsFromExcel: vi.fn().mockName("PersonService.previewPersonsFromExcel")
         } as MockedObject<PersonService>;
         persons.getPersonList.mockReturnValue(of(page<PersonModel>([PERSON])));
         persons.updatePerson.mockReturnValue(of(PERSON));
         persons.addPerson.mockReturnValue(of(PERSON));
         persons.deactivatePerson.mockReturnValue(of(undefined));
+        persons.previewPersonsFromExcel.mockReturnValue(of({ success: true, preview: true, totalRows: 3, eligible: 1, skippedDuplicates: 1, duplicateRows: [3], skippedInvalid: 1, invalidRows: [{ row: 4, reason: 'ایمیل نامعتبر' }], message: 'preview' }));
+        persons.importPersonsFromExcel.mockReturnValue(of({ success: true, imported: 1, message: 'ok' }));
         confirmation = {
             confirm: vi.fn().mockName("ConfirmationService.confirm")
         } as MockedObject<ConfirmationService>;
@@ -100,6 +103,32 @@ describe('PersonComponent', () => {
 
         expect(component.personFiltersForm.get('active')?.value).toBe(true);
     }));
+
+    it('previews member imports before committing and displays row issues', () => {
+        component.openExcelImportModal();
+        component.excelImportForm.get('excelFile')?.setValue(new File(['xlsx'], 'members.xlsx'));
+
+        component.onExcelImportSubmit();
+
+        expect(persons.previewPersonsFromExcel).toHaveBeenCalledOnce();
+        expect(persons.importPersonsFromExcel).not.toHaveBeenCalled();
+        expect(component.importPreview?.duplicateRows).toEqual([3]);
+        fixture.detectChanges();
+        expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="person-import-preview"]')?.textContent)
+            .toContain('ایمیل نامعتبر');
+
+        component.onExcelImportSubmit();
+        expect(persons.importPersonsFromExcel).toHaveBeenCalledOnce();
+        expect(component.importPreview).toBeNull();
+    });
+
+    it('invalidates a member import preview when the selected file changes', () => {
+        component.importPreview = { success: true, preview: true, eligible: 2, message: 'ok' };
+
+        component.onExcelFileChanged();
+
+        expect(component.importPreview).toBeNull();
+    });
 
     /**
      * Regression guard for the silent picture deletion: editing a member used to call
