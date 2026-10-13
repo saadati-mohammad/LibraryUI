@@ -41,8 +41,8 @@ test.describe('People workflow', () => {
     expect(createdList.ok()).toBe(true);
     const people = await createdList.json() as { content: Array<{ id: number; lastName: string; nationalId: string }> };
     const person = people.content.find(item => item.nationalId === unique);
-    expect(person?.lastName).toBe(lastName);
-    expect(person).toBeTruthy();
+    if (!person) throw new Error(`Created member ${unique} was not returned by the catalog API`);
+    expect(person.lastName).toBe(lastName);
     await expect(modal).toBeHidden();
 
     const row = page.getByRole('row').filter({ hasText: lastName });
