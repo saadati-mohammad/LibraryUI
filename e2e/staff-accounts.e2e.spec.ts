@@ -55,6 +55,7 @@ test('admin manages staff accounts without deleting history', async ({ page }) =
   if (await staffLink.isVisible()) await staffLink.click();
   else await page.getByRole('menuitem', { name: 'حساب‌های کارکنان' }).click();
   await expect(page.getByRole('heading', { name: 'حساب‌های کارکنان' })).toBeVisible();
+  await page.getByLabel('وضعیت حساب').selectOption('all');
   const username = `qa-${Date.now()}`;
   await page.locator('input[name="username"]').fill(username);
   await page.locator('input[name="displayName"]').fill('کاربر آزمایشی');
@@ -65,6 +66,10 @@ test('admin manages staff accounts without deleting history', async ({ page }) =
 
   const row = page.locator('.account-row').filter({ hasText: username });
   await expect(row).toContainText('کاربر آزمایشی');
+  await page.getByLabel('جست‌وجوی نام، نام کاربری یا ایمیل').fill('missing-user');
+  await expect(page.locator('.empty[role="status"]')).toContainText('حسابی با این جست‌وجو');
+  await page.getByLabel('جست‌وجوی نام، نام کاربری یا ایمیل').fill(username);
+  await expect(row).toBeVisible();
   await page.once('dialog', dialog => dialog.accept());
   await row.getByRole('button', { name: 'غیرفعال‌سازی' }).click();
   await expect(row).toContainText('غیرفعال');

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/service/auth.service';
@@ -37,10 +37,19 @@ import { StaffAccount, StaffRole } from '../../core/model/staff-account.model';
       </section>
       <section class="panel" aria-labelledby="listTitle"><div class="section-heading"><h2 id="listTitle">فهرست حساب‌ها</h2>
         <button type="button" class="secondary" (click)="load()" [disabled]="loading()">به‌روزرسانی</button></div>
+        <div class="list-filters">
+          <label for="accountSearch">جست‌وجوی نام، نام کاربری یا ایمیل</label>
+          <input id="accountSearch" type="search" [value]="query()" (input)="query.set($any($event.target).value)" autocomplete="off" />
+          <label for="accountState">وضعیت حساب</label>
+          <select id="accountState" [value]="stateFilter()" (change)="stateFilter.set($any($event.target).value)">
+            <option value="active">فعال</option><option value="all">همه</option><option value="inactive">غیرفعال</option>
+          </select>
+        </div>
         @if (loading()) { <p role="status">در حال دریافت حساب‌ها…</p> }
         @else if (!accounts().length) { <p class="empty">هنوز حساب کارمندی ساخته نشده است.</p> }
+        @else if (!filteredAccounts().length) { <p class="empty" role="status">حسابی با این جست‌وجو و وضعیت پیدا نشد.</p> }
         <div class="account-list">
-          @for (account of accounts(); track account.id) {
+          @for (account of filteredAccounts(); track account.id) {
             <article class="account-row" [class.inactive]="!account.active">
               <div class="identity"><h3>{{account.displayName}}</h3><p dir="ltr">{{account.username}}</p><p dir="ltr">{{account.email || 'ایمیل بازیابی ثبت نشده'}}</p></div>
               <span class="role">{{account.role === 'ADMIN' ? 'مدیر سیستم' : 'کتابدار'}}</span>
@@ -68,15 +77,28 @@ import { StaffAccount, StaffRole } from '../../core/model/staff-account.model';
     button{min-height:40px;border:0;border-radius:9px;padding:9px 15px;font:inherit;font-weight:700;cursor:pointer}.primary{background:#176b43;color:white;margin-top: 1.9rem;}.secondary{background:#edf4ef;color:#244b35}.danger{background:#fff0ee;color:#922f27}
     button:disabled{opacity:.6;cursor:wait}.help,.empty{color:#5c6e63;font-size:.9rem;margin:14px 0 0}.username{align-self:center;color:#52665b}
     .section-heading{display:flex;justify-content:space-between;align-items:center}.section-heading h2{margin-bottom:0}.account-list{display:grid;gap:10px;margin-top:18px}
+    .list-filters{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,.45fr);gap:8px 14px;align-items:center;margin-top:18px}.list-filters label{font-size:.88rem}.list-filters input,.list-filters select{min-height:42px}
     .account-row{display:grid;grid-template-columns:minmax(160px,1fr) auto auto auto;gap:16px;align-items:center;padding:14px;border:1px solid #e0e9e3;border-radius:12px}
     .account-row.inactive{background:#f7f8f7;color:#637168}.identity h3{margin:0;font-size:1rem}.identity p{margin:5px 0 0;color:#64766b;text-align:left;font-size:.9rem}.role,.state{white-space:nowrap}.state{padding:5px 10px;border-radius:99px;background:#e4f3e9;color:#246440;font-size:.85rem}.state.off{background:#f0f0ee;color:#5b625e}.row-actions{display:flex;gap:8px}.notice,.error{padding:12px 15px;border-radius:10px}.notice{background:#e6f3e9;color:#245d40}.error{background:#fff0ef;color:#8d2f28}
-    @media(max-width:720px){.account-form{grid-template-columns:1fr}.account-row{grid-template-columns:1fr auto;gap:10px}.identity{grid-column:1}.role{grid-column:1}.state{grid-column:2;grid-row:1}.row-actions{grid-column:1/-1;flex-wrap:wrap}.row-actions button{flex:1}}
+    @media(max-width:720px){.account-form,.list-filters{grid-template-columns:1fr}.account-row{grid-template-columns:1fr auto;gap:10px}.identity{grid-column:1}.role{grid-column:1}.state{grid-column:2;grid-row:1}.row-actions{grid-column:1/-1;flex-wrap:wrap}.row-actions button{flex:1}}
   `],
 })
 export class StaffAccountsComponent implements OnInit {
   private readonly service = inject(StaffAccountService);
   private readonly auth = inject(AuthService);
   readonly accounts = signal<StaffAccount[]>([]);
+  readonly query = signal('');
+  readonly stateFilter = signal<'all' | 'active' | 'inactive'>('active');
+  readonly filteredAccounts = computed(() => {
+    const query = this.query().trim().toLocaleLowerCase();
+    return this.accounts().filter(account => {
+      const matchesQuery = !query || [account.displayName, account.username, account.email ?? '']
+        .some(value => value.toLocaleLowerCase().includes(query));
+      const matchesState = this.stateFilter() === 'all'
+        || (this.stateFilter() === 'active' ? account.active : !account.active);
+      return matchesQuery && matchesState;
+    });
+  });
   readonly editing = signal<StaffAccount | null>(null);
   readonly loading = signal(false);
   readonly saving = signal(false);
