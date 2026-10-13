@@ -286,6 +286,20 @@
           </div>
           <video #barcodeVideo class="barcode-camera-preview mt-3" [hidden]="!isCameraScanning && !isStartingCamera"
             autoplay muted playsinline aria-label="پیش‌نمایش زنده دوربین برای اسکن بارکد"></video>
+          @if (isCameraScanning && cameraDevices.length > 1) {
+            <label class="mt-2 block text-sm font-semibold" for="barcodeCameraSelect">دوربین اسکن
+              <select id="barcodeCameraSelect" class="mt-1 min-h-11 w-full rounded-md border border-indigo-300 bg-white px-3 py-2 text-slate-900"
+                [value]="selectedCameraId" (change)="selectCamera($any($event.target).value, barcodeVideo)">
+                @for (camera of cameraDevices; track camera.deviceId) {
+                  <option [value]="camera.deviceId">{{camera.label || 'دوربین ' + ($index + 1)}}</option>
+                }
+              </select>
+            </label>
+          }
+          @if (isCameraScanning && torchSupported) {
+            <button type="button" class="mt-2 rounded-md border border-indigo-700 bg-white px-4 py-2 font-semibold text-indigo-900"
+              [attr.aria-pressed]="torchEnabled" (click)="toggleCameraTorch()">{{torchEnabled ? 'خاموش‌کردن چراغ‌قوه' : 'روشن‌کردن چراغ‌قوه'}}</button>
+          }
           @if (phoneScannerSession) {
             <section class="phone-pairing mt-3 rounded-xl border border-emerald-300 bg-emerald-50 p-3" aria-label="اتصال امن اسکنر گوشی">
               <h3 class="font-semibold text-emerald-950">اتصال موقت گوشی · تا ۱۰ دقیقه</h3>

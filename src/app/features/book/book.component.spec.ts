@@ -80,6 +80,22 @@ describe('BookComponent', () => {
         expect(component.isInputSourceAllowed('PHONE_CAMERA')).toBe(false);
     });
 
+    it('toggles the camera torch when supported and reports unsupported torch controls', async () => {
+        const switchTorch = vi.fn().mockResolvedValue(undefined);
+        (component as unknown as { scannerControls: { stop: () => void; switchTorch?: (enabled: boolean) => Promise<void> } | null })
+            .scannerControls = { stop: vi.fn(), switchTorch };
+        await component.toggleCameraTorch();
+        expect(switchTorch).toHaveBeenCalledWith(true);
+        expect(component.torchEnabled).toBe(true);
+        await component.toggleCameraTorch();
+        expect(switchTorch).toHaveBeenLastCalledWith(false);
+        expect(component.torchEnabled).toBe(false);
+
+        (component as unknown as { scannerControls: null }).scannerControls = null;
+        await component.toggleCameraTorch();
+        expect(component.scanStatus).toContain('پشتیبانی نمی‌شود');
+    });
+
     it('does not arm cover removal just by opening the edit modal', () => {
         component.openBookModal(component.FormOperationEnum.UPDATE, BOOK);
 

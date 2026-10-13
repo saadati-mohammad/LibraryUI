@@ -38,7 +38,7 @@ Input policies use additive H2 `V9` / MySQL `V8` migrations:
 
 ## Boundaries still to implement
 
-- Surface phone registration/last-seen health in the admin UI; add physical camera permission/torch/scan testing on real phones.
+- Surface phone registration/last-seen health in the admin UI; validate camera permission, camera switching, torch behavior, and scan reliability on physical phones. Book entry and PWA already provide camera selection and conditionally available torch controls; device/browser capability varies.
 - Wire policy-driven input controls into the loan checkout, return, inventory and member lookup flows.
 - Per-form device selection and configuration beyond the existing book-entry choices (manual, HID, camera, and temporary phone session).
 - Device scan submission/queue endpoints and rate controls for any future persistent scan API.

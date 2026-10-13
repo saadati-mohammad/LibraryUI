@@ -132,6 +132,10 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   isLookingUpMetadata = false;
   isStartingCamera = false;
   isCameraScanning = false;
+  cameraDevices: MediaDeviceInfo[] = [];
+  selectedCameraId = '';
+  torchSupported = false;
+  torchEnabled = false;
   continuousScanMode = false;
   private lastCameraIsbn: string | null = null;
   private emptyCameraFrames = 0;
@@ -545,8 +549,11 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.UPC_A, BarcodeFormat.CODE_128]);
       hints.set(DecodeHintType.TRY_HARDER, true);
       const reader = new BrowserMultiFormatReader(hints);
+      const videoConstraints: MediaTrackConstraints = this.selectedCameraId
+        ? { deviceId: { exact: this.selectedCameraId } }
+        : { facingMode: { ideal: 'environment' } };
       this.scannerControls = await reader.decodeFromConstraints(
-        { audio: false, video: { facingMode: { ideal: 'environment' } } },
+        { audio: false, video: videoConstraints },
         video,
         (result) => {
           if (!this.isCameraScanning) return;
@@ -564,7 +571,18 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
         },
       );
       this.isCameraScanning = true;
-      this.scanStatus = 'دوربین فعال است؛ بارکد را در قاب نگه دارید.';
+      const [devices, track] = await Promise.all([
+        BrowserMultiFormatReader.listVideoInputDevices().catch(() => []),
+        Promise.resolve(video.srcObject instanceof MediaStream ? video.srcObject.getVideoTracks()[0] : undefined),
+      ]);
+      this.cameraDevices = devices;
+      const activeTrackId = track?.getSettings().deviceId;
+      this.selectedCameraId = activeTrackId ?? this.selectedCameraId;
+      this.torchSupported = typeof this.scannerControls?.switchTorch === 'function';
+      this.torchEnabled = false;
+      this.scanStatus = this.torchSupported
+        ? 'دوربین فعال است؛ بارکد را در قاب نگه دارید. چراغ‌قوه در دسترس است.'
+        : 'دوربین فعال است؛ بارکد را در قاب نگه دارید.';
     } catch (error) {
       this.scannerControls?.stop();
       this.scannerControls = null;
@@ -580,6 +598,29 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.scannerControls?.stop();
     this.scannerControls = null;
     this.isCameraScanning = false;
+    this.torchEnabled = false;
+  }
+
+  async selectCamera(deviceId: string, video: HTMLVideoElement): Promise<void> {
+    if (!deviceId || deviceId === this.selectedCameraId) return;
+    this.selectedCameraId = deviceId;
+    this.stopCameraScan();
+    await this.startCameraScan(video);
+  }
+
+  async toggleCameraTorch(): Promise<void> {
+    if (!this.scannerControls?.switchTorch) {
+      this.scanStatus = 'چراغ‌قوه توسط این دوربین یا مرورگر پشتیبانی نمی‌شود.';
+      return;
+    }
+    try {
+      await this.scannerControls.switchTorch(!this.torchEnabled);
+      this.torchEnabled = !this.torchEnabled;
+    } catch {
+      this.torchSupported = false;
+      this.torchEnabled = false;
+      this.scanStatus = 'کنترل چراغ‌قوه در این دستگاه در دسترس نیست.';
+    }
   }
 
   private cameraErrorMessage(error: unknown): string {

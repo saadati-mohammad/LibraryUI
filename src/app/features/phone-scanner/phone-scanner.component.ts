@@ -26,6 +26,18 @@ import type { DecodeHintType as DecodeHintKey } from '@zxing/library';
           <div class="camera-frame" [hidden]="!cameraActive">
             <video #video autoplay muted playsinline aria-label="نمای زندهٔ دوربین گوشی"></video>
           </div>
+          @if (cameraActive && cameraDevices.length > 1) {
+            <label class="camera-select" for="phoneCameraSelect">انتخاب دوربین
+              <select id="phoneCameraSelect" [value]="selectedCameraId" (change)="selectCamera($any($event.target).value)">
+                @for (camera of cameraDevices; track camera.deviceId) { <option [value]="camera.deviceId">{{camera.label || 'دوربین ' + ($index + 1)}}</option> }
+              </select>
+            </label>
+          }
+          @if (cameraActive && torchSupported) {
+            <button type="button" class="secondary" [attr.aria-pressed]="torchEnabled" (click)="toggleTorch()">
+              {{torchEnabled ? 'خاموش‌کردن چراغ‌قوه' : 'روشن‌کردن چراغ‌قوه'}}
+            </button>
+          }
           <div class="actions">
             @if (!cameraActive) {
               <button type="button" class="primary" (click)="startCamera()" [disabled]="cameraStarting">
@@ -69,6 +81,10 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
   statusMessage = 'دوربین را روشن کنید یا بارکدخوان را به‌صورت صفحه‌کلید وصل کنید.';
   cameraStarting = false;
   cameraActive = false;
+  cameraDevices: MediaDeviceInfo[] = [];
+  selectedCameraId = '';
+  torchSupported = false;
+  torchEnabled = false;
   sending = false;
   private readonly handleHashChange = (): void => this.readPairFromHash();
 
@@ -125,14 +141,27 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.UPC_A, BarcodeFormat.CODE_128]);
       hints.set(DecodeHintType.TRY_HARDER, true);
       const reader = new BrowserMultiFormatReader(hints);
+      const videoConstraints: MediaTrackConstraints = this.selectedCameraId
+        ? { deviceId: { exact: this.selectedCameraId } }
+        : { facingMode: { ideal: 'environment' } };
       this.scannerControls = await reader.decodeFromConstraints(
-        { audio: false, video: { facingMode: { ideal: 'environment' } } },
+        { audio: false, video: videoConstraints },
         this.video?.nativeElement ?? (() => { throw new Error('Camera preview is unavailable'); })(),
         // Keep camera mode hands-free without opening the phone's soft keyboard after each scan.
         result => { if (result) this.submitBarcode(result.getText(), false); },
       );
       this.cameraActive = true;
+      const [devices, stream] = await Promise.all([
+        BrowserMultiFormatReader.listVideoInputDevices().catch(() => []),
+        Promise.resolve(this.video?.nativeElement.srcObject instanceof MediaStream
+          ? this.video.nativeElement.srcObject.getVideoTracks()[0] : undefined),
+      ]);
+      this.cameraDevices = devices;
+      this.selectedCameraId = stream?.getSettings().deviceId ?? this.selectedCameraId;
+      this.torchSupported = typeof this.scannerControls?.switchTorch === 'function';
+      this.torchEnabled = false;
       this.statusMessage = 'دوربین فعال است؛ بارکد را در کادر نگه دارید.';
+      this.changeDetector.detectChanges();
     } catch {
       this.scannerControls?.stop();
       this.scannerControls = null;
@@ -147,6 +176,30 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
     this.scannerControls?.stop();
     this.scannerControls = null;
     this.cameraActive = false;
+    this.torchEnabled = false;
+  }
+
+  async selectCamera(deviceId: string): Promise<void> {
+    if (!deviceId || deviceId === this.selectedCameraId) return;
+    this.selectedCameraId = deviceId;
+    this.stopCamera();
+    await this.startCamera();
+  }
+
+  async toggleTorch(): Promise<void> {
+    if (!this.scannerControls?.switchTorch) {
+      this.statusMessage = 'چراغ‌قوه توسط این دوربین یا مرورگر پشتیبانی نمی‌شود.';
+      return;
+    }
+    try {
+      await this.scannerControls.switchTorch(!this.torchEnabled);
+      this.torchEnabled = !this.torchEnabled;
+    } catch {
+      this.torchSupported = false;
+      this.torchEnabled = false;
+      this.statusMessage = 'کنترل چراغ‌قوه در این دستگاه در دسترس نیست.';
+    }
+    this.changeDetector.detectChanges();
   }
 
   forgetRegisteredDevice(): void {
