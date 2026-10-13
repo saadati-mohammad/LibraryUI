@@ -31,7 +31,18 @@ test.describe('People workflow', () => {
     await page.getByRole('button', { name: 'ذخیره عضو' }).click();
     const createdResponse = await createdPromise;
     expect(createdResponse.status()).toBe(201);
-    const person = await createdResponse.json() as { id: number; lastName: string };
+    // The UI closes the modal and immediately refreshes the list. On slower CI browsers,
+    // Chromium may discard the POST response body during that navigation; retrieve the
+    // persisted record through the independent API request context instead.
+    const createdList = await request.get(
+      `http://localhost:4200/api/person?nationalId=${encodeURIComponent(unique)}&page=0&size=10`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    expect(createdList.ok()).toBe(true);
+    const people = await createdList.json() as { content: Array<{ id: number; lastName: string; nationalId: string }> };
+    const person = people.content.find(item => item.nationalId === unique);
+    expect(person?.lastName).toBe(lastName);
+    expect(person).toBeTruthy();
     await expect(modal).toBeHidden();
 
     const row = page.getByRole('row').filter({ hasText: lastName });
