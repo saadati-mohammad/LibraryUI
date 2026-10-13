@@ -80,6 +80,39 @@ describe('BookComponent', () => {
         expect(component.isInputSourceAllowed('PHONE_CAMERA')).toBe(false);
     });
 
+    it('collects unique scans in a bounded review queue without looking them up', () => {
+        component.openBookModal(component.FormOperationEnum.ADD);
+        component.setReviewBatchMode(true);
+        component.barcodeValue = '0-306-40615-2';
+        component.lookupScannedIsbn();
+        component.barcodeValue = '0306406152';
+        component.lookupScannedIsbn();
+
+        expect(component.reviewBatchIsbns).toEqual(['0306406152']);
+        expect(component.scanStatus).toContain('از قبل');
+        expect(component.isLookingUpMetadata).toBe(false);
+
+        for (let n = 0; n < 49; n++) {
+            component.reviewBatchIsbns.push(`9780000000${String(n).padStart(3, '0')}`);
+        }
+        component.barcodeValue = '0-306-40615-2';
+        component.lookupScannedIsbn();
+        expect(component.reviewBatchIsbns).toHaveLength(50);
+        component.barcodeValue = '9780306406157';
+        component.lookupScannedIsbn();
+        expect(component.reviewBatchIsbns).toHaveLength(50);
+        expect(component.scanStatus).toContain('سقف ۵۰');
+    });
+
+    it('keeps automatic registration and review-first scan modes mutually exclusive', () => {
+        component.setContinuousScanMode(true);
+        expect(component.continuousScanMode).toBe(true);
+        expect(component.reviewBatchMode).toBe(false);
+        component.setReviewBatchMode(true);
+        expect(component.reviewBatchMode).toBe(true);
+        expect(component.continuousScanMode).toBe(false);
+    });
+
     it('toggles the camera torch when supported and reports unsupported torch controls', async () => {
         const switchTorch = vi.fn().mockResolvedValue(undefined);
         (component as unknown as { scannerControls: { stop: () => void; switchTorch?: (enabled: boolean) => Promise<void> } | null })

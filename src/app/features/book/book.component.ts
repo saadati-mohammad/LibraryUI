@@ -137,6 +137,8 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   torchSupported = false;
   torchEnabled = false;
   continuousScanMode = false;
+  /** Review-first alternative to automatic continuous registration. */
+  reviewBatchMode = false;
   private lastCameraIsbn: string | null = null;
   private emptyCameraFrames = 0;
   metadataCandidates: BookMetadata[] = [];
@@ -147,6 +149,8 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   private lastPhoneScanSequence = 0;
   private readonly completedScans = new Set<string>();
   private readonly pendingBatchIsbns: string[] = [];
+  readonly reviewBatchIsbns: string[] = [];
+  private isReviewingBatchItem = false;
   private scannerControls: IScannerControls | null = null;
 
   constructor() {
@@ -274,12 +278,14 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.hasStoredCover = false;
     this.barcodeValue = '';
     this.continuousScanMode = false;
+    this.reviewBatchMode = false;
     this.lastCameraIsbn = null;
     this.emptyCameraFrames = 0;
     this.scanStatus = null;
     this.metadataCandidates = [];
     this.completedScans.clear();
     this.pendingBatchIsbns.length = 0;
+    this.reviewBatchIsbns.length = 0;
 
     if ((operation === FormOperation.UPDATE || operation === FormOperation.VIEW) && book) {
       this.currentEditingBookId = book.id ?? null;
@@ -349,12 +355,48 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     }
   }
 
+  /** Loads a reviewed queue item into the existing metadata lookup flow. */
+  reviewBatchItem(isbn: string): void {
+    if (this.isLookingUpMetadata || this.isSubmitting) return;
+    this.barcodeValue = isbn;
+    this.isReviewingBatchItem = true;
+    this.lookupScannedIsbn();
+    this.isReviewingBatchItem = false;
+  }
+
+  removeReviewBatchItem(isbn: string): void {
+    const index = this.reviewBatchIsbns.indexOf(isbn);
+    if (index >= 0) this.reviewBatchIsbns.splice(index, 1);
+    this.scanStatus = `مورد از صف بازبینی حذف شد؛ ${this.reviewBatchIsbns.length} مورد باقی مانده است.`;
+  }
+
+  setContinuousScanMode(enabled: boolean): void {
+    this.continuousScanMode = enabled;
+    if (enabled) this.reviewBatchMode = false;
+  }
+
+  setReviewBatchMode(enabled: boolean): void {
+    this.reviewBatchMode = enabled;
+    if (enabled) this.continuousScanMode = false;
+  }
+
   /** Handles only the focused scanner field, so normal keyboard input remains untouched. */
   lookupScannedIsbn(): void {
     const isbn = normalizeIsbn(this.barcodeValue);
     if (!isbn) { this.scanStatus = 'اسکن خالی است؛ شابک را وارد کنید.'; return; }
     if (!isValidIsbn(isbn)) { this.scanStatus = 'بارکد شابک معتبر نیست. رقم کنترلی را بررسی یا اطلاعات را دستی وارد کنید.'; return; }
     this.barcodeValue = '';
+    if (this.reviewBatchMode && !this.isReviewingBatchItem) {
+      if (this.reviewBatchIsbns.includes(isbn)) {
+        this.scanStatus = 'این شابک از قبل در صف بازبینی است.';
+      } else if (this.reviewBatchIsbns.length >= 50) {
+        this.scanStatus = 'صف بازبینی به سقف ۵۰ مورد رسیده؛ ابتدا چند مورد را بررسی یا حذف کنید.';
+      } else {
+        this.reviewBatchIsbns.push(isbn);
+        this.scanStatus = `شابک به صف بازبینی اضافه شد (${this.reviewBatchIsbns.length} مورد).`;
+      }
+      return;
+    }
     if (this.continuousScanMode) {
       this.pendingBatchIsbns.push(isbn);
       this.processNextBatchScan();
@@ -374,6 +416,8 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.metadata.lookup(isbn).subscribe({
       next: (candidates) => {
         this.completedScans.add(isbn);
+        const reviewedIndex = this.reviewBatchIsbns.indexOf(isbn);
+        if (reviewedIndex >= 0) this.reviewBatchIsbns.splice(reviewedIndex, 1);
         this.metadataCandidates = candidates;
         if (candidates.length === 1 && candidates[0]) this.applyMetadata(candidates[0]);
         else {
@@ -704,6 +748,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.continuousScanMode = false;
     this.closePhoneScannerSession();
     this.pendingBatchIsbns.length = 0;
+    this.reviewBatchIsbns.length = 0;
     this.stopCameraScan();
     this.isBookModalVisible = false;
   }
