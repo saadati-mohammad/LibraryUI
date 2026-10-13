@@ -1,8 +1,10 @@
 import type { MockedObject } from "vitest";
+import { PLATFORM_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { of } from 'rxjs';
 
 import { BookComponent } from './book.component';
@@ -53,6 +55,7 @@ describe('BookComponent', () => {
                 provideNoopAnimations(),
                 provideHttpClient(withXhr()),
                 provideHttpClientTesting(),
+                { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: BookService, useValue: books },
                 { provide: InputDeviceService, useValue: { effectivePolicy: vi.fn().mockReturnValue(of({
                     formKey: 'book-registration', station: '', allowedSources: ['MANUAL', 'KEYBOARD_WEDGE'],
@@ -111,6 +114,24 @@ describe('BookComponent', () => {
         component.setReviewBatchMode(true);
         expect(component.reviewBatchMode).toBe(true);
         expect(component.continuousScanMode).toBe(false);
+    });
+
+    it('reports skipped duplicate workbook rows after an import', () => {
+        books.importBooksFromExcel.mockReturnValue(of({
+            success: true, imported: 3, skippedDuplicates: 2, duplicateRows: [4, 8], message: 'ok',
+        }));
+        const snackBar = (component as unknown as { snackBar: MatSnackBar }).snackBar;
+        const open = vi.spyOn(snackBar, 'open');
+        component.excelImportForm.controls.excelFile.setValue(new File(['xlsx'], 'books.xlsx'));
+
+        component.onExcelImportSubmit();
+
+        expect(vi.mocked(books.importBooksFromExcel)).toHaveBeenCalledWith(expect.any(File));
+        expect(open).toHaveBeenCalledWith(
+            expect.stringContaining('3 کتاب وارد شد و 2 ردیف تکراری نادیده گرفته شد. ردیف‌های تکراری: 4، 8.'),
+            'بستن',
+            expect.objectContaining({ duration: 9000, direction: 'rtl' }),
+        );
     });
 
     it('toggles the camera torch when supported and reports unsupported torch controls', async () => {

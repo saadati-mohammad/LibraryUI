@@ -929,12 +929,19 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.importError = null;
 
     this.bookService.importBooksFromExcel(excelFile).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
+      next: (result) => {
         this.isImporting = false;
         this.isExcelImportModalVisible = false;
         this.excelImportForm.reset({ excelFile: null });
+        const skipped = result.skippedDuplicates ?? 0;
+        const duplicateRows = result.duplicateRows?.length
+          ? ` ردیف‌های تکراری: ${result.duplicateRows.join('، ')}.`
+          : '';
+        const message = skipped
+          ? `${result.imported ?? 0} کتاب وارد شد و ${skipped} ردیف تکراری نادیده گرفته شد.${duplicateRows}`
+          : `${result.imported ?? 0} کتاب از فایل اکسل با موفقیت وارد شد.`;
         if (isPlatformBrowser(this.platformId)) {
-          this.snackBar.open('فایل اکسل با موفقیت بارگذاری و پردازش شد.', 'بستن', { duration: 5000, direction: 'rtl' });
+          this.snackBar.open(message, 'بستن', { duration: 9000, direction: 'rtl' });
         }
         this.loadBooks(); // Refresh the book list
       },

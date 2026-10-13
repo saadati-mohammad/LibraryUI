@@ -24,5 +24,7 @@ export interface PaginatedResponse<T> {
 export interface ExcelImportResult {
   success: boolean;
   imported?: number;
+  skippedDuplicates?: number;
+  duplicateRows?: number[];
   message: string;
 }
