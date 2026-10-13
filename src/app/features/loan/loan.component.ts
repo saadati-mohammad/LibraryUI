@@ -22,6 +22,8 @@ import { PersonModel } from '../../core/model/personModel';
 import { BookLoanService } from '../../core/service/book-loan.service';
 import { BookService } from '../../core/service/book.service';
 import { PersonService } from '../../core/service/person.service';
+import { InputDeviceService } from '../../core/service/input-device.service';
+import { isValidIsbn, normalizeIsbn } from '../../core/util/isbn.util';
 import { ListComponent, TableColumn } from '../../shared/component/list/list.component';
 import { ModalComponent } from '../../shared/component/modal/modal.component';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
@@ -78,6 +80,10 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
   isLoanModalVisible = false;
   loanForm: FormGroup;
   isSubmitting = false;
+  scanValue = '';
+  scanStatus = '';
+  scannerInputAllowed = true;
+  scanTarget: 'book' | 'member' = 'book';
 
   // Bounded type-ahead option lists for the create form.
   readonly personOptions = signal<PersonModel[]>([]);
@@ -108,6 +114,7 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
   private loanService = inject(BookLoanService);
   private personService = inject(PersonService);
   private bookService = inject(BookService);
+  private inputDevices = inject(InputDeviceService);
   private snackBar = inject(MatSnackBar);
   private confirmation = inject(ConfirmationService);
   private platformId = inject(PLATFORM_ID);
@@ -203,6 +210,17 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
   openLoanModal(): void {
     this.loanForm.reset({ personId: null, bookId: null, notes: '' });
     this.isLoanModalVisible = true;
+    this.scanValue = '';
+    this.scanStatus = '';
+    this.inputDevices.effectivePolicy('loan-checkout').subscribe({
+      next: policy => {
+        this.scannerInputAllowed = policy.allowedSources.some(source =>
+          source === 'KEYBOARD_WEDGE' || source.startsWith('DEVICE:'),
+        );
+      },
+      // Manual entry remains available when the policy service cannot be reached.
+      error: () => { this.scannerInputAllowed = true; },
+    });
     // Seed both pickers with a bounded first page; the user types to narrow further.
     this.personSearch$.next('');
     this.bookSearch$.next('');
@@ -218,6 +236,54 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
 
   onBookSearch(term: string): void {
     this.bookSearch$.next(term ?? '');
+  }
+
+  processLoanScan(value = this.scanValue): void {
+    const scanned = value.trim();
+    this.scanValue = '';
+    this.scanStatus = '';
+    if (this.scanTarget === 'book') {
+      const isbn = normalizeIsbn(scanned);
+      if (!isValidIsbn(isbn)) {
+        this.scanStatus = 'شابک معتبر نیست؛ شابک کتاب را دوباره اسکن کنید.';
+        return;
+      }
+      this.bookService.getBookList({ active: true, ...(isbn.length === 10 ? { isbn10: isbn } : { isbn13: isbn }) }, 0, SEARCH_PAGE_SIZE)
+        .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: result => {
+            const matches = result.content.filter(book => normalizeIsbn((isbn.length === 10 ? book.isbn10 : book.isbn13) ?? '') === isbn);
+            if (matches.length !== 1 || result.totalElements > 1 || typeof matches[0]?.id !== 'number') {
+              this.scanStatus = matches.length || result.totalElements > 1 ? 'چند کتاب با این شابک پیدا شد؛ کتاب را دستی انتخاب کنید.' : 'کتابی با این شابک پیدا نشد.';
+              return;
+            }
+            this.bookOptions.set([...this.bookOptions().filter(book => book.id !== matches[0].id), matches[0]]);
+            this.loanForm.get('bookId')?.setValue(matches[0].id);
+            this.scanStatus = `کتاب «${matches[0].title ?? ''}» انتخاب شد.`;
+          },
+          error: () => { this.scanStatus = 'جست‌وجوی کتاب انجام نشد؛ اتصال شبکه را بررسی کنید یا کتاب را دستی انتخاب کنید.'; },
+        });
+      return;
+    }
+    const nationalId = scanned.replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+      .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+    if (!/^\d{10}$/.test(nationalId)) {
+      this.scanStatus = 'کد ملی عضو باید ۱۰ رقم باشد.';
+      return;
+    }
+    this.personService.getPersonList({ active: true, nationalId }, 0, SEARCH_PAGE_SIZE)
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: result => {
+          const matches = result.content.filter(person => person.nationalId === nationalId);
+          if (matches.length !== 1 || result.totalElements > 1 || typeof matches[0]?.id !== 'number') {
+            this.scanStatus = matches.length || result.totalElements > 1 ? 'چند عضو با این کد ملی پیدا شد؛ عضو را دستی انتخاب کنید.' : 'عضوی با این کد ملی پیدا نشد.';
+            return;
+          }
+          this.personOptions.set([...this.personOptions().filter(person => person.id !== matches[0].id), matches[0]]);
+          this.loanForm.get('personId')?.setValue(matches[0].id);
+          this.scanStatus = `عضو «${matches[0].firstName ?? ''} ${matches[0].lastName ?? ''}» انتخاب شد.`;
+        },
+        error: () => { this.scanStatus = 'جست‌وجوی عضو انجام نشد؛ اتصال شبکه را بررسی کنید یا عضو را دستی انتخاب کنید.'; },
+      });
   }
 
   formatPerson = (value: number | string | null): string => {

@@ -52,8 +52,11 @@ import type { DecodeHintType as DecodeHintKey } from '@zxing/library';
             <input #barcodeInput id="phoneBarcode" type="text" inputmode="numeric" autocomplete="off"
               [value]="barcodeValue" (input)="barcodeValue = $any($event.target).value"
               (keydown.enter)="$event.preventDefault(); submitBarcode()" placeholder="ISBN و سپس Enter" />
-            <button type="button" class="primary" (click)="submitBarcode()" [disabled]="sending">ارسال</button>
+            <button type="button" class="primary" (click)="submitBarcode()" [disabled]="sending">
+              {{sending ? 'در حال ارسال…' : pendingBarcodes.length ? 'ارسال دوبارهٔ صف (' + pendingBarcodes.length + ')' : 'ارسال'}}
+            </button>
           </div>
+          @if (pendingBarcodes.length) { <p class="status" role="status">{{pendingBarcodes.length}} بارکد در صف ارسال است.</p> }
           <p class="status" aria-live="polite" role="status">{{statusMessage}}</p>
         }
       </section>
@@ -86,6 +89,7 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
   torchSupported = false;
   torchEnabled = false;
   sending = false;
+  readonly pendingBarcodes: string[] = [];
   private readonly handleHashChange = (): void => this.readPairFromHash();
 
   ngOnInit(): void {
@@ -211,6 +215,11 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
   }
 
   submitBarcode(rawValue = this.barcodeValue, refocusInput = true): void {
+    if (!rawValue.trim() && this.pendingBarcodes.length > 0) {
+      const queued = this.pendingBarcodes.shift()!;
+      this.sendBarcode(queued, refocusInput, true);
+      return;
+    }
     const barcode = normalizeIsbn(rawValue);
     if (!isValidIsbn(barcode)) {
       this.statusMessage = 'بارکد ISBN معتبر نیست؛ بارکد کتاب را دوباره بخوانید.';
@@ -218,23 +227,42 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
     }
     const now = Date.now();
     if (barcode === this.lastSubmitted && now - this.lastSubmittedAt < 1_200) return;
-    if (this.sending) return;
+    if (this.sending) {
+      if (this.pendingBarcodes.length >= 50) {
+        this.statusMessage = 'صف اسکن پر است؛ پس از پایان ارسال دوباره اسکن کنید.';
+        return;
+      }
+      this.pendingBarcodes.push(barcode);
+      this.barcodeValue = '';
+      this.statusMessage = `${this.pendingBarcodes.length} بارکد در صف ارسال است.`;
+      this.changeDetector.detectChanges();
+      return;
+    }
+    this.sendBarcode(barcode, refocusInput);
+  }
+
+  private sendBarcode(barcode: string, refocusInput: boolean, retry = false): void {
+    const now = Date.now();
+    if (!retry && barcode === this.lastSubmitted && now - this.lastSubmittedAt < 1_200) return;
     this.sending = true;
     this.barcodeValue = '';
+    this.lastSubmitted = barcode;
+    this.lastSubmittedAt = now;
     const submission = this.registeredDeviceId !== null
       ? this.relay.submitRegisteredFromPhone(this.sessionId, this.pairingToken, barcode, this.registeredDeviceId, this.registeredDeviceToken)
       : this.relay.submitFromPhone(this.sessionId, this.pairingToken, barcode);
     submission.subscribe({
       next: scan => this.zone.run(() => {
-          this.lastSubmitted = barcode;
           this.lastSubmittedAt = Date.now();
           this.statusMessage = `بارکد ${scan.barcode} به رایانه ارسال شد.`;
           this.sending = false;
           try { navigator.vibrate?.(45); } catch { /* Haptics are optional on unsupported devices. */ }
           this.changeDetector.detectChanges();
           if (refocusInput) setTimeout(() => this.barcodeInput?.nativeElement.focus(), 0);
+          if (this.pendingBarcodes.length) setTimeout(() => this.submitBarcode('', false), 0);
         }),
       error: (error: { status?: number }) => this.zone.run(() => {
+          this.pendingBarcodes.unshift(barcode);
           if (error.status === 401) {
             this.registeredDeviceId = null;
             this.registeredDeviceToken = '';
@@ -243,7 +271,7 @@ export class PhoneScannerComponent implements OnInit, OnDestroy {
           this.statusMessage = error.status === 410
             ? 'اتصال منقضی شده؛ QR تازه‌ای از رایانه اسکن کنید.'
             : error.status === 401 ? 'دسترسی اسکنر لغو شده است؛ از مدیر بخواهید گوشی را دوباره ثبت کند.'
-            : 'ارسال انجام نشد؛ اتصال شبکه را بررسی کنید و دوباره اسکن کنید.';
+            : `ارسال انجام نشد؛ ${this.pendingBarcodes.length} بارکد در صف حفظ شد. اتصال را بررسی و ارسال دوباره را بزنید.`;
           this.sending = false;
           this.changeDetector.detectChanges();
         }),

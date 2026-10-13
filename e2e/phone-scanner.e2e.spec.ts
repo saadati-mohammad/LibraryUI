@@ -53,6 +53,27 @@ test('phone scanner keeps keyboard input ready for consecutive no-mouse scans', 
   await expect.poll(() => scans).toEqual(['9780306406157', '9780140328721']);
 });
 
+test('phone scanner retains a barcode after a network error and can retry it', async ({ page }) => {
+  let attempts = 0;
+  await page.route('**/api/phone-scanner/sessions/**', async route => {
+    attempts += 1;
+    if (attempts === 1) {
+      await route.fulfill({ status: 503, json: { message: 'offline' } });
+      return;
+    }
+    const body = route.request().postDataJSON() as { barcode: string };
+    await route.fulfill({ json: { sequence: 1, barcode: body.barcode, receivedAt: new Date().toISOString() } });
+  });
+
+  await page.goto(`/phone-scan#pair=${sessionId}.${pairingToken}`);
+  await page.locator('#phoneBarcode').fill('9780306406157');
+  await page.locator('#phoneBarcode').press('Enter');
+  await expect(page.getByRole('status').last()).toContainText('بارکد در صف حفظ شد');
+  await page.getByRole('button', { name: /ارسال دوبارهٔ صف/ }).click();
+  await expect.poll(() => attempts).toBe(2);
+  await expect(page.getByRole('status').last()).toContainText('به رایانه ارسال شد');
+});
+
 test('registered phone retains its enrollment and authenticates continuous session scans', async ({ page }) => {
   const deviceToken = 'registered-phone-token-012345678901234567890123456789012345';
   let requestBody: Record<string, unknown> | undefined;

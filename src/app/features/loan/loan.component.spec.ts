@@ -7,6 +7,7 @@ import { LoanComponent } from './loan.component';
 import { BookLoanService } from '../../core/service/book-loan.service';
 import { BookService } from '../../core/service/book.service';
 import { PersonService } from '../../core/service/person.service';
+import { InputDeviceService } from '../../core/service/input-device.service';
 import { BookLoanModel } from '../../core/model/bookLoanModel';
 import { PersonModel } from '../../core/model/personModel';
 import { BookModel } from '../../core/model/bookModel';
@@ -27,7 +28,7 @@ const LOAN: BookLoanModel = {
 };
 
 const PERSON = { id: 1, firstName: 'حسن', lastName: 'نوری', nationalId: '0012345678' } as PersonModel;
-const BOOK = { id: 2, title: 'بوف کور', author: 'هدایت' } as BookModel;
+const BOOK = { id: 2, title: 'بوف کور', author: 'هدایت', isbn10: '0306406152', isbn13: '9780306406157' } as BookModel;
 
 function page<T>(content: T[], size = 10) {
     return { content, totalPages: 1, totalElements: content.length, size, number: 0 };
@@ -39,6 +40,7 @@ describe('LoanComponent', () => {
     let loans: MockedObject<BookLoanService>;
     let persons: MockedObject<PersonService>;
     let books: MockedObject<BookService>;
+    let inputDevices: MockedObject<InputDeviceService>;
     let confirmation: MockedObject<ConfirmationService>;
 
     beforeEach(async () => {
@@ -57,6 +59,10 @@ describe('LoanComponent', () => {
             getBookList: vi.fn().mockName("BookService.getBookList")
         } as MockedObject<BookService>;
         books.getBookList.mockReturnValue(of(page([BOOK], 25)));
+        inputDevices = { effectivePolicy: vi.fn().mockReturnValue(of({
+            formKey: 'loan-checkout', station: '', allowedSources: ['MANUAL', 'KEYBOARD_WEDGE'],
+            defaultSource: 'MANUAL', scope: 'system-default', updatedBy: null, updatedAt: null, version: 0,
+        })) } as unknown as MockedObject<InputDeviceService>;
         confirmation = {
             confirm: vi.fn().mockName("ConfirmationService.confirm")
         } as MockedObject<ConfirmationService>;
@@ -69,6 +75,7 @@ describe('LoanComponent', () => {
                 { provide: BookLoanService, useValue: loans },
                 { provide: PersonService, useValue: persons },
                 { provide: BookService, useValue: books },
+                { provide: InputDeviceService, useValue: inputDevices },
                 { provide: ConfirmationService, useValue: confirmation },
             ],
         }).compileComponents();
@@ -132,6 +139,30 @@ describe('LoanComponent', () => {
         expect(component.isLoanModalVisible).toBe(true);
         // Opened with an empty term, which the debounce has not yet flushed.
         expect(persons.getPersonList).not.toHaveBeenCalled();
+    });
+
+    it('uses a valid ISBN scan to select the exact loan book', () => {
+        component.openLoanModal();
+        component.processLoanScan('978-0-306-40615-7');
+        expect(books.getBookList).toHaveBeenCalledWith({ active: true, isbn13: '9780306406157' }, 0, 25);
+        expect(component.loanForm.get('bookId')?.value).toBe(2);
+        expect(component.scanStatus).toContain('بوف کور');
+    });
+
+    it('does not silently pick a book when a scan is duplicated', () => {
+        component.openLoanModal();
+        books.getBookList.mockReturnValue(of({ ...page([BOOK], 25), totalElements: 2 }));
+        component.processLoanScan('9780306406157');
+        expect(component.loanForm.get('bookId')?.value).toBeNull();
+        expect(component.scanStatus).toContain('چند کتاب');
+    });
+
+    it('uses Persian national-ID digits to select the exact loan member', () => {
+        component.openLoanModal();
+        component.scanTarget = 'member';
+        component.processLoanScan('۰۰۱۲۳۴۵۶۷۸');
+        expect(persons.getPersonList).toHaveBeenCalledWith({ active: true, nationalId: '0012345678' }, 0, 25);
+        expect(component.loanForm.get('personId')?.value).toBe(1);
     });
 
     it('searches members through a bounded, debounced request', fakeAsync(() => {
