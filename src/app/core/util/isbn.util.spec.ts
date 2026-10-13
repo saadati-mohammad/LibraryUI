@@ -13,6 +13,12 @@ describe('ISBN utilities', () => {
     expect(isValidIsbn('1234567890123')).toBe(false);
   });
 
+  it('normalizes Persian and Arabic-Indic digits for scan and manual entry', () => {
+    expect(normalizeIsbn('۹۷۸-۰۳۰۶۴۰۶۱۵۷')).toBe('9780306406157');
+    expect(normalizeIsbn('٩٧٨ ٠٣٠٦٤٠٦١٥٧')).toBe('9780306406157');
+    expect(isValidIsbn('۹۷۸-۰۳۰۶۴۰۶۱۵۷')).toBe(true);
+  });
+
   it('converts only valid 978 ISBN-13 values back to ISBN-10', () => {
     expect(isbn13To10('9780306406157')).toBe('0306406152');
     expect(isbn13To10('9791090636071')).toBeNull();
