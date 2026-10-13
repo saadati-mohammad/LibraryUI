@@ -65,7 +65,7 @@ import { StaffAccount, StaffRole } from '../../core/model/staff-account.model';
     h2{font-size:1.15rem;margin:0 0 18px}.account-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
     label{display:grid;gap:7px;font-weight:650;font-size:.92rem}input,select{width:100%;min-height:44px;padding:9px 12px;border:1px solid #aabbb0;border-radius:9px;background:#fff;color:#172c22;font:inherit}
     input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #238453;outline-offset:2px}.form-actions{display:flex;gap:10px;align-items:center}
-    button{min-height:40px;border:0;border-radius:9px;padding:9px 15px;font:inherit;font-weight:700;cursor:pointer}.primary{background:#176b43;color:white}.secondary{background:#edf4ef;color:#244b35}.danger{background:#fff0ee;color:#922f27}
+    button{min-height:40px;border:0;border-radius:9px;padding:9px 15px;font:inherit;font-weight:700;cursor:pointer}.primary{background:#176b43;color:white;margin-top: 1.9rem;}.secondary{background:#edf4ef;color:#244b35}.danger{background:#fff0ee;color:#922f27}
     button:disabled{opacity:.6;cursor:wait}.help,.empty{color:#5c6e63;font-size:.9rem;margin:14px 0 0}.username{align-self:center;color:#52665b}
     .section-heading{display:flex;justify-content:space-between;align-items:center}.section-heading h2{margin-bottom:0}.account-list{display:grid;gap:10px;margin-top:18px}
     .account-row{display:grid;grid-template-columns:minmax(160px,1fr) auto auto auto;gap:16px;align-items:center;padding:14px;border:1px solid #e0e9e3;border-radius:12px}
