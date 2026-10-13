@@ -13,6 +13,7 @@ import { BookModel } from '../../core/model/bookModel';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
 import { FilePickerComponent } from '../../shared/component/file-picker/file-picker.component';
 import { InputDeviceService } from '../../core/service/input-device.service';
+import { CameraBarcodeScannerService } from '../../core/service/camera-barcode-scanner.service';
 
 const BOOK: BookModel = {
     id: 21,
@@ -143,9 +144,9 @@ describe('BookComponent', () => {
     });
 
     it('toggles the camera torch when supported and reports unsupported torch controls', async () => {
-        const switchTorch = vi.fn().mockResolvedValue(undefined);
-        (component as unknown as { scannerControls: { stop: () => void; switchTorch?: (enabled: boolean) => Promise<void> } | null })
-            .scannerControls = { stop: vi.fn(), switchTorch };
+        const cameraScanner = TestBed.inject(CameraBarcodeScannerService);
+        const switchTorch = vi.spyOn(cameraScanner, 'switchTorch').mockImplementation(async enabled => enabled);
+        component.torchSupported = true;
         await component.toggleCameraTorch();
         expect(switchTorch).toHaveBeenCalledWith(true);
         expect(component.torchEnabled).toBe(true);
@@ -153,7 +154,7 @@ describe('BookComponent', () => {
         expect(switchTorch).toHaveBeenLastCalledWith(false);
         expect(component.torchEnabled).toBe(false);
 
-        (component as unknown as { scannerControls: null }).scannerControls = null;
+        component.torchSupported = false;
         await component.toggleCameraTorch();
         expect(component.scanStatus).toContain('پشتیبانی نمی‌شود');
     });

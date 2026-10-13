@@ -32,9 +32,8 @@ import { isValidIsbn, isbn13To10, normalizeIsbn } from "../../core/util/isbn.uti
 import { PagedFilterPage } from '../../shared/component/paged-filter-page';
 import { BookFormFactory, todayIso } from './book-form.factory';
 import { InputDeviceService } from '../../core/service/input-device.service';
+import { CameraBarcodeScannerService } from '../../core/service/camera-barcode-scanner.service';
 import type { InputFormPolicy } from '../../core/model/input-device.model';
-import type { IScannerControls } from '@zxing/browser';
-import type { DecodeHintType as DecodeHintKey } from '@zxing/library';
 
 export enum FormOperation {
   ADD = 'ADD',
@@ -124,6 +123,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   private confirmation = inject(ConfirmationService);
   private readonly metadata = inject(BookMetadataService);
   private readonly inputDevices = inject(InputDeviceService);
+  private readonly cameraScanner = inject(CameraBarcodeScannerService);
   private readonly phoneBarcodeRelay = inject(PhoneBarcodeRelayService);
   private platformId = inject(PLATFORM_ID);
 
@@ -153,7 +153,6 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   private readonly pendingBatchIsbns: string[] = [];
   readonly reviewBatchIsbns: string[] = [];
   private isReviewingBatchItem = false;
-  private scannerControls: IScannerControls | null = null;
 
   constructor() {
     super();
@@ -587,51 +586,31 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.isStartingCamera = true;
     this.scanStatus = 'برای شروع اسکن، اجازهٔ دسترسی به دوربین را تأیید کنید.';
     try {
-      const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
-        import('@zxing/browser'),
-        import('@zxing/library'),
-      ]);
-      const hints = new Map<DecodeHintKey, unknown>();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.UPC_A, BarcodeFormat.CODE_128]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
-      const reader = new BrowserMultiFormatReader(hints);
-      const videoConstraints: MediaTrackConstraints = this.selectedCameraId
-        ? { deviceId: { exact: this.selectedCameraId } }
-        : { facingMode: { ideal: 'environment' } };
-      this.scannerControls = await reader.decodeFromConstraints(
-        { audio: false, video: videoConstraints },
-        video,
-        (result) => {
+      const session = await this.cameraScanner.start(video, this.selectedCameraId, rawValue => {
           if (!this.isCameraScanning) return;
-          if (!result) {
+          if (!rawValue) {
             if (++this.emptyCameraFrames >= 8) this.lastCameraIsbn = null;
             return;
           }
-          const cameraIsbn = normalizeIsbn(result.getText());
+          const cameraIsbn = normalizeIsbn(rawValue);
+          if (!cameraIsbn) return;
           this.emptyCameraFrames = 0;
           if (cameraIsbn && cameraIsbn === this.lastCameraIsbn) return;
           this.lastCameraIsbn = cameraIsbn;
-          this.barcodeValue = result.getText();
+          this.barcodeValue = rawValue;
           if (!this.continuousScanMode) this.stopCameraScan();
           this.lookupScannedIsbn();
-        },
-      );
+        });
       this.isCameraScanning = true;
-      const [devices, track] = await Promise.all([
-        BrowserMultiFormatReader.listVideoInputDevices().catch(() => []),
-        Promise.resolve(video.srcObject instanceof MediaStream ? video.srcObject.getVideoTracks()[0] : undefined),
-      ]);
-      this.cameraDevices = devices;
-      const activeTrackId = track?.getSettings().deviceId;
-      this.selectedCameraId = activeTrackId ?? this.selectedCameraId;
-      this.torchSupported = typeof this.scannerControls?.switchTorch === 'function';
+      this.cameraDevices = session.devices;
+      this.selectedCameraId = session.selectedDeviceId;
+      this.torchSupported = session.torchSupported;
       this.torchEnabled = false;
       this.scanStatus = this.torchSupported
         ? 'دوربین فعال است؛ بارکد را در قاب نگه دارید. چراغ‌قوه در دسترس است.'
         : 'دوربین فعال است؛ بارکد را در قاب نگه دارید.';
     } catch (error) {
-      this.scannerControls?.stop();
-      this.scannerControls = null;
+      this.cameraScanner.stop();
       this.isCameraScanning = false;
       this.scanStatus = this.cameraErrorMessage(error);
     } finally {
@@ -641,8 +620,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
 
   /** Stops the video stream immediately when a code is read or the dialog is closed. */
   stopCameraScan(): void {
-    this.scannerControls?.stop();
-    this.scannerControls = null;
+    this.cameraScanner.stop();
     this.isCameraScanning = false;
     this.torchEnabled = false;
   }
@@ -655,13 +633,13 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   }
 
   async toggleCameraTorch(): Promise<void> {
-    if (!this.scannerControls?.switchTorch) {
+    if (!this.torchSupported) {
       this.scanStatus = 'چراغ‌قوه توسط این دوربین یا مرورگر پشتیبانی نمی‌شود.';
       return;
     }
     try {
-      await this.scannerControls.switchTorch(!this.torchEnabled);
-      this.torchEnabled = !this.torchEnabled;
+      this.torchEnabled = await this.cameraScanner.switchTorch(!this.torchEnabled);
+      if (!this.torchEnabled) this.scanStatus = 'کنترل چراغ‌قوه در این دستگاه در دسترس نیست.';
     } catch {
       this.torchSupported = false;
       this.torchEnabled = false;
