@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import type { InputDeviceRuntimeProfile } from '../../core/model/input-device.model';
 import { KeyboardWedgeScannerDirective } from './keyboard-wedge-scanner.directive';
 
