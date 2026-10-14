@@ -38,9 +38,13 @@ Entries cover the coordinated `feature/system-overhaul` branch (2026-10-11 → 2
   extracted from `BookComponent`. [T-040]
 - **`BookFormFactory` / `PersonFormFactory` / `LoanFormFactory`**: form schema construction extracted from components.
   [T-040]
+- **Multi-device responsive & visual audit suite** (`e2e/device-responsiveness.e2e.spec.ts`): tests 8 viewport
+  breakpoints from 320px mobile to 2560px 2K ultrawide across all public and staff routes, dialogs, and themes. [T-017]
 
 ### Fixed
 
+- Tablet portrait (768px) hero section overflow eliminated by replacing viewport-unit padding with percentage
+  calculation and applying paint containment to hero art graphics. [T-017]
 - ISBN normalization and checksum validation applied consistently across manual entry, scan and import
   paths (ASCII / Persian / Arabic-Indic digits and separators). [T-024]
 - Staff form primary action alignment for account creation and editing. [T-016]
