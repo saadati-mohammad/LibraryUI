@@ -1,6 +1,6 @@
 import { CommonModule, isPlatformBrowser } from "@angular/common";
 import { Component, DestroyRef, inject, Input, OnDestroy, OnInit, PLATFORM_ID, ChangeDetectionStrategy } from "@angular/core";
-import { AbstractControl, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
+import { ReactiveFormsModule, FormGroup, FormBuilder } from "@angular/forms";
 import { MatButtonModule } from "@angular/material/button";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatIconModule } from "@angular/material/icon";
@@ -12,8 +12,7 @@ import { Observable, Subscription, catchError, interval, of, switchMap } from "r
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { BookFilterModel, BookModel } from "../../core/model/bookModel";
 import { BookService } from "../../core/service/book.service";
-import { PaginatedResponse } from "../../core/model/paginated-response.model";
-import { notFutureDate } from "../../core/util/date.util";
+import { ExcelImportResult, PaginatedResponse } from "../../core/model/paginated-response.model";
 import { ListComponent, TableColumn } from "../../shared/component/list/list.component";
 import { ModalComponent } from "../../shared/component/modal/modal.component";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
@@ -31,27 +30,16 @@ import { BookMetadata, BookMetadataService } from "../../core/service/book-metad
 import { PhoneBarcodeRelayService, PhoneScannerSession } from "../../core/service/phone-barcode-relay.service";
 import { isValidIsbn, isbn13To10, normalizeIsbn } from "../../core/util/isbn.util";
 import { PagedFilterPage } from '../../shared/component/paged-filter-page';
-import type { IScannerControls } from '@zxing/browser';
-import type { DecodeHintType as DecodeHintKey } from '@zxing/library';
+import { BookFormFactory, todayIso } from './book-form.factory';
+import { InputDeviceService } from '../../core/service/input-device.service';
+import { CameraBarcodeScannerService } from '../../core/service/camera-barcode-scanner.service';
+import type { InputDeviceRuntimeProfile, InputFormPolicy } from '../../core/model/input-device.model';
+import { KeyboardWedgeScannerDirective } from '../../shared/directive/keyboard-wedge-scanner.directive';
 
 export enum FormOperation {
   ADD = 'ADD',
   UPDATE = 'UPDATE',
   VIEW = 'VIEW' // اضافه کردن حالت مشاهده
-}
-
-/** ISO date of today — the upper bound of the publication-date field. */
-function todayIso(): string {
-  const now = new Date();
-  const month = `${now.getMonth() + 1}`.padStart(2, '0');
-  const day = `${now.getDate()}`.padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
-}
-
-function isbnRequired(control: AbstractControl): { isbnRequired: true } | null {
-  const isbn10 = String(control.get('isbn10')?.value ?? '').trim();
-  const isbn13 = String(control.get('isbn13')?.value ?? '').trim();
-  return isbn10 || isbn13 ? null : { isbnRequired: true };
 }
 
 @Component({
@@ -77,6 +65,7 @@ function isbnRequired(control: AbstractControl): { isbnRequired: true } | null {
     ModalComponent,
     DateInputComponent,
     FilePickerComponent,
+    KeyboardWedgeScannerDirective,
   ],
   templateUrl: './book.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -118,11 +107,14 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   filterPanelOpenState = false;
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly bookForms = inject(BookFormFactory);
 
   // مربوط به بارگذاری اکسل
   isExcelImportModalVisible = false;
   isImporting = false;
   importError: string | null = null;
+  importPreview: ExcelImportResult | null = null;
+  private previewedImportFile: File | null = null;
   excelFilePath = 'book-import-template.xlsx'; // مسیر فایل اکسل
 
 
@@ -132,16 +124,25 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   private snackBar = inject(MatSnackBar);
   private confirmation = inject(ConfirmationService);
   private readonly metadata = inject(BookMetadataService);
+  private readonly inputDevices = inject(InputDeviceService);
+  private readonly cameraScanner = inject(CameraBarcodeScannerService);
   private readonly phoneBarcodeRelay = inject(PhoneBarcodeRelayService);
   private platformId = inject(PLATFORM_ID);
 
   barcodeValue = '';
+  inputPolicy: InputFormPolicy | null = null;
   catalogSearchQuery = '';
   scanStatus: string | null = null;
   isLookingUpMetadata = false;
   isStartingCamera = false;
   isCameraScanning = false;
+  cameraDevices: MediaDeviceInfo[] = [];
+  selectedCameraId = '';
+  torchSupported = false;
+  torchEnabled = false;
   continuousScanMode = false;
+  /** Review-first alternative to automatic continuous registration. */
+  reviewBatchMode = false;
   private lastCameraIsbn: string | null = null;
   private emptyCameraFrames = 0;
   metadataCandidates: BookMetadata[] = [];
@@ -152,76 +153,40 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
   private lastPhoneScanSequence = 0;
   private readonly completedScans = new Set<string>();
   private readonly pendingBatchIsbns: string[] = [];
-  private scannerControls: IScannerControls | null = null;
+  readonly reviewBatchIsbns: string[] = [];
+  private isReviewingBatchItem = false;
 
   constructor() {
     super();
-    this.bookForm = this.fb.group({
-      isbn10: [null],
-      title: [null, Validators.required],
-      author: [null, Validators.required],
-      translator: [null],
-      description: [''],
-      publisher: [null],
-      isbn13: [null],
-      deweyDecimal: [null],
-      congressClassification: [null],
-      subject: [null, Validators.required],
-      summary: [''],
-      publicationDate: [null, [notFutureDate]],
-      pageCount: [null, [Validators.min(1), Validators.max(100000)]],
-      language: [null],
-      edition: [null],
-      active: [true, Validators.required],
-      copyCount: [null, [Validators.min(0), Validators.max(100000)]],
-      librarySection: [null],
-      shelfCode: [null],
-      rowNumbers: [null],
-      columnNumber: [null],
-      positionNote: [''],
-      /**
-       * Cover is held in the form so `<app-file-picker formControlName="bookCoverFile">`
-       * can clear it (`null`) — the tri-state signal that tells the API to delete the
-       * stored cover. It is stripped from the JSON payload before submit.
-       */
-      bookCoverFile: [null as File | null],
-    }, { validators: isbnRequired });
-
-    // --- BEGIN MODIFICATION: Expanded Filter Form ---
-    this.bookFiltersForm = this.fb.group({
-      title: [''],
-      author: [''],
-      translator: [''],
-      publisher: [''],
-      isbn10: [''],
-      isbn13: [''],
-      description: [''],
-      deweyDecimal: [''],
-      congressClassification: [''],
-      subject: [''],
-      summary: [''],
-      publicationDate: [null],
-      pageCount: [null, [Validators.min(1)]],
-      language: [''],
-      edition: [''],
-      // Defaults to "فعال" so a soft-deleted (active=false) book disappears from the list
-      // as operators expect; "همه"/"غیرفعال" remain one click away.
-      active: [true],
-      copyCount: [null, [Validators.min(0)]],
-      librarySection: [''],
-      shelfCode: [''],
-      rowNumbers: [''],
-      columnNumber: [''],
-      positionNote: ['']
-    });
-    // --- END MODIFICATION ---
+    this.bookForm = this.bookForms.createEditorForm();
+    this.bookFiltersForm = this.bookForms.createFiltersForm();
   }
 
   ngOnInit(): void {
     this.setupTableColumns();
     this.loadBooks();
+    this.inputDevices.effectivePolicy('book-registration').subscribe({
+      next: policy => { this.inputPolicy = policy; },
+      error: () => { this.inputPolicy = null; },
+    });
 
     this.watchFilters(this.bookFiltersForm);
+  }
+
+  isInputSourceAllowed(source: string): boolean {
+    const allowed = this.inputPolicy?.allowedSources;
+    if (!allowed) return true;
+    if (allowed.includes(source)) return true;
+    return source === 'KEYBOARD_WEDGE' && !!this.keyboardWedgeProfile;
+  }
+
+  get keyboardWedgeProfile(): InputDeviceRuntimeProfile | null {
+    return this.inputPolicy?.deviceProfiles?.find(profile => profile.typeKey === 'KEYBOARD_WEDGE') ?? null;
+  }
+
+  handleKeyboardWedgeScan(value: string): void {
+    this.barcodeValue = value;
+    this.lookupScannedIsbn();
   }
 
   ngOnDestroy(): void {
@@ -327,12 +292,14 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.hasStoredCover = false;
     this.barcodeValue = '';
     this.continuousScanMode = false;
+    this.reviewBatchMode = false;
     this.lastCameraIsbn = null;
     this.emptyCameraFrames = 0;
     this.scanStatus = null;
     this.metadataCandidates = [];
     this.completedScans.clear();
     this.pendingBatchIsbns.length = 0;
+    this.reviewBatchIsbns.length = 0;
 
     if ((operation === FormOperation.UPDATE || operation === FormOperation.VIEW) && book) {
       this.currentEditingBookId = book.id ?? null;
@@ -402,12 +369,48 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     }
   }
 
+  /** Loads a reviewed queue item into the existing metadata lookup flow. */
+  reviewBatchItem(isbn: string): void {
+    if (this.isLookingUpMetadata || this.isSubmitting) return;
+    this.barcodeValue = isbn;
+    this.isReviewingBatchItem = true;
+    this.lookupScannedIsbn();
+    this.isReviewingBatchItem = false;
+  }
+
+  removeReviewBatchItem(isbn: string): void {
+    const index = this.reviewBatchIsbns.indexOf(isbn);
+    if (index >= 0) this.reviewBatchIsbns.splice(index, 1);
+    this.scanStatus = `مورد از صف بازبینی حذف شد؛ ${this.reviewBatchIsbns.length} مورد باقی مانده است.`;
+  }
+
+  setContinuousScanMode(enabled: boolean): void {
+    this.continuousScanMode = enabled;
+    if (enabled) this.reviewBatchMode = false;
+  }
+
+  setReviewBatchMode(enabled: boolean): void {
+    this.reviewBatchMode = enabled;
+    if (enabled) this.continuousScanMode = false;
+  }
+
   /** Handles only the focused scanner field, so normal keyboard input remains untouched. */
   lookupScannedIsbn(): void {
     const isbn = normalizeIsbn(this.barcodeValue);
     if (!isbn) { this.scanStatus = 'اسکن خالی است؛ شابک را وارد کنید.'; return; }
     if (!isValidIsbn(isbn)) { this.scanStatus = 'بارکد شابک معتبر نیست. رقم کنترلی را بررسی یا اطلاعات را دستی وارد کنید.'; return; }
     this.barcodeValue = '';
+    if (this.reviewBatchMode && !this.isReviewingBatchItem) {
+      if (this.reviewBatchIsbns.includes(isbn)) {
+        this.scanStatus = 'این شابک از قبل در صف بازبینی است.';
+      } else if (this.reviewBatchIsbns.length >= 50) {
+        this.scanStatus = 'صف بازبینی به سقف ۵۰ مورد رسیده؛ ابتدا چند مورد را بررسی یا حذف کنید.';
+      } else {
+        this.reviewBatchIsbns.push(isbn);
+        this.scanStatus = `شابک به صف بازبینی اضافه شد (${this.reviewBatchIsbns.length} مورد).`;
+      }
+      return;
+    }
     if (this.continuousScanMode) {
       this.pendingBatchIsbns.push(isbn);
       this.processNextBatchScan();
@@ -427,6 +430,8 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.metadata.lookup(isbn).subscribe({
       next: (candidates) => {
         this.completedScans.add(isbn);
+        const reviewedIndex = this.reviewBatchIsbns.indexOf(isbn);
+        if (reviewedIndex >= 0) this.reviewBatchIsbns.splice(reviewedIndex, 1);
         this.metadataCandidates = candidates;
         if (candidates.length === 1 && candidates[0]) this.applyMetadata(candidates[0]);
         else {
@@ -594,37 +599,31 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.isStartingCamera = true;
     this.scanStatus = 'برای شروع اسکن، اجازهٔ دسترسی به دوربین را تأیید کنید.';
     try {
-      const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
-        import('@zxing/browser'),
-        import('@zxing/library'),
-      ]);
-      const hints = new Map<DecodeHintKey, unknown>();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.UPC_A, BarcodeFormat.CODE_128]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
-      const reader = new BrowserMultiFormatReader(hints);
-      this.scannerControls = await reader.decodeFromConstraints(
-        { audio: false, video: { facingMode: { ideal: 'environment' } } },
-        video,
-        (result) => {
+      const session = await this.cameraScanner.start(video, this.selectedCameraId, rawValue => {
           if (!this.isCameraScanning) return;
-          if (!result) {
+          if (!rawValue) {
             if (++this.emptyCameraFrames >= 8) this.lastCameraIsbn = null;
             return;
           }
-          const cameraIsbn = normalizeIsbn(result.getText());
+          const cameraIsbn = normalizeIsbn(rawValue);
+          if (!cameraIsbn) return;
           this.emptyCameraFrames = 0;
           if (cameraIsbn && cameraIsbn === this.lastCameraIsbn) return;
           this.lastCameraIsbn = cameraIsbn;
-          this.barcodeValue = result.getText();
+          this.barcodeValue = rawValue;
           if (!this.continuousScanMode) this.stopCameraScan();
           this.lookupScannedIsbn();
-        },
-      );
+        });
       this.isCameraScanning = true;
-      this.scanStatus = 'دوربین فعال است؛ بارکد را در قاب نگه دارید.';
+      this.cameraDevices = session.devices;
+      this.selectedCameraId = session.selectedDeviceId;
+      this.torchSupported = session.torchSupported;
+      this.torchEnabled = false;
+      this.scanStatus = this.torchSupported
+        ? 'دوربین فعال است؛ بارکد را در قاب نگه دارید. چراغ‌قوه در دسترس است.'
+        : 'دوربین فعال است؛ بارکد را در قاب نگه دارید.';
     } catch (error) {
-      this.scannerControls?.stop();
-      this.scannerControls = null;
+      this.cameraScanner.stop();
       this.isCameraScanning = false;
       this.scanStatus = this.cameraErrorMessage(error);
     } finally {
@@ -634,9 +633,31 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
 
   /** Stops the video stream immediately when a code is read or the dialog is closed. */
   stopCameraScan(): void {
-    this.scannerControls?.stop();
-    this.scannerControls = null;
+    this.cameraScanner.stop();
     this.isCameraScanning = false;
+    this.torchEnabled = false;
+  }
+
+  async selectCamera(deviceId: string, video: HTMLVideoElement): Promise<void> {
+    if (!deviceId || deviceId === this.selectedCameraId) return;
+    this.selectedCameraId = deviceId;
+    this.stopCameraScan();
+    await this.startCameraScan(video);
+  }
+
+  async toggleCameraTorch(): Promise<void> {
+    if (!this.torchSupported) {
+      this.scanStatus = 'چراغ‌قوه توسط این دوربین یا مرورگر پشتیبانی نمی‌شود.';
+      return;
+    }
+    try {
+      this.torchEnabled = await this.cameraScanner.switchTorch(!this.torchEnabled);
+      if (!this.torchEnabled) this.scanStatus = 'کنترل چراغ‌قوه در این دستگاه در دسترس نیست.';
+    } catch {
+      this.torchSupported = false;
+      this.torchEnabled = false;
+      this.scanStatus = 'کنترل چراغ‌قوه در این دستگاه در دسترس نیست.';
+    }
   }
 
   private cameraErrorMessage(error: unknown): string {
@@ -720,6 +741,7 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.continuousScanMode = false;
     this.closePhoneScannerSession();
     this.pendingBatchIsbns.length = 0;
+    this.reviewBatchIsbns.length = 0;
     this.stopCameraScan();
     this.isBookModalVisible = false;
   }
@@ -879,10 +901,20 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.excelImportForm.reset({ excelFile: null });
     this.importError = null;
     this.isImporting = false;
+    this.importPreview = null;
+    this.previewedImportFile = null;
   }
 
   onExcelImportModalClose(): void {
     this.isExcelImportModalVisible = false;
+    this.importPreview = null;
+    this.previewedImportFile = null;
+  }
+
+  onExcelFileChange(): void {
+    this.importPreview = null;
+    this.previewedImportFile = null;
+    this.importError = null;
   }
 
   /** Excel picker validation message (wrong extension or too large). */
@@ -899,26 +931,55 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
     this.isImporting = true;
     this.importError = null;
 
+    if (!this.importPreview || this.previewedImportFile !== excelFile) {
+      this.bookService.previewBooksFromExcel(excelFile).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (preview) => {
+          this.isImporting = false;
+          this.importPreview = preview;
+          this.previewedImportFile = excelFile;
+        },
+        error: (err) => this.handleExcelImportError(err),
+      });
+      return;
+    }
+
     this.bookService.importBooksFromExcel(excelFile).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
+      next: (result) => {
         this.isImporting = false;
         this.isExcelImportModalVisible = false;
         this.excelImportForm.reset({ excelFile: null });
+        this.importPreview = null;
+        this.previewedImportFile = null;
+        const skipped = result.skippedDuplicates ?? 0;
+        const duplicateRows = result.duplicateRows?.length
+          ? ` ردیف‌های تکراری: ${result.duplicateRows.join('، ')}.`
+          : '';
+        const message = skipped
+          ? `${result.imported ?? 0} کتاب وارد شد و ${skipped} ردیف تکراری نادیده گرفته شد.${duplicateRows}`
+          : `${result.imported ?? 0} کتاب از فایل اکسل با موفقیت وارد شد.`;
         if (isPlatformBrowser(this.platformId)) {
-          this.snackBar.open('فایل اکسل با موفقیت بارگذاری و پردازش شد.', 'بستن', { duration: 5000, direction: 'rtl' });
+          this.snackBar.open(message, 'بستن', { duration: 9000, direction: 'rtl' });
         }
         this.loadBooks(); // Refresh the book list
       },
       error: (err) => {
-        this.isImporting = false;
-        console.error('Error importing from Excel:', err);
-        const errorMessage = err.error?.message || err.error || 'خطا در بارگذاری فایل. لطفاً فایل را بررسی کرده و دوباره تلاش کنید.';
-        this.importError = errorMessage;
-        if (isPlatformBrowser(this.platformId)) {
-          this.snackBar.open(`خطا: ${errorMessage}`, 'بستن', { duration: 7000, direction: 'rtl' });
-        }
+        this.handleExcelImportError(err);
       }
     });
+  }
+
+  private handleExcelImportError(err: unknown): void {
+    this.isImporting = false;
+    console.error('Excel import operation failed:', err);
+    const response = err && typeof err === 'object' ? err as { error?: unknown; message?: string } : {};
+    const apiMessage = response.error && typeof response.error === 'object'
+      ? (response.error as { message?: string }).message
+      : typeof response.error === 'string' ? response.error : undefined;
+    const errorMessage = apiMessage || response.message || 'خطا در پردازش فایل. لطفاً فایل را بررسی کرده و دوباره تلاش کنید.';
+    this.importError = errorMessage;
+    if (isPlatformBrowser(this.platformId)) {
+      this.snackBar.open(`خطا: ${errorMessage}`, 'بستن', { duration: 7000, direction: 'rtl' });
+    }
   }
 
   downloadExcelTemplate(): void {

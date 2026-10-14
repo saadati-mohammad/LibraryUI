@@ -260,14 +260,20 @@
           </div>
           <p id="catalogSearchHelp" class="mb-3 text-xs text-indigo-900">نتایج از چند فهرست عمومی کتاب دریافت می‌شوند و ممکن است همهٔ کتاب‌های منتشرشده را پوشش ندهند؛ اطلاعات را بررسی کنید یا دستی بنویسید.</p>
           <div class="flex flex-col gap-2 sm:flex-row">
+            @if (isInputSourceAllowed('MANUAL') || isInputSourceAllowed('KEYBOARD_WEDGE')) {
             <input id="bookBarcodeScan" type="text" [value]="barcodeValue" (input)="barcodeValue = $any($event.target).value"
-              (keydown.enter)="$event.preventDefault(); lookupScannedIsbn()" autocomplete="off" inputmode="numeric"
+              [appKeyboardWedgeScanner]="keyboardWedgeProfile" (enterPressed)="lookupScannedIsbn()"
+              (scanDetected)="handleKeyboardWedgeScan($event)" (scanRejected)="scanStatus = $event" autocomplete="off" inputmode="numeric"
               aria-describedby="barcodeHelp barcodeStatus" maxlength="24" placeholder="ISBN-10 یا ISBN-13"
               class="min-w-0 flex-1 rounded-md border border-indigo-300 bg-white px-3 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-700" />
             <button type="button" (click)="lookupScannedIsbn()" [disabled]="isLookingUpMetadata"
               class="rounded-md bg-indigo-700 px-4 py-2 font-semibold text-white disabled:opacity-60">جست‌وجوی اطلاعات</button>
+            }
+            @if (isInputSourceAllowed('PHONE_CAMERA')) {
             <button type="button" (click)="startPhoneScanner()" [disabled]="isLookingUpMetadata || !!phoneScannerSession"
               class="rounded-md border border-indigo-700 bg-white px-4 py-2 font-semibold text-indigo-900 hover:bg-indigo-50 disabled:opacity-60">اتصال اسکنر گوشی</button>
+            }
+            @if (isInputSourceAllowed('PHONE_CAMERA')) {
             @if (!isCameraScanning) {
               <button type="button" (click)="startCameraScan(barcodeVideo)" [disabled]="isStartingCamera"
                 class="rounded-md border border-indigo-700 bg-white px-4 py-2 font-semibold text-indigo-900 hover:bg-indigo-50 disabled:opacity-60">
@@ -277,9 +283,24 @@
               <button type="button" (click)="stopCameraScan()"
                 class="rounded-md bg-red-700 px-4 py-2 font-semibold text-white hover:bg-red-800">توقف دوربین</button>
             }
+            }
           </div>
           <video #barcodeVideo class="barcode-camera-preview mt-3" [hidden]="!isCameraScanning && !isStartingCamera"
             autoplay muted playsinline aria-label="پیش‌نمایش زنده دوربین برای اسکن بارکد"></video>
+          @if (isCameraScanning && cameraDevices.length > 1) {
+            <label class="mt-2 block text-sm font-semibold" for="barcodeCameraSelect">دوربین اسکن
+              <select id="barcodeCameraSelect" class="mt-1 min-h-11 w-full rounded-md border border-indigo-300 bg-white px-3 py-2 text-slate-900"
+                [value]="selectedCameraId" (change)="selectCamera($any($event.target).value, barcodeVideo)">
+                @for (camera of cameraDevices; track camera.deviceId) {
+                  <option [value]="camera.deviceId">{{camera.label || 'دوربین ' + ($index + 1)}}</option>
+                }
+              </select>
+            </label>
+          }
+          @if (isCameraScanning && torchSupported) {
+            <button type="button" class="mt-2 rounded-md border border-indigo-700 bg-white px-4 py-2 font-semibold text-indigo-900"
+              [attr.aria-pressed]="torchEnabled" (click)="toggleCameraTorch()">{{torchEnabled ? 'خاموش‌کردن چراغ‌قوه' : 'روشن‌کردن چراغ‌قوه'}}</button>
+          }
           @if (phoneScannerSession) {
             <section class="phone-pairing mt-3 rounded-xl border border-emerald-300 bg-emerald-50 p-3" aria-label="اتصال امن اسکنر گوشی">
               <h3 class="font-semibold text-emerald-950">اتصال موقت گوشی · تا ۱۰ دقیقه</h3>
@@ -294,9 +315,36 @@
           }
           <label class="mt-3 flex cursor-pointer items-start gap-2 text-sm font-medium" for="continuousScanMode">
             <input id="continuousScanMode" type="checkbox" [checked]="continuousScanMode"
-              (change)="continuousScanMode = $any($event.target).checked" />
+              (change)="setContinuousScanMode($any($event.target).checked)" />
             <span>ثبت پیوسته: پس از دریافت اطلاعات کامل، کتاب خودکار ثبت و فرم برای بارکد بعدی آماده می‌شود.</span>
           </label>
+          <label class="mt-2 flex cursor-pointer items-start gap-2 text-sm font-medium" for="reviewBatchMode">
+            <input id="reviewBatchMode" type="checkbox" [checked]="reviewBatchMode"
+              (change)="setReviewBatchMode($any($event.target).checked)" />
+            <span>صف بازبینی: اسکن‌ها را جمع کنید و قبل از جست‌وجو/ثبت، هر مورد را جداگانه بررسی کنید.</span>
+          </label>
+          @if (reviewBatchIsbns.length > 0) {
+            <section class="mt-3 rounded-lg border border-indigo-300 bg-indigo-50 p-3 text-indigo-950" aria-label="صف اسکن برای بازبینی">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="font-semibold">صف بازبینی ({{reviewBatchIsbns.length}} از ۵۰)</h3>
+                <button type="button" class="rounded border border-indigo-700 px-3 py-1 text-sm font-semibold hover:bg-indigo-100"
+                  (click)="reviewBatchIsbns.length = 0">پاک‌کردن صف</button>
+              </div>
+              <ul class="mt-2 grid gap-2">
+                @for (isbn of reviewBatchIsbns; track isbn) {
+                  <li class="flex flex-wrap items-center justify-between gap-2 rounded border border-indigo-200 bg-white p-2">
+                    <bdi dir="ltr" class="font-mono">{{isbn}}</bdi>
+                    <div class="flex gap-2">
+                      <button type="button" class="rounded bg-indigo-700 px-3 py-1 text-sm font-semibold text-white hover:bg-indigo-800"
+                        [disabled]="isLookingUpMetadata || isSubmitting" (click)="reviewBatchItem(isbn)">بررسی این کتاب</button>
+                      <button type="button" class="rounded border border-red-700 px-3 py-1 text-sm font-semibold text-red-800 hover:bg-red-50"
+                        (click)="removeReviewBatchItem(isbn)">حذف از صف</button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
           @if (continuousScanMode) {
             <p class="mt-1 text-sm" role="note">اگر اطلاعات کتاب پیدا نشود، چند ویرایش وجود داشته باشد یا فیلد ضروری ناقص باشد، ثبت خودکار متوقف می‌شود تا اطلاعات را بررسی کنید.</p>
           }
@@ -381,11 +429,14 @@
           <label for="bookIsbn10Form" class="block text-sm font-medium text-gray-700 mb-1">
             شابک (۱۰ رقمی)
           </label>
-          <input type="text" id="bookIsbn10Form" formControlName="isbn10" placeholder="مثال: 964-321-000-0"
+          <input type="text" id="bookIsbn10Form" formControlName="isbn10" placeholder="مثال: 0-306-40615-2"
             autocomplete="off" inputmode="numeric"
             class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            [attr.aria-invalid]="bookForm.hasError('isbnRequired') && bookForm.touched ? 'true' : null"
-            [attr.aria-describedby]="bookForm.hasError('isbnRequired') && bookForm.touched ? 'bookIsbn10Error' : null" />
+            [attr.aria-invalid]="bookForm.get('isbn10')?.hasError('isbnChecksum') || (bookForm.hasError('isbnRequired') && bookForm.touched) ? 'true' : null"
+            [attr.aria-describedby]="bookForm.get('isbn10')?.hasError('isbnChecksum') ? 'bookIsbn10Error' : bookForm.hasError('isbnRequired') && bookForm.touched ? 'bookIsbn10Error' : null" />
+          @if (bookForm.get('isbn10')?.hasError('isbnChecksum') && bookForm.get('isbn10')?.touched) {
+            <small id="bookIsbn10Error" class="text-red-700 text-sm mt-1 block" role="alert">شابک ۱۰ رقمی معتبر نیست؛ رقم کنترلی را بررسی کنید.</small>
+          }
           @if (bookForm.hasError('isbnRequired') && bookForm.touched) {
             <small id="bookIsbn10Error"
               class="text-red-700 text-sm mt-1 block" role="alert">
@@ -397,9 +448,14 @@
           <label for="bookIsbn13Form" class="block text-sm font-medium text-gray-700 mb-1">
             شابک (۱۳ رقمی)
           </label>
-          <input type="text" id="bookIsbn13Form" formControlName="isbn13" placeholder="مثال: 978-964-321-000-0"
+          <input type="text" id="bookIsbn13Form" formControlName="isbn13" placeholder="مثال: 978-0-306-40615-7"
             autocomplete="off" inputmode="numeric"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            [attr.aria-invalid]="bookForm.get('isbn13')?.hasError('isbnChecksum') ? 'true' : null"
+            [attr.aria-describedby]="bookForm.get('isbn13')?.hasError('isbnChecksum') ? 'bookIsbn13Error' : null" />
+          @if (bookForm.get('isbn13')?.hasError('isbnChecksum') && bookForm.get('isbn13')?.touched) {
+            <small id="bookIsbn13Error" class="text-red-700 text-sm mt-1 block" role="alert">شابک ۱۳ رقمی معتبر نیست؛ رقم کنترلی را بررسی کنید.</small>
+          }
         </div>
       </div>
 
@@ -613,8 +669,8 @@
 </app-modal>
 <!-- START: مودال بارگذاری گروهی کتاب‌ها از اکسل (کد جدید) -->
 <app-modal [(isVisible)]="isExcelImportModalVisible" title="بارگذاری گروهی" titleAccent="کتاب‌ها از فایل اکسل"
-  submitButtonText="شروع بارگذاری" submitButtonIcon="upload" (submitted)="onExcelImportSubmit()"
-  (cancelled)="onExcelImportModalClose()" [disableSubmit]="!hasExcelImportFile || isImporting" [isLoading]="isImporting"
+  [submitButtonText]="importPreview ? 'تأیید و واردسازی' : 'پیش‌نمایش فایل'" submitButtonIcon="upload" (submitted)="onExcelImportSubmit()"
+  (cancelled)="onExcelImportModalClose()" [disableSubmit]="!hasExcelImportFile || isImporting || (importPreview !== null && importPreview.eligible === 0)" [isLoading]="isImporting"
   maxWidth="600px">
   <div modal-body>
     <div class="space-y-4">
@@ -653,6 +709,7 @@
           [rules]="excelRules"
           [hint]="'فقط فایل با پسوند .xlsx و حداکثر ۱۰ مگابایت.'"
           (validationError)="onExcelValidationError($event)"
+          (fileChange)="onExcelFileChange()"
         ></app-file-picker>
 
         <!-- نمایش خطای فایل -->
@@ -660,6 +717,26 @@
           <div class="mt-2 text-sm text-red-700" role="alert">
             {{ importError }}
           </div>
+        }
+        @if (importPreview) {
+          <section class="mt-4 rounded-lg border border-indigo-300 bg-indigo-50 p-4 text-indigo-950" aria-label="پیش‌نمایش واردسازی کتاب‌ها" role="status">
+            <h3 class="font-semibold">پیش‌نمایش فایل · {{importPreview.totalRows ?? 0}} ردیف داده</h3>
+            <p class="mt-1 text-sm">{{importPreview.eligible ?? 0}} ردیف قابل واردسازی است؛ {{importPreview.skippedDuplicates ?? 0}} ردیف تکراری و {{importPreview.skippedInvalid ?? 0}} ردیف نامعتبر وارد نمی‌شود.</p>
+            @if (importPreview.duplicateRows?.length) {
+              <p class="mt-2 text-sm">ردیف‌های تکراری: {{importPreview.duplicateRows?.join('، ')}}</p>
+            }
+            @if (importPreview.invalidRows?.length) {
+              <details class="mt-2 text-sm">
+                <summary class="cursor-pointer font-semibold">نمایش دلیل خطاهای ردیف‌ها</summary>
+                <ul class="mt-2 list-inside list-disc">
+                  @for (issue of importPreview.invalidRows; track issue.row) {
+                    <li>ردیف {{issue.row}}: {{issue.reason}}</li>
+                  }
+                </ul>
+              </details>
+            }
+            <p class="mt-2 text-sm">برای واردسازی همین فایل، دکمهٔ «تأیید و واردسازی» را بزنید. برای اصلاح موارد نامعتبر، فایل را ویرایش و دوباره انتخاب کنید.</p>
+          </section>
         }
       </div>
     </div>

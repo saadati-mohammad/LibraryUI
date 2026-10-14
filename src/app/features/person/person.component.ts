@@ -1,7 +1,7 @@
 import { Component, DestroyRef, inject, Input, OnDestroy, OnInit, PLATFORM_ID, ChangeDetectionStrategy } from '@angular/core';
 import { TableColumn, ListComponent } from '../../shared/component/list/list.component';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormGroup } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -22,25 +22,17 @@ import { PersonModel, PersonFilterModel } from '../../core/model/personModel';
 import { PersonService } from '../../core/service/person.service';
 import { ImageLoaderService } from '../../core/service/image-loader.service';
 import { PaginatedResponse } from '../../core/model/paginated-response.model';
-import { notFutureDate } from '../../core/util/date.util';
 import { downloadUrl, EXCEL_FILE_RULES, IMAGE_FILE_RULES, storedImageToFile } from '../../shared/util/file.util';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
 import { DateInputComponent } from '../../shared/component/date-input/date-input.component';
 import { FilePickerComponent } from '../../shared/component/file-picker/file-picker.component';
 import { PagedFilterPage } from '../../shared/component/paged-filter-page';
+import { PersonFormFactory } from './person-form.factory';
 
 export enum FormOperation {
   ADD = 'ADD',
   UPDATE = 'UPDATE',
   VIEW = 'VIEW' // اضافه کردن حالت مشاهده
-}
-
-/** ISO date of today — the upper bound of the birth-date field. */
-function todayIso(): string {
-  const now = new Date();
-  const month = `${now.getMonth() + 1}`.padStart(2, '0');
-  const day = `${now.getDate()}`.padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
 }
 
 @Component({
@@ -71,7 +63,10 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
   currentPictureUrl: string | null = null;
 
   /** Upper bound for the birth-date control. */
-  readonly today = todayIso();
+  readonly today = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${`${now.getMonth() + 1}`.padStart(2, '0')}-${`${now.getDate()}`.padStart(2, '0')}`;
+  })();
   readonly imageRules = IMAGE_FILE_RULES;
   readonly excelRules = EXCEL_FILE_RULES;
 
@@ -91,11 +86,12 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
   isExcelImportModalVisible = false;
   isImporting = false;
   importError: string | null = null;
+  importPreview: import('../../core/model/paginated-response.model').ExcelImportResult | null = null;
   readonly excelImportForm: FormGroup;
 
   private readonly destroyRef = inject(DestroyRef);
 
-  private fb = inject(FormBuilder);
+  private personFormFactory = inject(PersonFormFactory);
   private personService = inject(PersonService);
   private imageLoader = inject(ImageLoaderService);
   private snackBar = inject(MatSnackBar);
@@ -104,39 +100,9 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
 
   constructor() {
     super();
-    this.personForm = this.fb.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      nationalId: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
-      phone: [''],
-      birthDate: [null, [notFutureDate]],
-      membershipType: [''],
-      address: [''],
-      notes: [''],
-      active: [true, Validators.required],
-      /**
-       * Held in the form so `<app-file-picker formControlName="profilePicture">` can clear
-       * it (`null` = "delete the stored picture"). Stripped from the JSON before submit.
-       */
-      profilePicture: [null as File | null],
-    });
-
-    this.personFiltersForm = this.fb.group({
-      firstName: [''],
-      lastName: [''],
-      email: [''],
-      phone: [''],
-      nationalId: [''],
-      membershipType: [''],
-      // Defaults to "فعال": a soft-deleted member disappears from the list as operators
-      // expect, while "همه" and "غیرفعال" stay one click away.
-      active: [true],
-    });
-
-    this.excelImportForm = this.fb.group({
-      excelFile: [null as File | null],
-    });
+    this.personForm = this.personFormFactory.createEditorForm();
+    this.personFiltersForm = this.personFormFactory.createFiltersForm();
+    this.excelImportForm = this.personFormFactory.createImportForm();
   }
 
   ngOnInit(): void {
@@ -431,10 +397,12 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
     this.excelImportForm.reset({ excelFile: null });
     this.importError = null;
     this.isImporting = false;
+    this.importPreview = null;
   }
 
   onExcelImportModalClose(): void {
     this.isExcelImportModalVisible = false;
+    this.importPreview = null;
   }
 
   /** Excel picker validation message (wrong extension or too large). */
@@ -449,25 +417,38 @@ export class PersonComponent extends PagedFilterPage<PersonModel> implements OnI
       return;
     }
     this.isImporting = true;
-    this.personService.importPersonsFromExcel(excelFile).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
+    const request = this.importPreview
+      ? this.personService.importPersonsFromExcel(excelFile)
+      : this.personService.previewPersonsFromExcel(excelFile);
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
         this.isImporting = false;
+        if (!this.importPreview) {
+          this.importPreview = result;
+          return;
+        }
         this.isExcelImportModalVisible = false;
         this.excelImportForm.reset({ excelFile: null });
+        this.importPreview = null;
         if (isPlatformBrowser(this.platformId)) {
-          this.snackBar.open('فایل اکسل اعضا با موفقیت بارگذاری شد.', 'بستن', { duration: 5000, direction: 'rtl' });
+          const count = result.imported ?? 0;
+          this.snackBar.open(`${count} عضو وارد شد؛ ${result.skippedDuplicates ?? 0} تکراری و ${result.skippedInvalid ?? 0} نامعتبر رد شد.`, 'بستن', { duration: 6000, direction: 'rtl' });
         }
         this.loadPersons();
       },
       error: (err) => {
         this.isImporting = false;
-        // The backend now returns a JSON envelope, so `err.error` is an object.
-        const message = err.error?.message || 'خطا در بارگذاری فایل.';
+        const message = err.error?.message || 'پیش‌نمایش یا بارگذاری فایل ناموفق بود.';
         this.snackBar.open(message, 'بستن', { duration: 5000, direction: 'rtl' });
         this.importError = message;
         console.error(err);
       }
     });
+  }
+
+  onExcelFileChanged(): void {
+    this.importPreview = null;
+    this.importError = null;
   }
 
   downloadExcelTemplate(): void {

@@ -42,6 +42,13 @@ async function createMultipart(
   return response.json();
 }
 
+function uniqueIsbn10(seed: string): string {
+  const body = seed.replace(/\D/g, '').slice(-9).padStart(9, '0');
+  const sum = [...body].reduce((total, digit, index) => total + Number(digit) * (10 - index), 0);
+  const check = (11 - sum % 11) % 11;
+  return `${body}${check === 10 ? 'X' : check}`;
+}
+
 test.describe('Shared confirmation dialog', () => {
   test('loan return opens an accessible confirm dialog and cancel is a no-op', async ({ page, request }) => {
     const token = await login(page);
@@ -57,7 +64,7 @@ test.describe('Shared confirmation dialog', () => {
       title: `امانت آزمون ${unique}`,
       author: 'نویسنده آزمون',
       subject: 'آزمون',
-      isbn10: `9${unique.replaceAll('-', '').slice(-9)}`,
+      isbn10: '0306406152',
       active: true,
     }, token);
     const loanResponse = await request.post('http://localhost:4200/api/loan', {
@@ -105,7 +112,7 @@ test.describe('Shared confirmation dialog', () => {
       title: `کتاب امانت فرم ${unique}`,
       author: 'نویسنده آزمون',
       subject: 'آزمون',
-      isbn10: `7${unique.replaceAll('-', '').slice(-9)}`,
+      isbn10: uniqueIsbn10(unique),
       active: true,
     }, token);
 
@@ -119,10 +126,10 @@ test.describe('Shared confirmation dialog', () => {
     await expect(personOption).toBeVisible({ timeout: 10_000 });
     await personOption.click();
 
-    await page.locator('#loanBookInput').fill(String(book['title']));
-    const bookOption = page.getByRole('option').filter({ hasText: String(book['title']) });
-    await expect(bookOption).toBeVisible({ timeout: 10_000 });
-    await bookOption.click();
+    await page.locator('#loanBarcodeInput').fill(String(book['isbn10']));
+    await page.locator('#loanBarcodeInput').press('Enter');
+    await expect(page.locator('#loanFormInternal [role="status"]')).toContainText(`کتاب «${book['title']}» انتخاب شد.`, { timeout: 10_000 });
+    await expect(page.locator('#loanBookInput')).toHaveValue(`${book['title']} — نویسنده آزمون`);
 
     const createdPromise = page.waitForResponse((response) =>
       response.request().method() === 'POST' && response.url().endsWith('/api/loan'),
@@ -135,8 +142,8 @@ test.describe('Shared confirmation dialog', () => {
 
     const row = page.getByRole('row').filter({ hasText: String(book['title']) });
     await expect(row).toBeVisible();
-    const returnButton = row.getByRole('button', { name: new RegExp(`ثبت بازگشت کتاب.*${String(book['title'])}`) });
-    await returnButton.click();
+    await page.locator('#loanReturnBarcode').fill(String(book['isbn10']));
+    await page.locator('#loanReturnBarcode').press('Enter');
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     const returnedPromise = page.waitForResponse((response) =>

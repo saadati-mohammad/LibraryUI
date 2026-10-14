@@ -65,4 +65,9 @@ export class BookService {
     // Backend returns a JSON envelope: { success, imported, message }.
     return this.http.post<ExcelImportResult>(url, buildFileFormData('file', file));
   }
+
+  previewBooksFromExcel(file: File): Observable<ExcelImportResult> {
+    const url = `${this.baseUrlExcel}/excel-import/books/preview`;
+    return this.http.post<ExcelImportResult>(url, buildFileFormData('file', file));
+  }
 }

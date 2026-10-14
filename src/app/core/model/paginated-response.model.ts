@@ -23,6 +23,13 @@ export interface PaginatedResponse<T> {
  */
 export interface ExcelImportResult {
   success: boolean;
+  preview?: boolean;
   imported?: number;
+  eligible?: number;
+  totalRows?: number;
+  skippedDuplicates?: number;
+  duplicateRows?: number[];
+  skippedInvalid?: number;
+  invalidRows?: { row: number; reason: string }[];
   message: string;
 }

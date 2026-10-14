@@ -32,9 +32,18 @@ export class PhoneBarcodeRelayService {
   }
 
   submitFromPhone(sessionId: string, pairingToken: string, barcode: string): Observable<ScannedBarcode> {
+    return this.submitScanner(sessionId, pairingToken, barcode);
+  }
+
+  submitRegisteredFromPhone(sessionId: string, pairingToken: string, barcode: string, deviceId: number, deviceToken: string): Observable<ScannedBarcode> {
+    return this.submitScanner(sessionId, pairingToken, barcode, deviceId, deviceToken);
+  }
+
+  private submitScanner(sessionId: string, pairingToken: string, barcode: string, deviceId?: number, deviceToken?: string): Observable<ScannedBarcode> {
     return this.http.post<ScannedBarcode>(`${this.phoneUrl}/${encodeURIComponent(sessionId)}/scans`, {
       pairingToken,
       barcode,
+      ...(deviceId !== undefined && deviceToken ? { deviceId, deviceToken } : {}),
     });
   }
 

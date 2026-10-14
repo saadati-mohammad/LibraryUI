@@ -15,17 +15,21 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { debounceTime, distinctUntilChanged, Observable, Subject, switchMap } from 'rxjs';
+import { debounceTime, distinctUntilChanged, forkJoin, Observable, Subject, switchMap } from 'rxjs';
 import { BookLoanFilterModel, BookLoanModel, CreateLoanRequest, LoanStatus } from '../../core/model/bookLoanModel';
 import { BookModel } from '../../core/model/bookModel';
 import { PersonModel } from '../../core/model/personModel';
 import { BookLoanService } from '../../core/service/book-loan.service';
 import { BookService } from '../../core/service/book.service';
 import { PersonService } from '../../core/service/person.service';
+import { InputDeviceService } from '../../core/service/input-device.service';
+import { isValidIsbn, normalizeIsbn } from '../../core/util/isbn.util';
 import { ListComponent, TableColumn } from '../../shared/component/list/list.component';
 import { ModalComponent } from '../../shared/component/modal/modal.component';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
 import { PagedFilterPage } from '../../shared/component/paged-filter-page';
+import { KeyboardWedgeScannerDirective } from '../../shared/directive/keyboard-wedge-scanner.directive';
+import type { InputDeviceRuntimeProfile, InputFormPolicy } from '../../core/model/input-device.model';
 
 /** Bounded autocomplete page size — never fetch a thousand rows to fill a picker. */
 const SEARCH_PAGE_SIZE = 25;
@@ -64,7 +68,8 @@ function requireSelectedId(): ValidatorFn {
     MatCardModule,
     MatSnackBarModule,
     ListComponent,
-    ModalComponent
+    ModalComponent,
+    KeyboardWedgeScannerDirective,
 ],
   templateUrl: './loan.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -78,6 +83,15 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
   isLoanModalVisible = false;
   loanForm: FormGroup;
   isSubmitting = false;
+  scanValue = '';
+  scanStatus = '';
+  scannerInputAllowed = true;
+  returnScannerAllowed = true;
+  private checkoutInputPolicy: InputFormPolicy | null = null;
+  private returnInputPolicy: InputFormPolicy | null = null;
+  returnScanValue = '';
+  returnScanStatus = '';
+  scanTarget: 'book' | 'member' = 'book';
 
   // Bounded type-ahead option lists for the create form.
   readonly personOptions = signal<PersonModel[]>([]);
@@ -108,6 +122,7 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
   private loanService = inject(BookLoanService);
   private personService = inject(PersonService);
   private bookService = inject(BookService);
+  private inputDevices = inject(InputDeviceService);
   private snackBar = inject(MatSnackBar);
   private confirmation = inject(ConfirmationService);
   private platformId = inject(PLATFORM_ID);
@@ -134,6 +149,13 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
     // `takeUntilDestroyed` replaces the subscription that previously leaked for the whole
     // lifetime of the SPA after the route was left.
     this.watchFilters(this.filtersForm);
+    this.inputDevices.effectivePolicy('loan-return').subscribe({
+      next: policy => {
+        this.returnInputPolicy = policy;
+        this.returnScannerAllowed = policy.allowedSources.includes('KEYBOARD_WEDGE') || !!this.returnWedgeProfile;
+      },
+      error: () => { this.returnScannerAllowed = true; },
+    });
 
     this.wireSearch(this.personSearch$, this.personOptions, this.isSearchingPersons, (term) =>
       this.personService.getPersonList(
@@ -203,6 +225,16 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
   openLoanModal(): void {
     this.loanForm.reset({ personId: null, bookId: null, notes: '' });
     this.isLoanModalVisible = true;
+    this.scanValue = '';
+    this.scanStatus = '';
+    this.inputDevices.effectivePolicy('loan-checkout').subscribe({
+      next: policy => {
+        this.checkoutInputPolicy = policy;
+        this.scannerInputAllowed = policy.allowedSources.includes('KEYBOARD_WEDGE') || !!this.checkoutWedgeProfile;
+      },
+      // Manual entry remains available when the policy service cannot be reached.
+      error: () => { this.scannerInputAllowed = true; },
+    });
     // Seed both pickers with a bounded first page; the user types to narrow further.
     this.personSearch$.next('');
     this.bookSearch$.next('');
@@ -218,6 +250,99 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
 
   onBookSearch(term: string): void {
     this.bookSearch$.next(term ?? '');
+  }
+
+  processLoanScan(value = this.scanValue): void {
+    const scanned = value.trim();
+    this.scanValue = '';
+    this.scanStatus = '';
+    if (this.scanTarget === 'book') {
+      const isbn = normalizeIsbn(scanned);
+      if (!isValidIsbn(isbn)) {
+        this.scanStatus = 'شابک معتبر نیست؛ شابک کتاب را دوباره اسکن کنید.';
+        return;
+      }
+      this.bookService.getBookList({ active: true, ...(isbn.length === 10 ? { isbn10: isbn } : { isbn13: isbn }) }, 0, SEARCH_PAGE_SIZE)
+        .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: result => {
+            const matches = result.content.filter(book => normalizeIsbn((isbn.length === 10 ? book.isbn10 : book.isbn13) ?? '') === isbn);
+            if (matches.length !== 1 || result.totalElements > 1 || typeof matches[0]?.id !== 'number') {
+              this.scanStatus = matches.length || result.totalElements > 1 ? 'چند کتاب با این شابک پیدا شد؛ کتاب را دستی انتخاب کنید.' : 'کتابی با این شابک پیدا نشد.';
+              return;
+            }
+            this.bookOptions.set([...this.bookOptions().filter(book => book.id !== matches[0].id), matches[0]]);
+            this.loanForm.get('bookId')?.setValue(matches[0].id);
+            this.scanStatus = `کتاب «${matches[0].title ?? ''}» انتخاب شد.`;
+          },
+          error: () => { this.scanStatus = 'جست‌وجوی کتاب انجام نشد؛ اتصال شبکه را بررسی کنید یا کتاب را دستی انتخاب کنید.'; },
+        });
+      return;
+    }
+    const nationalId = scanned.replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+      .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+    if (!/^\d{10}$/.test(nationalId)) {
+      this.scanStatus = 'کد ملی عضو باید ۱۰ رقم باشد.';
+      return;
+    }
+    this.personService.getPersonList({ active: true, nationalId }, 0, SEARCH_PAGE_SIZE)
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: result => {
+          const matches = result.content.filter(person => person.nationalId === nationalId);
+          if (matches.length !== 1 || result.totalElements > 1 || typeof matches[0]?.id !== 'number') {
+            this.scanStatus = matches.length || result.totalElements > 1 ? 'چند عضو با این کد ملی پیدا شد؛ عضو را دستی انتخاب کنید.' : 'عضوی با این کد ملی پیدا نشد.';
+            return;
+          }
+          this.personOptions.set([...this.personOptions().filter(person => person.id !== matches[0].id), matches[0]]);
+          this.loanForm.get('personId')?.setValue(matches[0].id);
+          this.scanStatus = `عضو «${matches[0].firstName ?? ''} ${matches[0].lastName ?? ''}» انتخاب شد.`;
+        },
+        error: () => { this.scanStatus = 'جست‌وجوی عضو انجام نشد؛ اتصال شبکه را بررسی کنید یا عضو را دستی انتخاب کنید.'; },
+      });
+  }
+
+  get checkoutWedgeProfile(): InputDeviceRuntimeProfile | null {
+    return this.checkoutInputPolicy?.deviceProfiles?.find(profile => profile.typeKey === 'KEYBOARD_WEDGE') ?? null;
+  }
+
+  get returnWedgeProfile(): InputDeviceRuntimeProfile | null {
+    return this.returnInputPolicy?.deviceProfiles?.find(profile => profile.typeKey === 'KEYBOARD_WEDGE') ?? null;
+  }
+
+  handleCheckoutWedgeScan(value: string): void {
+    this.scanValue = value;
+    this.processLoanScan();
+  }
+
+  handleReturnWedgeScan(value: string): void {
+    this.returnScanValue = value;
+    this.processReturnScan();
+  }
+
+  processReturnScan(value = this.returnScanValue): void {
+    const isbn = normalizeIsbn(value.trim());
+    this.returnScanValue = '';
+    this.returnScanStatus = '';
+    if (!isValidIsbn(isbn)) {
+      this.returnScanStatus = 'شابک معتبر نیست؛ برای بازگشت، شابک کتاب را اسکن کنید.';
+      return;
+    }
+    forkJoin([
+      this.loanService.getLoanList({ bookIsbn: isbn, status: 'ON_LOAN' }, 0, SEARCH_PAGE_SIZE),
+      this.loanService.getLoanList({ bookIsbn: isbn, status: 'OVERDUE' }, 0, SEARCH_PAGE_SIZE),
+    ]).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: ([onLoan, overdue]) => {
+        const activeLoans = [...onLoan.content, ...overdue.content];
+        if (activeLoans.length !== 1 || onLoan.totalElements + overdue.totalElements > 1) {
+          this.returnScanStatus = activeLoans.length || onLoan.totalElements + overdue.totalElements
+            ? 'برای این شابک چند امانت فعال پیدا شد؛ از فهرست، امانت درست را انتخاب کنید.'
+            : 'امانت فعالی با این شابک پیدا نشد.';
+          return;
+        }
+        this.returnScanStatus = `امانت «${activeLoans[0].bookTitle}» پیدا شد؛ تأیید بازگشت را بررسی کنید.`;
+        void this.returnBook(activeLoans[0]);
+      },
+      error: () => { this.returnScanStatus = 'جست‌وجوی امانت انجام نشد؛ اتصال شبکه را بررسی کنید یا از فهرست استفاده کنید.'; },
+    });
   }
 
   formatPerson = (value: number | string | null): string => {

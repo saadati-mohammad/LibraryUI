@@ -1,0 +1,96 @@
+<main class="device-page" dir="rtl" lang="fa">
+  <header class="page-heading"><div><p class="eyebrow">مدیریت ورودی‌ها</p><h1>دستگاه‌ها و روش‌های ورود اطلاعات</h1>
+    <p>اسکنرهای USB، بلوتوث و Wi-Fi که مانند صفحه‌کلید کار می‌کنند را ثبت و مدیریت کنید.</p></div><button type="button" class="secondary" (click)="load()" [disabled]="loading()">به‌روزرسانی</button></header>
+  @if (notice()) { <p class="notice" role="status">{{notice()}}</p> }
+  @if (error()) { <p class="error" role="alert">{{error()}}</p> }
+  @if (token()) { <section class="token-box" aria-live="polite"><h2>توکن دستگاه — فقط همین یک‌بار نمایش داده می‌شود</h2><p>آن را امن نگه دارید. گوشی را روی همین شبکه باز کنید و QR را با آن اسکن کنید؛ سپس برای هر نوبت، QR اتصال را از فرم رایانه اسکن کنید.</p><code dir="ltr">{{token()}}</code>
+    @if (enrollmentQr(); as qr) { <img class="enrollment-qr" [src]="qr" alt="QR امن برای ثبت این گوشی به‌عنوان اسکنر"> }
+    <button class="primary" type="button" (click)="dismissToken()">ذخیره شد؛ بستن</button></section> }
+  <section class="panel" aria-labelledby="form-policy-title">
+    <h2 id="form-policy-title">روش‌های ورود برای هر فرم</h2>
+    <p class="capabilities">روش‌های مجاز و پیش‌فرض هر فرم را تعیین کنید. ورود دستی همیشه به‌عنوان راه برگشت امن باقی می‌ماند.</p>
+    <div class="policy-controls">
+      <label>فرم<select [ngModel]="policyFormKey()" (ngModelChange)="policyFormKey.set($event); loadPolicy()" [ngModelOptions]="{standalone:true}">
+        @for (form of policyForms; track form.key) { <option [value]="form.key">{{form.label}}</option> }
+      </select></label>
+      <label>ایستگاه، اختیاری<input [ngModel]="policyStation()" (ngModelChange)="policyStation.set($event)" [ngModelOptions]="{standalone:true}" maxlength="120" placeholder="همهٔ ایستگاه‌ها"></label>
+      <label>کارمند، اختیاری<input [ngModel]="policyOwner()" (ngModelChange)="policyOwner.set($event)" [ngModelOptions]="{standalone:true}" maxlength="80" placeholder="پیش‌فرض عمومی"></label>
+      <button class="secondary" type="button" (click)="loadPolicy()" [disabled]="policyLoading()">بارگذاری تنظیم</button>
+    </div>
+    @if (policyLoading()) { <p role="status">در حال دریافت تنظیم…</p> }
+    <fieldset class="policy-options"><legend>روش‌های مجاز · دامنه: {{policyScope() || '—'}}</legend>
+      @for (source of policySources; track source.key) {
+        <label class="policy-option"><input type="checkbox" [checked]="policyAllowed().includes(source.key)" (change)="togglePolicySource(source.key, $any($event.target).checked)"><span>{{source.label}}</span></label>
+      }
+    </fieldset>
+    <label class="policy-default">روش پیش‌فرض<select [ngModel]="policyDefault()" (ngModelChange)="policyDefault.set($event)" [ngModelOptions]="{standalone:true}">
+      @for (source of policySources; track source.key) { @if (policyAllowed().includes(source.key)) { <option [value]="source.key">{{source.label}}</option> } }
+    </select></label>
+    <div class="form-actions"><button class="primary" type="button" (click)="savePolicy()" [disabled]="policySaving() || policyLoading()">{{policySaving() ? 'در حال ذخیره…' : 'ذخیره سیاست فرم'}}</button></div>
+  </section>
+  <section class="panel" aria-labelledby="device-form-title">
+    <h2 id="device-form-title">{{editing() ? 'ویرایش دستگاه' : 'ثبت دستگاه ورودی'}}</h2>
+    <form class="device-form" (ngSubmit)="save()" #deviceForm="ngForm">
+      <label>نام دستگاه<input name="name" [(ngModel)]="draft.name" required maxlength="120" autocomplete="off" placeholder="مثلاً اسکنر میز امانت"></label>
+      @if (!editing()) { <label>نوع ورودی<select name="typeKey" [ngModel]="draft.typeKey" (ngModelChange)="onTypeChange($event)" required>
+        @for (type of types(); track type.key) { <option [value]="type.key">{{type.displayName}}</option> }
+      </select></label> } @else { <p class="type-name">نوع: {{selectedType()?.displayName ?? editing()!.typeKey}}</p> }
+      <label>نام کاربری مالک، اختیاری<input name="ownerUsername" [(ngModel)]="draft.ownerUsername" maxlength="80" autocomplete="off"></label>
+      <label>ایستگاه یا میز، اختیاری<input name="station" [(ngModel)]="draft.station" maxlength="120" placeholder="میز امانت"></label>
+      @if (configFields().length) { <fieldset><legend>تنظیمات نوع ورودی</legend><div class="config-grid">
+        @for (field of configFields(); track field.key) {
+          <div class="config-field"><span>{{fieldLabel(field.key)}}</span>
+            @if (field.definition.enum?.length) {
+              <select [name]="field.key" [ngModel]="configValue(field.key, field.definition)" (ngModelChange)="setConfig(field.key, $event)">
+                @for (option of field.definition.enum; track option) { <option [value]="option">{{option}}</option> }
+              </select>
+            } @else if (field.definition.type === 'boolean') {
+              <span class="check-row"><input type="checkbox" [name]="field.key" [ngModel]="configValue(field.key, field.definition)" (ngModelChange)="setConfig(field.key, $event)"> فعال</span>
+            } @else {
+              <input [name]="field.key" [type]="field.definition.type === 'integer' || field.definition.type === 'number' ? 'number' : 'text'"
+                [min]="field.definition.minimum ?? null" [max]="field.definition.maximum ?? null" [attr.maxlength]="field.definition.maxLength ?? null"
+                [ngModel]="configValue(field.key, field.definition)" (ngModelChange)="setConfig(field.key, field.definition.type === 'integer' || field.definition.type === 'number' ? +$event : $event)">
+            }
+          </div>
+        }
+      </div></fieldset> }
+      <div class="form-actions"><button class="primary" [disabled]="deviceForm.invalid || saving()">{{saving() ? 'در حال ذخیره…' : editing() ? 'ذخیره تغییرات' : 'ثبت دستگاه'}}</button>
+        @if (editing()) { <button type="button" class="secondary" (click)="cancelEdit()">انصراف</button> }</div>
+    </form>
+    @if (selectedType(); as type) { <p class="capabilities">قابلیت‌ها: {{type.capabilities.join('، ')}}</p> }
+  </section>
+  @if (keyboardWedgeTestProfile(); as scannerProfile) {
+    <section class="panel" aria-labelledby="scanner-test-title">
+      <h2 id="scanner-test-title">آزمون اسکنر لیزری</h2>
+      <p class="capabilities">این کادر را یک‌بار انتخاب کنید و بارکدخوان USB، Bluetooth یا Wi‑Fi را امتحان کنید. ورود آهستهٔ دستی به‌عنوان اسکن سریع تشخیص داده نمی‌شود.</p>
+      <label for="keyboardWedgeTest">کادر آزمایش اسکنر</label>
+      <input id="keyboardWedgeTest" type="text" autocomplete="off" inputmode="none"
+        [appKeyboardWedgeScanner]="scannerProfile" (scanDetected)="recordTestScan($event)"
+        (scanRejected)="rejectTestScan($event)" (enterPressed)="testScanStatus.set('ورودی سریع شناسایی نشد؛ تمرکز کادر و تنظیم پایان‌دهنده را بررسی کنید.')">
+      @if (testScanStatus()) { <p role="status" class="capabilities">{{testScanStatus()}}</p> }
+      @if (lastTestScan()) { <p>مقدار دریافتی: <code dir="ltr">{{lastTestScan()}}</code></p> }
+    </section>
+  }
+  <section class="panel" aria-labelledby="device-list-title"><h2 id="device-list-title">دستگاه‌های ثبت‌شده</h2>
+    @if (loading()) { <p role="status">در حال دریافت دستگاه‌ها…</p> }
+    @else if (!devices().length) { <p class="empty">دستگاهی ثبت نشده است. اسکنرهای لیزری USB و Bluetooth معمولاً بدون نصب نرم‌افزار در حالت HID کار می‌کنند.</p> }
+    <div class="device-list">@for (device of devices(); track device.id) {
+      <article class="device-row" [class.inactive]="!device.enabled || device.revoked">
+        <div class="identity"><h3>{{device.name}}</h3><p>{{types().find(t => t.key === device.typeKey)?.displayName ?? device.typeKey}}</p>
+          <p>مالک: {{device.ownerUsername || 'مشترک'}} · ایستگاه: {{device.station || '—'}}</p><p>آخرین اتصال: {{date(device.lastSeenAt)}}</p></div>
+        <span class="state" [class.off]="!device.enabled || device.revoked">{{device.revoked ? 'لغوشده' : device.enabled ? 'فعال' : 'غیرفعال'}}</span>
+        <div class="row-actions"><button class="secondary" type="button" (click)="showAudit(device)">سوابق</button>
+          @if (!device.revoked) { <button class="secondary" type="button" (click)="edit(device)">ویرایش</button>
+            <button class="secondary" type="button" (click)="toggle(device)">{{device.enabled ? 'غیرفعال‌سازی' : 'فعال‌سازی'}}</button>
+            <button class="secondary" type="button" (click)="rotateToken(device)">تعویض توکن</button>
+            <button class="danger" type="button" (click)="revoke(device)">لغو دسترسی</button> }
+        </div>
+      </article>
+    }</div>
+  </section>
+  @if (auditDevice(); as device) { <section class="panel audit" aria-live="polite"><div class="section-heading"><h2>سوابق: {{device.name}}</h2><button class="secondary" type="button" (click)="auditDevice.set(null)">بستن</button></div>
+    @if (!auditEvents().length) { <p>رویدادی ثبت نشده است یا سابقه‌ای در دسترس نیست.</p> }
+    @for (event of auditEvents(); track event.id) { <p class="audit-event"><b>{{event.action}}</b> · {{event.actorUsername}} · {{date(event.occurredAt)}}</p> }
+  </section> }
+  <p class="security-note">توکن دستگاه به‌شکل هش‌شده در سرور نگهداری می‌شود. گوشی ثبت‌شده را می‌توان از همین صفحه غیرفعال یا لغو کرد؛ هر نوبت اسکن نیز اتصال موقت جداگانه دارد.</p>
+</main>

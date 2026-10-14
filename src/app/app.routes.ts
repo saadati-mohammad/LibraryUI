@@ -76,6 +76,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/staff-accounts/staff-accounts.component').then(m => m.StaffAccountsComponent),
   },
   {
+    path: 'input-devices',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/input-devices/input-devices.component').then(m => m.InputDevicesComponent),
+  },
+  {
     path: 'loan',
     canActivate: [authGuard, staffGuard],
     loadComponent: () => import('./features/loan/loan.component').then(m => m.LoanComponent),

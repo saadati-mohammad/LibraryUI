@@ -65,4 +65,9 @@ export class PersonService {
     // Backend returns a JSON envelope: { success, imported, message }.
     return this.http.post<ExcelImportResult>(url, buildFileFormData('file', file));
   }
+
+  previewPersonsFromExcel(file: File): Observable<ExcelImportResult> {
+    const url = `${this.baseUrlExcel}/excel-import/persons/preview`;
+    return this.http.post<ExcelImportResult>(url, buildFileFormData('file', file));
+  }
 }

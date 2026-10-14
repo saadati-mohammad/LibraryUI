@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ master, main, feature/system-overhaul ]
   pull_request:
     branches: [ master, main ]
 
@@ -47,6 +47,11 @@ jobs:
       APP_ADMIN_USERNAME: admin
       APP_ADMIN_PASSWORD: admin
       JWT_SECRET: ci-only-signing-key-that-is-at-least-32-bytes-long
+      # Browser workflows reuse the same seeded account from one client address.
+      # Keep production throttling intact; use an isolated high ceiling in this test job.
+      APP_SECURITY_RATE_LIMIT_LOGIN_LIMIT: 1000
+      APP_SECURITY_RATE_LIMIT_RESET_LIMIT: 1000
+      APP_SECURITY_RATE_LIMIT_DEVICE_LIMIT: 1000
 
     steps:
       - name: Checkout frontend
@@ -62,7 +67,9 @@ jobs:
         run: npm ci --omit=peer
 
       - name: Checkout backend
-        run: git clone --depth 1 https://github.com/saadati-mohammad/libraryBk.git libraryBk
+        # Test the coordinated API branch for this overhaul instead of silently using
+        # the backend's default branch, which can lack the frontend's new contract.
+        run: git clone --depth 1 --branch feature/system-overhaul https://github.com/saadati-mohammad/libraryBk.git libraryBk
 
       - name: Set up JDK 21
         uses: actions/setup-java@v6
@@ -95,3 +102,14 @@ jobs:
         # These browser specs share the integration H2 database and seeded admin account.
         # Serialize them to avoid cross-worker mutations and make results deterministic.
         run: npm run e2e -- --workers=1
+
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-diagnostics
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

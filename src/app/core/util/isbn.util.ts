@@ -1,6 +1,9 @@
 /** Strip the presentation separators accepted by keyboard-wedge scanners. */
 export function normalizeIsbn(input: string): string {
-  return input.replace(/[\s-]/g, '').toUpperCase();
+  return input.replace(/[\s-]/g, '').replace(/[۰-۹٠-٩]/g, digit => {
+    const code = digit.codePointAt(0)!;
+    return String(code >= 0x06f0 && code <= 0x06f9 ? code - 0x06f0 : code - 0x0660);
+  }).toUpperCase();
 }
 
 export function isValidIsbn(input: string): boolean {

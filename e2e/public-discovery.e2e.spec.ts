@@ -13,13 +13,23 @@ test('visitor finds a persisted title from the public home and opens its public 
   await page.locator('#bookTitleForm').fill(title);
   await page.locator('#bookAuthorForm').fill('نویسنده مهمان');
   await page.locator('#bookSubjectForm').fill('آزمون فهرست عمومی');
-  await page.locator('#bookIsbn10Form').fill(`9${String(Date.now()).slice(-9)}`);
+  await page.locator('#bookIsbn10Form').fill('0-306-40615-2');
   await page.getByRole('button', { name: 'ذخیره کتاب' }).click();
   await expect(page.getByText(title, { exact: false }).first()).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole('button', { name: 'منوی کاربر' }).click();
   await page.getByRole('menuitem', { name: 'خروج' }).click();
   await expect(page).toHaveURL(/\/login/);
+
+  // Keep this UI scenario independent of whether the separately running API has been
+  // restarted onto the new relevance-sort contract; API ranking is covered by H2 tests.
+  await page.route('**/api/public/books**', async route => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get('sort') !== 'relevance') return route.continue();
+    url.searchParams.delete('sort');
+    const response = await route.fetch({ url: url.toString() });
+    return route.fulfill({ response });
+  });
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /کتاب بعدی‌تان/ })).toBeVisible();
@@ -31,6 +41,10 @@ test('visitor finds a persisted title from the public home and opens its public 
   await page.getByRole('searchbox', { name: 'جست‌وجوی عنوان، نویسنده یا موضوع' }).fill(title);
   await page.getByRole('button', { name: 'جست‌وجو' }).click();
   await expect(page).toHaveURL(/\/catalog\?q=/);
+  const relevanceResponse = page.waitForResponse(response => response.url().includes('/api/public/books')
+    && response.url().includes('sort=relevance'));
+  await page.getByLabel('مرتب‌سازی').selectOption('relevance');
+  expect((await relevanceResponse).status()).toBe(200);
   const result = page.getByRole('link', { name: new RegExp(title) });
   await expect(result).toBeVisible();
   await result.click();

@@ -1,8 +1,10 @@
 import type { MockedObject } from "vitest";
+import { PLATFORM_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { of } from 'rxjs';
 
 import { BookComponent } from './book.component';
@@ -10,10 +12,12 @@ import { BookService } from '../../core/service/book.service';
 import { BookModel } from '../../core/model/bookModel';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
 import { FilePickerComponent } from '../../shared/component/file-picker/file-picker.component';
+import { InputDeviceService } from '../../core/service/input-device.service';
+import { CameraBarcodeScannerService } from '../../core/service/camera-barcode-scanner.service';
 
 const BOOK: BookModel = {
     id: 21,
-    isbn10: '964-321-000-0',
+    isbn10: '0-306-40615-2',
     title: 'شازده کوچولو',
     author: 'اگزوپری',
     subject: 'داستان',
@@ -35,7 +39,8 @@ describe('BookComponent', () => {
             addBook: vi.fn().mockName("BookService.addBook"),
             updateBook: vi.fn().mockName("BookService.updateBook"),
             deleteBook: vi.fn().mockName("BookService.deleteBook"),
-            importBooksFromExcel: vi.fn().mockName("BookService.importBooksFromExcel")
+            importBooksFromExcel: vi.fn().mockName("BookService.importBooksFromExcel"),
+            previewBooksFromExcel: vi.fn().mockName("BookService.previewBooksFromExcel")
         } as MockedObject<BookService>;
         books.getBookList.mockReturnValue(of({ content: [BOOK], totalPages: 1, totalElements: 1, size: 10, number: 0 }));
         books.updateBook.mockReturnValue(of(BOOK));
@@ -52,7 +57,12 @@ describe('BookComponent', () => {
                 provideNoopAnimations(),
                 provideHttpClient(withXhr()),
                 provideHttpClientTesting(),
+                { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: BookService, useValue: books },
+                { provide: InputDeviceService, useValue: { effectivePolicy: vi.fn().mockReturnValue(of({
+                    formKey: 'book-registration', station: '', allowedSources: ['MANUAL', 'KEYBOARD_WEDGE'],
+                    defaultSource: 'MANUAL', scope: 'system-default', updatedBy: null, updatedAt: null, version: 0,
+                })) } },
                 { provide: ConfirmationService, useValue: confirmation },
             ],
         }).compileComponents();
@@ -68,6 +78,85 @@ describe('BookComponent', () => {
             active: boolean;
         };
         expect(filters.active).toBe(true);
+    });
+
+    it('uses the effective form input policy to control scanner entry points', () => {
+        expect(component.isInputSourceAllowed('KEYBOARD_WEDGE')).toBe(true);
+        expect(component.isInputSourceAllowed('PHONE_CAMERA')).toBe(false);
+    });
+
+    it('collects unique scans in a bounded review queue without looking them up', () => {
+        component.openBookModal(component.FormOperationEnum.ADD);
+        component.setReviewBatchMode(true);
+        component.barcodeValue = '0-306-40615-2';
+        component.lookupScannedIsbn();
+        component.barcodeValue = '0306406152';
+        component.lookupScannedIsbn();
+
+        expect(component.reviewBatchIsbns).toEqual(['0306406152']);
+        expect(component.scanStatus).toContain('از قبل');
+        expect(component.isLookingUpMetadata).toBe(false);
+
+        for (let n = 0; n < 49; n++) {
+            component.reviewBatchIsbns.push(`9780000000${String(n).padStart(3, '0')}`);
+        }
+        component.barcodeValue = '0-306-40615-2';
+        component.lookupScannedIsbn();
+        expect(component.reviewBatchIsbns).toHaveLength(50);
+        component.barcodeValue = '9780306406157';
+        component.lookupScannedIsbn();
+        expect(component.reviewBatchIsbns).toHaveLength(50);
+        expect(component.scanStatus).toContain('سقف ۵۰');
+    });
+
+    it('keeps automatic registration and review-first scan modes mutually exclusive', () => {
+        component.setContinuousScanMode(true);
+        expect(component.continuousScanMode).toBe(true);
+        expect(component.reviewBatchMode).toBe(false);
+        component.setReviewBatchMode(true);
+        expect(component.reviewBatchMode).toBe(true);
+        expect(component.continuousScanMode).toBe(false);
+    });
+
+    it('reports skipped duplicate workbook rows after an import', () => {
+        books.previewBooksFromExcel.mockReturnValue(of({
+            success: true, preview: true, totalRows: 5, eligible: 3,
+            skippedDuplicates: 2, duplicateRows: [4, 8], message: 'preview',
+        }));
+        books.importBooksFromExcel.mockReturnValue(of({
+            success: true, imported: 3, skippedDuplicates: 2, duplicateRows: [4, 8], message: 'ok',
+        }));
+        const snackBar = (component as unknown as { snackBar: MatSnackBar }).snackBar;
+        const open = vi.spyOn(snackBar, 'open');
+        component.excelImportForm.controls.excelFile.setValue(new File(['xlsx'], 'books.xlsx'));
+
+        component.onExcelImportSubmit();
+        expect(vi.mocked(books.previewBooksFromExcel)).toHaveBeenCalledWith(expect.any(File));
+        expect(component.importPreview?.eligible).toBe(3);
+        component.onExcelImportSubmit();
+
+        expect(vi.mocked(books.importBooksFromExcel)).toHaveBeenCalledWith(expect.any(File));
+        expect(open).toHaveBeenCalledWith(
+            expect.stringContaining('3 کتاب وارد شد و 2 ردیف تکراری نادیده گرفته شد. ردیف‌های تکراری: 4، 8.'),
+            'بستن',
+            expect.objectContaining({ duration: 9000, direction: 'rtl' }),
+        );
+    });
+
+    it('toggles the camera torch when supported and reports unsupported torch controls', async () => {
+        const cameraScanner = TestBed.inject(CameraBarcodeScannerService);
+        const switchTorch = vi.spyOn(cameraScanner, 'switchTorch').mockImplementation(async enabled => enabled);
+        component.torchSupported = true;
+        await component.toggleCameraTorch();
+        expect(switchTorch).toHaveBeenCalledWith(true);
+        expect(component.torchEnabled).toBe(true);
+        await component.toggleCameraTorch();
+        expect(switchTorch).toHaveBeenLastCalledWith(false);
+        expect(component.torchEnabled).toBe(false);
+
+        component.torchSupported = false;
+        await component.toggleCameraTorch();
+        expect(component.scanStatus).toContain('پشتیبانی نمی‌شود');
     });
 
     it('does not arm cover removal just by opening the edit modal', () => {
@@ -107,7 +196,7 @@ describe('BookComponent', () => {
     it('normalises an empty publication date to null for LocalDate', () => {
         component.openBookModal(component.FormOperationEnum.ADD);
         component.bookForm.patchValue({
-            isbn10: '964-321-000-1',
+            isbn10: '0-306-40615-2',
             title: 'ت',
             author: 'ن',
             subject: 'م',

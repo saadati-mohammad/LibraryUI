@@ -56,6 +56,19 @@ describe('BookService', () => {
     req.flush({ success: true, imported: 3, message: 'ok' });
   });
 
+  it('requests an import preview without committing the workbook', () => {
+    const file = new File(['x'], 'books.xlsx');
+    service.previewBooksFromExcel(file).subscribe(result => {
+      expect(result.preview).toBe(true);
+      expect(result.eligible).toBe(1);
+      expect(result.skippedInvalid).toBe(1);
+    });
+    const req = httpMock.expectOne(`${service.baseUrlExcel}/excel-import/books/preview`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body instanceof FormData).toBe(true);
+    req.flush({ success: true, preview: true, eligible: 1, skippedInvalid: 1, message: 'ok' });
+  });
+
   it('creates a book with the JSON part plus optional cover file', () => {
     const book = { title: 'T' } as BookModel;
     const cover = new File(['x'], 'cover.png');
