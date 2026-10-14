@@ -59,6 +59,18 @@
     </form>
     @if (selectedType(); as type) { <p class="capabilities">قابلیت‌ها: {{type.capabilities.join('، ')}}</p> }
   </section>
+  @if (keyboardWedgeTestProfile(); as scannerProfile) {
+    <section class="panel" aria-labelledby="scanner-test-title">
+      <h2 id="scanner-test-title">آزمون اسکنر لیزری</h2>
+      <p class="capabilities">این کادر را یک‌بار انتخاب کنید و بارکدخوان USB، Bluetooth یا Wi‑Fi را امتحان کنید. ورود آهستهٔ دستی به‌عنوان اسکن سریع تشخیص داده نمی‌شود.</p>
+      <label for="keyboardWedgeTest">کادر آزمایش اسکنر</label>
+      <input id="keyboardWedgeTest" type="text" autocomplete="off" inputmode="none"
+        [appKeyboardWedgeScanner]="scannerProfile" (scanDetected)="recordTestScan($event)"
+        (scanRejected)="rejectTestScan($event)" (enterPressed)="testScanStatus.set('ورودی سریع شناسایی نشد؛ تمرکز کادر و تنظیم پایان‌دهنده را بررسی کنید.')">
+      @if (testScanStatus()) { <p role="status" class="capabilities">{{testScanStatus()}}</p> }
+      @if (lastTestScan()) { <p>مقدار دریافتی: <code dir="ltr">{{lastTestScan()}}</code></p> }
+    </section>
+  }
   <section class="panel" aria-labelledby="device-list-title"><h2 id="device-list-title">دستگاه‌های ثبت‌شده</h2>
     @if (loading()) { <p role="status">در حال دریافت دستگاه‌ها…</p> }
     @else if (!devices().length) { <p class="empty">دستگاهی ثبت نشده است. اسکنرهای لیزری USB و Bluetooth معمولاً بدون نصب نرم‌افزار در حالت HID کار می‌کنند.</p> }

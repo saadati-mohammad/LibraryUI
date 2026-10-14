@@ -33,7 +33,8 @@ import { PagedFilterPage } from '../../shared/component/paged-filter-page';
 import { BookFormFactory, todayIso } from './book-form.factory';
 import { InputDeviceService } from '../../core/service/input-device.service';
 import { CameraBarcodeScannerService } from '../../core/service/camera-barcode-scanner.service';
-import type { InputFormPolicy } from '../../core/model/input-device.model';
+import type { InputDeviceRuntimeProfile, InputFormPolicy } from '../../core/model/input-device.model';
+import { KeyboardWedgeScannerDirective } from '../../shared/directive/keyboard-wedge-scanner.directive';
 
 export enum FormOperation {
   ADD = 'ADD',
@@ -64,6 +65,7 @@ export enum FormOperation {
     ModalComponent,
     DateInputComponent,
     FilePickerComponent,
+    KeyboardWedgeScannerDirective,
   ],
   templateUrl: './book.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -173,7 +175,18 @@ export class BookComponent extends PagedFilterPage<BookModel> implements OnInit,
 
   isInputSourceAllowed(source: string): boolean {
     const allowed = this.inputPolicy?.allowedSources;
-    return allowed ? allowed.includes(source) || allowed.some(item => item.startsWith('DEVICE:')) : true;
+    if (!allowed) return true;
+    if (allowed.includes(source)) return true;
+    return source === 'KEYBOARD_WEDGE' && !!this.keyboardWedgeProfile;
+  }
+
+  get keyboardWedgeProfile(): InputDeviceRuntimeProfile | null {
+    return this.inputPolicy?.deviceProfiles?.find(profile => profile.typeKey === 'KEYBOARD_WEDGE') ?? null;
+  }
+
+  handleKeyboardWedgeScan(value: string): void {
+    this.barcodeValue = value;
+    this.lookupScannedIsbn();
   }
 
   ngOnDestroy(): void {

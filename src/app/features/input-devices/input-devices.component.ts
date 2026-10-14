@@ -2,15 +2,16 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { toDataURL } from 'qrcode';
-import { InputDevice, InputDeviceAuditEvent, InputConfigProperty, InputSourceType, ProvisionedInputDevice } from '../../core/model/input-device.model';
+import { InputDevice, InputDeviceAuditEvent, InputConfigProperty, InputDeviceRuntimeProfile, InputSourceType, ProvisionedInputDevice } from '../../core/model/input-device.model';
 import { InputDeviceService } from '../../core/service/input-device.service';
+import { KeyboardWedgeScannerDirective } from '../../shared/directive/keyboard-wedge-scanner.directive';
 
 interface ConfigField { key: string; definition: InputConfigProperty; }
 interface DeviceDraft { name: string; typeKey: string; ownerUsername: string; station: string; config: Record<string, unknown>; }
 
 @Component({
   selector: 'app-input-devices',
-  imports: [FormsModule],
+  imports: [FormsModule, KeyboardWedgeScannerDirective],
   templateUrl: './input-devices.component.html',
   styleUrl: './input-devices.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,6 +44,8 @@ export class InputDevicesComponent implements OnInit {
   readonly policyLoading = signal(false);
   readonly policySaving = signal(false);
   readonly policyScope = signal('');
+  readonly lastTestScan = signal('');
+  readonly testScanStatus = signal('');
   readonly selectedType = computed(() => this.types().find(type => type.key === this.draft.typeKey) ?? null);
   readonly configFields = computed<ConfigField[]>(() => Object.entries(this.selectedType()?.configSchema.properties ?? {})
     .map(([key, definition]) => ({ key, definition })));
@@ -141,6 +144,16 @@ export class InputDevicesComponent implements OnInit {
   }
 
   setConfig(key: string, value: unknown): void { this.draft = { ...this.draft, config: { ...this.draft.config, [key]: value } }; }
+  keyboardWedgeTestProfile(): InputDeviceRuntimeProfile | null {
+    return this.draft.typeKey === 'KEYBOARD_WEDGE'
+      ? { deviceId: this.editing()?.id ?? 0, name: this.draft.name || 'آزمون اسکنر', typeKey: this.draft.typeKey, config: this.draft.config }
+      : null;
+  }
+  recordTestScan(value: string): void {
+    this.lastTestScan.set(value);
+    this.testScanStatus.set('اسکن سریع شناسایی شد و تنظیمات پیشوند، پسوند و پایان‌دهنده اعمال شدند.');
+  }
+  rejectTestScan(message: string): void { this.testScanStatus.set(message); }
   configValue(key: string, field: InputConfigProperty): unknown {
     const value = this.draft.config[key];
     if (value !== undefined) return value;

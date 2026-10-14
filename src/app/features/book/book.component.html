@@ -262,7 +262,8 @@
           <div class="flex flex-col gap-2 sm:flex-row">
             @if (isInputSourceAllowed('MANUAL') || isInputSourceAllowed('KEYBOARD_WEDGE')) {
             <input id="bookBarcodeScan" type="text" [value]="barcodeValue" (input)="barcodeValue = $any($event.target).value"
-              (keydown.enter)="$event.preventDefault(); lookupScannedIsbn()" autocomplete="off" inputmode="numeric"
+              [appKeyboardWedgeScanner]="keyboardWedgeProfile" (enterPressed)="lookupScannedIsbn()"
+              (scanDetected)="handleKeyboardWedgeScan($event)" (scanRejected)="scanStatus = $event" autocomplete="off" inputmode="numeric"
               aria-describedby="barcodeHelp barcodeStatus" maxlength="24" placeholder="ISBN-10 یا ISBN-13"
               class="min-w-0 flex-1 rounded-md border border-indigo-300 bg-white px-3 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-700" />
             <button type="button" (click)="lookupScannedIsbn()" [disabled]="isLookingUpMetadata"

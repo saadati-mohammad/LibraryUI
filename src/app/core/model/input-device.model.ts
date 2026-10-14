@@ -52,6 +52,14 @@ export interface InputFormPolicy {
   updatedBy: string | null;
   updatedAt: string | null;
   version: number;
+  deviceProfiles?: InputDeviceRuntimeProfile[];
+}
+
+export interface InputDeviceRuntimeProfile {
+  deviceId: number;
+  name: string;
+  typeKey: string;
+  config: Record<string, unknown>;
 }
 
 export interface SaveInputFormPolicy {

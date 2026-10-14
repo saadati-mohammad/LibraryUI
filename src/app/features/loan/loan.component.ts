@@ -28,6 +28,8 @@ import { ListComponent, TableColumn } from '../../shared/component/list/list.com
 import { ModalComponent } from '../../shared/component/modal/modal.component';
 import { ConfirmationService } from '../../shared/service/confirmation.service';
 import { PagedFilterPage } from '../../shared/component/paged-filter-page';
+import { KeyboardWedgeScannerDirective } from '../../shared/directive/keyboard-wedge-scanner.directive';
+import type { InputDeviceRuntimeProfile, InputFormPolicy } from '../../core/model/input-device.model';
 
 /** Bounded autocomplete page size — never fetch a thousand rows to fill a picker. */
 const SEARCH_PAGE_SIZE = 25;
@@ -66,7 +68,8 @@ function requireSelectedId(): ValidatorFn {
     MatCardModule,
     MatSnackBarModule,
     ListComponent,
-    ModalComponent
+    ModalComponent,
+    KeyboardWedgeScannerDirective,
 ],
   templateUrl: './loan.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -84,6 +87,8 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
   scanStatus = '';
   scannerInputAllowed = true;
   returnScannerAllowed = true;
+  private checkoutInputPolicy: InputFormPolicy | null = null;
+  private returnInputPolicy: InputFormPolicy | null = null;
   returnScanValue = '';
   returnScanStatus = '';
   scanTarget: 'book' | 'member' = 'book';
@@ -145,9 +150,10 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
     // lifetime of the SPA after the route was left.
     this.watchFilters(this.filtersForm);
     this.inputDevices.effectivePolicy('loan-return').subscribe({
-      next: policy => { this.returnScannerAllowed = policy.allowedSources.some(source =>
-        source === 'KEYBOARD_WEDGE' || source.startsWith('DEVICE:'),
-      ); },
+      next: policy => {
+        this.returnInputPolicy = policy;
+        this.returnScannerAllowed = policy.allowedSources.includes('KEYBOARD_WEDGE') || !!this.returnWedgeProfile;
+      },
       error: () => { this.returnScannerAllowed = true; },
     });
 
@@ -223,9 +229,8 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
     this.scanStatus = '';
     this.inputDevices.effectivePolicy('loan-checkout').subscribe({
       next: policy => {
-        this.scannerInputAllowed = policy.allowedSources.some(source =>
-          source === 'KEYBOARD_WEDGE' || source.startsWith('DEVICE:'),
-        );
+        this.checkoutInputPolicy = policy;
+        this.scannerInputAllowed = policy.allowedSources.includes('KEYBOARD_WEDGE') || !!this.checkoutWedgeProfile;
       },
       // Manual entry remains available when the policy service cannot be reached.
       error: () => { this.scannerInputAllowed = true; },
@@ -293,6 +298,24 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
         },
         error: () => { this.scanStatus = 'جست‌وجوی عضو انجام نشد؛ اتصال شبکه را بررسی کنید یا عضو را دستی انتخاب کنید.'; },
       });
+  }
+
+  get checkoutWedgeProfile(): InputDeviceRuntimeProfile | null {
+    return this.checkoutInputPolicy?.deviceProfiles?.find(profile => profile.typeKey === 'KEYBOARD_WEDGE') ?? null;
+  }
+
+  get returnWedgeProfile(): InputDeviceRuntimeProfile | null {
+    return this.returnInputPolicy?.deviceProfiles?.find(profile => profile.typeKey === 'KEYBOARD_WEDGE') ?? null;
+  }
+
+  handleCheckoutWedgeScan(value: string): void {
+    this.scanValue = value;
+    this.processLoanScan();
+  }
+
+  handleReturnWedgeScan(value: string): void {
+    this.returnScanValue = value;
+    this.processReturnScan();
   }
 
   processReturnScan(value = this.returnScanValue): void {
