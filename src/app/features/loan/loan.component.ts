@@ -1,9 +1,10 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Component, DestroyRef, inject, OnInit, PLATFORM_ID, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
+import { LoanFormFactory } from './loan-form.factory';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -37,17 +38,6 @@ const SEARCH_PAGE_SIZE = 25;
 /** Debounce for the type-ahead searches (ms). */
 const SEARCH_DEBOUNCE_MS = 300;
 
-/**
- * Validator for a `<mat-autocomplete>`-backed control.
- *
- * `mat-autocomplete` writes the raw *string* into the control while the user types, so a
- * free-typed name would otherwise be posted as `personId`. Requiring a number forces a
- * real option selection.
- */
-function requireSelectedId(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null =>
-    typeof control.value === 'number' ? null : { selectionRequired: true };
-}
 
 @Component({
   selector: 'app-loan',
@@ -118,7 +108,7 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
   private readonly personSearch$ = new Subject<string>();
   private readonly bookSearch$ = new Subject<string>();
 
-  private fb = inject(FormBuilder);
+  private formFactory = inject(LoanFormFactory);
   private loanService = inject(BookLoanService);
   private personService = inject(PersonService);
   private bookService = inject(BookService);
@@ -129,17 +119,8 @@ export class LoanComponent extends PagedFilterPage<BookLoanModel> implements OnI
 
   constructor() {
     super();
-    this.loanForm = this.fb.group({
-      personId: [null, [Validators.required, requireSelectedId()]],
-      bookId: [null, [Validators.required, requireSelectedId()]],
-      notes: [''],
-    });
-
-    this.filtersForm = this.fb.group({
-      personNationalId: [''],
-      bookIsbn: [''],
-      status: [null as LoanStatus | null],
-    });
+    this.loanForm = this.formFactory.createLoanForm();
+    this.filtersForm = this.formFactory.createFiltersForm();
   }
 
   ngOnInit(): void {

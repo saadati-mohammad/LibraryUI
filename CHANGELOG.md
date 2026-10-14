@@ -36,7 +36,7 @@ Entries cover the coordinated `feature/system-overhaul` branch (2026-10-11 → 2
 - **Per-device QR enrollment** flow in the device admin UI. [T-011]
 - **`CameraBarcodeScannerService`**: camera lifecycle, decoder control and torch/stream cancellation
   extracted from `BookComponent`. [T-040]
-- **`BookFormFactory` / `PersonFormFactory`**: form schema construction extracted from components.
+- **`BookFormFactory` / `PersonFormFactory` / `LoanFormFactory`**: form schema construction extracted from components.
   [T-040]
 
 ### Fixed
@@ -53,7 +53,7 @@ Entries cover the coordinated `feature/system-overhaul` branch (2026-10-11 → 2
   profile-aware HID handling; manual Enter behavior preserved when no profile is active. [T-012]
 - Book barcode input wired to directive; `handleKeyboardWedgeScan` dispatches detected value to
   existing ISBN lookup flow. [T-011 T-012]
-- `AUDIT_PROGRESS.md` updated with 2026-10-14 evidence: 186 unit tests, 196 API tests, production
+- `AUDIT_PROGRESS.md` updated with 2026-10-14 evidence: 189 unit tests, 196 API tests, production
   build, npm audit 0 high, CHANGELOG and handoff produced. [T-018]
 
 ### Infrastructure / CI
@@ -68,7 +68,7 @@ Entries cover the coordinated `feature/system-overhaul` branch (2026-10-11 → 2
 |---|---|
 | `npm run lint` | ✓ All files pass |
 | `npm run typecheck` | ✓ No errors |
-| `npm run test:ci` | ✓ 186 tests, 0 failures (33 files) |
+| `npm run test:ci` | ✓ 189 tests, 0 failures (34 files) |
 | `npm run build` | ✓ Clean (2 expected CommonJS warnings for qrcode/dijkstrajs) |
 | `npm audit --omit=peer --audit-level=high` | ✓ 0 vulnerabilities |
 

@@ -31,7 +31,7 @@ See `docs/AUDIT_PROGRESS.md` for the full task-by-task evidence record.
 |---|---|
 | `npm run lint` | ✓ All files pass (ESLint) |
 | `npm run typecheck` | ✓ No TypeScript errors |
-| `npm run test:ci` | ✓ **186 tests, 0 failures** (33 spec files, Vitest) |
+| `npm run test:ci` | ✓ **189 tests, 0 failures** (34 spec files, Vitest) |
 | `npm run build` | ✓ Clean production bundle (2 expected CommonJS warnings: qrcode/dijkstrajs) |
 | `npm audit --omit=peer --audit-level=high` | ✓ 0 high vulnerabilities |
 
