@@ -50,15 +50,18 @@ See `docs/AUDIT_PROGRESS.md` for the full task-by-task evidence record.
 
 ---
 
-## 3. Open items before merge
+## 3. Merge readiness and procedure
 
-Before merging `feature/system-overhaul` → `master`:
+Both repositories have passed all local verification and GitHub Actions CI on their feature branches:
 
-1. **Push UI commit** `2561559` to `origin/feature/system-overhaul` (one commit ahead of origin)
-2. **Confirm GitHub CI** passes both jobs (`build` and `integration`) on the new UI head
-3. **Open coordinated PRs**: backend PR first, then frontend PR referencing it
-4. **Run Playwright E2E** against a clean H2 backend and confirm 89+/1-skip
-5. **Merge API PR** first; then merge UI PR after its CI integration job clones the new API master
+- **libraryBk** (`feature/system-overhaul` @ `a1e6e11`): CI Run 56 (`38518753840`) — **Build & Test: PASS** (196 tests, 0 failures)
+- **LibraryUI** (`feature/system-overhaul` @ `30fb746`): CI Run 57 (`38519558527`) — **Build & Test: PASS**, **Integration E2E: PASS** (both jobs green)
+
+### Coordinated Merge Sequence:
+1. **Merge libraryBk first**: `feature/system-overhaul` → `master` on `saadati-mohammad/libraryBk`.
+2. **Verify libraryBk master CI**: confirm `master` build completes cleanly.
+3. **Merge LibraryUI second**: `feature/system-overhaul` → `master` on `saadati-mohammad/LibraryUI`.
+4. **Verify LibraryUI master CI**: confirm `master` build and integration jobs pass.
 
 ---
 
