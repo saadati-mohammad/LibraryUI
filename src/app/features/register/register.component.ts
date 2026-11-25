@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { NgForm } from '@angular/forms';
+import type { NgForm, NgModel } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/service/auth.service';
@@ -36,17 +36,17 @@ import { PublicNavComponent } from '../../shared/component/public-nav/public-nav
             @if (showError(nationalIdField)) { <small class="field-error" id="nationalIdError">کد ملی باید دقیقاً ۱۰ رقم انگلیسی باشد.</small> }
           </label>
           <label>شمارهٔ همراه <span class="optional">اختیاری</span><input name="phone" [(ngModel)]="phone" type="tel" autocomplete="tel" maxlength="30" dir="ltr"></label>
-          <label>گذرواژه
-            <span class="password-control"><input name="password" [(ngModel)]="password" #passwordField="ngModel" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" required minlength="12" maxlength="128" [attr.aria-invalid]="showError(passwordField)" aria-describedby="passwordHelp passwordError"><button class="reveal" type="button" (click)="showPassword.update(value => !value)" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'پنهان‌کردن گذرواژه' : 'نمایش گذرواژه'">{{ showPassword() ? 'پنهان' : 'نمایش' }}</button></span>
+          <div class="field-group"><label for="register-password">گذرواژه</label>
+            <span class="password-control"><input id="register-password" name="password" [(ngModel)]="password" #passwordField="ngModel" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" required minlength="12" maxlength="128" [attr.aria-invalid]="showError(passwordField)" aria-describedby="passwordHelp passwordError"><button class="reveal" type="button" (click)="showPassword.update(value => !value)" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'پنهان‌کردن گذرواژه' : 'نمایش گذرواژه'">{{ showPassword() ? 'پنهان' : 'نمایش' }}</button></span>
             <small id="passwordHelp">حداقل ۱۲ نویسه</small>
             @if (showError(passwordField)) { <small class="field-error" id="passwordError">گذرواژه باید دست‌کم ۱۲ نویسه داشته باشد.</small> }
             <small class="requirement" [class.met]="password.length >= 12">{{ password.length >= 12 ? '✓' : '○' }} حداقل ۱۲ نویسه</small>
-          </label>
-          <label>تکرار گذرواژه
-            <span class="password-control"><input name="confirmPassword" [(ngModel)]="confirmPassword" #confirmField="ngModel" [type]="showConfirmPassword() ? 'text' : 'password'" autocomplete="new-password" required minlength="12" maxlength="128" [attr.aria-invalid]="showError(confirmField) || passwordMismatch" aria-describedby="confirmError"><button class="reveal" type="button" (click)="showConfirmPassword.update(value => !value)" [attr.aria-pressed]="showConfirmPassword()" [attr.aria-label]="showConfirmPassword() ? 'پنهان‌کردن تکرار گذرواژه' : 'نمایش تکرار گذرواژه'">{{ showConfirmPassword() ? 'پنهان' : 'نمایش' }}</button></span>
+          </div>
+          <div class="field-group"><label for="register-confirm-password">تکرار گذرواژه</label>
+            <span class="password-control"><input id="register-confirm-password" name="confirmPassword" [(ngModel)]="confirmPassword" #confirmField="ngModel" [type]="showConfirmPassword() ? 'text' : 'password'" autocomplete="new-password" required minlength="12" maxlength="128" [attr.aria-invalid]="showError(confirmField) || passwordMismatch" aria-describedby="confirmError"><button class="reveal" type="button" (click)="showConfirmPassword.update(value => !value)" [attr.aria-pressed]="showConfirmPassword()" [attr.aria-label]="showConfirmPassword() ? 'پنهان‌کردن رمز' : 'نمایش رمز'">{{ showConfirmPassword() ? 'پنهان' : 'نمایش' }}</button></span>
             @if (showError(confirmField) || passwordMismatch) { <small class="field-error" id="confirmError">{{ passwordMismatch ? 'تکرار گذرواژه با گذرواژه یکسان نیست.' : 'تکرار گذرواژه را وارد کنید.' }}</small> }
             <small class="requirement" [class.met]="password.length > 0 && password === confirmPassword">{{ password.length > 0 && password === confirmPassword ? '✓' : '○' }} گذرواژه‌ها یکسان باشند</small>
-          </label>
+          </div>
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
           <button type="submit" [disabled]="loading()" [attr.aria-busy]="loading()">{{ loading() ? 'در حال ایجاد حساب…' : 'ایجاد حساب' }}</button>
         </form>
@@ -55,7 +55,9 @@ import { PublicNavComponent } from '../../shared/component/public-nav/public-nav
     </main>
   `,
   styles: [`
+    .field-group{display:grid;gap:6px}.register-card small{color:#56665f}
     :host{display:block;min-height:100vh;background:#f5f7f2;color:#183c33}.register-page{padding:38px 16px 70px}.register-card{width:min(560px,100%);margin:auto;padding:clamp(22px,5vw,42px);background:#fff;border:1px solid #e1e9e3;border-radius:22px;box-shadow:0 12px 38px #173d340b}.eyebrow{margin:0;color:#34745f;font-weight:700}.register-card h1{font-size:clamp(1.8rem,5vw,2.5rem);margin:5px 0}.intro{color:#60766e;line-height:1.8;margin:5px 0 24px}.register-card form{display:grid;gap:14px}.register-card label{display:grid;gap:6px;font-weight:650}.register-card input{height:48px;width:100%;border:1px solid #cfdcd4;border-radius:10px;padding:0 12px;font:inherit;color:#183c33;background:white}.register-card input:focus-visible,.register-card button:focus-visible{outline:3px solid #75ad91;outline-offset:2px}.register-card input[aria-invalid=true]{border-color:#b5443e}.register-card small{color:#718078;font-weight:400}.register-card .field-error,.error-summary,.error{color:#8e2f2b}.name-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.optional{font-weight:400;color:#718078;font-size:.85rem}.password-control{display:flex;align-items:center;gap:8px}.password-control input{flex:1;min-width:0}.reveal{height:40px;padding:0 10px;border:1px solid #cfdcd4;border-radius:8px;background:#f5f7f2;color:#155e4b;font:inherit;cursor:pointer}.requirement{font-size:.85rem}.requirement.met{color:#176a48}.register-card form>button{min-height:49px;border:0;border-radius:11px;background:#155e4b;color:#fff;font:inherit;font-weight:700;cursor:pointer}.register-card form>button:disabled{opacity:.7;cursor:wait}.error-summary,.error{margin:0;padding:11px;border-radius:9px;background:#fff0ef}.sign-in{text-align:center;margin:20px 0 0;color:#60766e}.sign-in a{color:#155e4b;font-weight:700}@media(max-width:480px){.register-page{padding-top:22px}.name-grid{grid-template-columns:1fr}}
+    .register-card small{color:#56665f!important}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -73,7 +75,7 @@ export class RegisterComponent {
 
   get passwordMismatch(): boolean { return this.confirmPassword.length > 0 && this.password !== this.confirmPassword; }
 
-  showError(control: { invalid: boolean; touched: boolean } | null | undefined): boolean {
+  showError(control: NgModel | null | undefined): boolean {
     return !!control?.invalid && (control.touched || this.submitted());
   }
 
@@ -83,7 +85,10 @@ export class RegisterComponent {
     form.control.markAllAsTouched();
     if (form.invalid || this.passwordMismatch) {
       this.error.set(null);
-      queueMicrotask(() => this.host.nativeElement.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+      queueMicrotask(() => {
+        const firstInvalid = this.host.nativeElement.querySelector('[aria-invalid="true"]') as HTMLElement | null;
+        firstInvalid?.focus();
+      });
       return;
     }
     this.loading.set(true);
