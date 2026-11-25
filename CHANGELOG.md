@@ -5,6 +5,12 @@ Entries cover the coordinated `feature/system-overhaul` branch (2026-10-11 → 2
 
 ## [Unreleased] — feature/system-overhaul
 
+### Updated
+
+- **Registration feedback:** submit remains available until the request is running; invalid fields are identified inline, focus moves to the first invalid field, and password visibility and matching requirements are explicit.
+- **Public discovery states:** home book and subject sections now report loading, empty and retryable error states. Replaced the misleading “without fabricated titles” hero note with clear catalog copy.
+- **Dashboard calendar:** monthly loan labels now use Jalali month and year formatting, matching the Persian calendar used elsewhere in the product.
+
 ### Added
 
 - **HID keyboard-wedge profile integration** (`KeyboardWedgeScannerDirective`): standalone Angular directive

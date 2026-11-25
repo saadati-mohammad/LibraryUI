@@ -17,22 +17,6 @@ import { parseIsoDate } from '../../core/util/date.util';
 // this also covers the (unlikely) case of the dashboard chunk being evaluated twice.
 Chart.register(...registerables);
 
-/** Persian month names indexed by `Date.getMonth()`. */
-const PERSIAN_MONTHS = [
-  'ژانویه',
-  'فوریه',
-  'مارس',
-  'آوریل',
-  'مه',
-  'ژوئن',
-  'ژوئیه',
-  'اوت',
-  'سپتامبر',
-  'اکتبر',
-  'نوامبر',
-  'دسامبر',
-];
-
 const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
 
 /** Converts the ASCII digits of a number to Persian digits for a consistently RTL UI. */
@@ -40,15 +24,18 @@ export function toPersianDigits(value: number | string): string {
   return String(value).replace(/\d/g, (digit) => PERSIAN_DIGITS[Number(digit)]);
 }
 
-/** `yyyy-MM` → `ژانویه ۲۰۲۵`; falls back to the raw label when the shape is unexpected. */
+/** `yyyy-MM` → Jalali month and year; falls back to the raw label when the shape is unexpected. */
 function formatMonthLabel(month: string): string {
   const match = /^(\d{4})-(\d{2})$/.exec(month ?? '');
   if (!match) {
     return month ?? '';
   }
   const monthIndex = Number(match[2]) - 1;
-  const name = PERSIAN_MONTHS[monthIndex] ?? match[2];
-  return `${name} ${toPersianDigits(match[1])}`;
+  if (monthIndex < 0 || monthIndex > 11) return month;
+  const middleOfMonth = new Date(Date.UTC(Number(match[1]), monthIndex, 15));
+  return new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+    month: 'long', year: 'numeric', timeZone: 'UTC',
+  }).format(middleOfMonth);
 }
 
 /** Persian rendering of an ISO `yyyy-MM-dd` date. */

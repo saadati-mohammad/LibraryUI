@@ -12,7 +12,7 @@
         <button type="submit">جست‌وجو</button>
       </form>
       <div class="hero-actions"><a class="primary-action" routerLink="/catalog">دیدن فهرست کتاب‌ها <span aria-hidden="true">←</span></a><a class="text-action" routerLink="/login">ورود اعضا</a></div>
-      <p class="trust-note"><span aria-hidden="true">✓</span> فهرست زندهٔ کتابخانه، بدون عنوان ساختگی</p>
+      <p class="trust-note"><span aria-hidden="true">✓</span> کتاب‌های ثبت‌شدهٔ کتابخانه را جست‌وجو کنید.</p>
     </div>
     <div class="hero-art" aria-hidden="true">
       <div class="sun"></div><div class="book book-back"><i></i></div><div class="book book-mid"><i></i></div><div class="book book-front"><b>دانش<br>در سفر است</b><i></i><small>کتابخانه</small></div>
@@ -23,7 +23,7 @@
   <section class="discovery section-wrap" aria-labelledby="new-books-title">
     <div class="section-heading"><div><p class="eyebrow">از قفسه‌های کتابخانه</p><h2 id="new-books-title">تازه در فهرست</h2></div><a routerLink="/catalog">همهٔ کتاب‌ها <span aria-hidden="true">←</span></a></div>
     @if (loading()) { <p class="status" role="status">در حال دریافت فهرست کتاب‌ها…</p> }
-    @else if (failed()) { <p class="status" role="alert">فهرست اکنون در دسترس نیست. دوباره تلاش کنید یا بعداً به فهرست سر بزنید.</p> }
+    @else if (failed()) { <div class="status" role="alert"><p>فهرست اکنون در دسترس نیست.</p><button type="button" (click)="retryBooks()">تلاش دوباره</button></div> }
     @else if (books().length === 0) { <p class="status">هنوز کتابی برای نمایش ثبت نشده است. به‌زودی دوباره سر بزنید.</p> }
     @else {
       <div class="book-grid">
@@ -42,9 +42,11 @@
 
   <section class="categories-section" aria-labelledby="categories-title"><div class="section-wrap">
     <div class="section-heading"><div><p class="eyebrow">از علاقه‌تان شروع کنید</p><h2 id="categories-title">موضوع‌هایی برای گشت‌وگذار</h2></div><a routerLink="/categories">همهٔ موضوع‌ها <span aria-hidden="true">←</span></a></div>
-    @if (categories().length) { <div class="category-grid">
+    @if (categoriesLoading()) { <p class="muted" role="status">در حال دریافت موضوع‌ها…</p> }
+    @else if (categoriesFailed()) { <div class="status" role="alert"><p>دریافت موضوع‌ها ممکن نشد.</p><button type="button" (click)="retryCategories()">تلاش دوباره</button></div> }
+    @else if (categories().length) { <div class="category-grid">
       @for (category of categories(); track category.name) { <a class="category-card" routerLink="/catalog" [queryParams]="{subject: category.name}"><span aria-hidden="true">✳</span><span><strong>{{ category.name }}</strong><small>{{ category.titleCount }} عنوان</small></span><b aria-hidden="true">←</b></a> }
-    </div> } @else { <p class="muted">موضوع‌ها پس از ثبت کتاب در این بخش نمایش داده می‌شوند.</p> }
+    </div> } @else { <p class="muted">هنوز موضوعی در فهرست کتابخانه ثبت نشده است.</p> }
   </div></section>
 
   <section class="how-section section-wrap" id="how-it-works" aria-labelledby="how-title"><div class="how-intro"><p class="eyebrow">شروع ساده است</p><h2 id="how-title">از جست‌وجو تا ورق زدن</h2><p>فهرست را ببینید و عنوان مناسب را پیدا کنید. برای امانت و رزرو، اعضا می‌توانند با کتابخانه وارد ارتباط شوند.</p><a routerLink="/catalog" class="primary-action">شروع جست‌وجو <span aria-hidden="true">←</span></a></div>

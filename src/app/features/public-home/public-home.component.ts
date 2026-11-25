@@ -22,6 +22,8 @@ export class PublicHomeComponent implements OnInit {
   readonly categories = signal<PublicCategory[]>([]);
   readonly loading = signal(true);
   readonly failed = signal(false);
+  readonly categoriesLoading = signal(true);
+  readonly categoriesFailed = signal(false);
 
   ngOnInit(): void {
     this.title.setTitle('کتابخانه | کشف کتاب‌های تازه');
@@ -30,7 +32,27 @@ export class PublicHomeComponent implements OnInit {
       next: page => { this.books.set(page.content); this.loading.set(false); },
       error: () => { this.failed.set(true); this.loading.set(false); },
     });
-    this.catalog.categories().subscribe({ next: rows => this.categories.set(rows.slice(0, 8)) });
+    this.loadCategories();
+  }
+
+  retryBooks(): void {
+    this.loading.set(true);
+    this.failed.set(false);
+    this.catalog.list({ page: 0, sort: 'id,desc' }).subscribe({
+      next: page => { this.books.set(page.content); this.loading.set(false); },
+      error: () => { this.failed.set(true); this.loading.set(false); },
+    });
+  }
+
+  retryCategories(): void { this.loadCategories(); }
+
+  private loadCategories(): void {
+    this.categoriesLoading.set(true);
+    this.categoriesFailed.set(false);
+    this.catalog.categories().subscribe({
+      next: rows => { this.categories.set(rows.slice(0, 8)); this.categoriesLoading.set(false); },
+      error: () => { this.categoriesFailed.set(true); this.categoriesLoading.set(false); },
+    });
   }
 
   search(query: string): void {

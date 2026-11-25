@@ -72,8 +72,8 @@ describe('DashboardComponent', () => {
         expect(component.monthlyLoansChartData.labels?.length).toBe(2);
         expect(component.monthlyLoansChartData.datasets[0].data).toEqual([12, 19]);
         expect(component.monthlyRows()).toEqual([
-            { label: 'ژانویه ۲۰۲۵', count: 12 },
-            { label: 'فوریه ۲۰۲۵', count: 19 },
+            { label: 'دی ۱۴۰۳', count: 12 },
+            { label: 'بهمن ۱۴۰۳', count: 19 },
         ]);
 
         // The old implementation invented the series with Math.random(); make sure the
