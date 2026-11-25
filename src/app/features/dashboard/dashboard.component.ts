@@ -33,9 +33,12 @@ function formatMonthLabel(month: string): string {
   const monthIndex = Number(match[2]) - 1;
   if (monthIndex < 0 || monthIndex > 11) return month;
   const middleOfMonth = new Date(Date.UTC(Number(match[1]), monthIndex, 15));
-  return new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+  const parts = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
     month: 'long', year: 'numeric', timeZone: 'UTC',
-  }).format(middleOfMonth);
+  }).formatToParts(middleOfMonth);
+  const name = parts.find((part) => part.type === 'month')?.value ?? match[2];
+  const year = parts.find((part) => part.type === 'year')?.value ?? '';
+  return `${name} ${year}`.trim();
 }
 
 /** Persian rendering of an ISO `yyyy-MM-dd` date. */

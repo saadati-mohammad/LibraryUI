@@ -1,11 +1,12 @@
 import type { MockedObject } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { RegisterComponent } from './register.component';
 import { AuthService, LoginResponse } from '../../core/service/auth.service';
+import { MemberProfile } from '../../core/model/public-catalog.model';
 
 const SESSION: LoginResponse = { token: 'token', username: 'member@example.test', role: 'MEMBER', expiresInSeconds: 3600 };
 
@@ -20,14 +21,14 @@ describe('RegisterComponent', () => {
       register: vi.fn().mockName('AuthService.register'),
       login: vi.fn().mockName('AuthService.login'),
     } as MockedObject<AuthService>;
-    auth.register.mockReturnValue(of({} as never));
+    auth.register.mockReturnValue(of({ id: 1, firstName: 'سارا', lastName: 'احمدی', email: 'member@example.test', phone: null, membershipDate: null, membershipType: null, active: true } satisfies MemberProfile));
     auth.login.mockReturnValue(of(SESSION));
-    router = { navigateByUrl: vi.fn().mockName('Router.navigateByUrl') } as MockedObject<Router>;
-    router.navigateByUrl.mockResolvedValue(true);
     await TestBed.configureTestingModule({
       imports: [RegisterComponent],
-      providers: [provideNoopAnimations(), { provide: AuthService, useValue: auth }, { provide: Router, useValue: router }],
+      providers: [provideNoopAnimations(), provideRouter([]), { provide: AuthService, useValue: auth }],
     }).compileComponents();
+    router = TestBed.inject(Router) as MockedObject<Router>;
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     fixture = TestBed.createComponent(RegisterComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
